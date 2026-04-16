@@ -1,49 +1,33 @@
 package com.example.organizer
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.room.Room
-import com.example.organizer.data.AppDatabase
-import com.example.organizer.data.UserRepository
-import com.example.organizer.ui.UserViewModel
+import androidx.compose.material3.Text
+import com.example.organizer.data.Person
+import com.example.organizer.data.PersonDatabase
 import com.example.organizer.ui.theme.ExerciseOrganizerAppTheme
-import com.example.organizer.ui.UserScreen
+import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java,
-            "user_database"
-        ).build()
 
-        val repository = UserRepository(db.userDao())
-        val viewModel = UserViewModel(repository)
+        val db = PersonDatabase.get(this)
+        val dao = db.dao
 
-        setContent {
-            ExerciseOrganizerAppTheme {
-                UserScreen(viewModel)
-            }
+        //Insert
+        dao.insert(
+            Person(name = "Alice", age = 25),
+            Person(name = "Bob", age = 30)
+        )
+
+        //Read
+        val people = dao.getPeople()
+
+        people.forEach {
+            Log.d("DB", "${it.name} - ${it.age}")
         }
     }
 }
-
-//@Composable
-//fun Greeting(name: String, modifier: Modifier = Modifier) {
-//    val users = listOf("Bob", "Oll")
-//    Column(modifier = modifier) {
-//        for (user in users) {
-//            Text(text = "Hello $user!")
-//        }
-//    }
-//}
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun GreetingPreview() {
-//    ExerciseOrganizerAppTheme {
-//        Greeting("Android")
-//    }
-//}

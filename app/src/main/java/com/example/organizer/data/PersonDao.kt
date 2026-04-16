@@ -11,5 +11,5 @@ interface PersonDao {
     fun insert(vararg people: Person)
 
     @Query("SELECT * FROM Person")
-    fun getPeople(): Flow<List<Person>>
+    fun getAll(): Flow<List<Person>>
 }

@@ -1,9 +1,9 @@
 package com.example.organizer
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -14,44 +14,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.organizer.data.Person
-import com.example.organizer.data.PersonDao
-import com.example.organizer.data.PersonDatabase
-import com.example.organizer.data.PersonRepository
+import com.example.organizer.presentation.ViewModel
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: ViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val db = PersonDatabase.get(this)
-        val dao = db.dao
-
         setContent {
-            AddNewPerson(dao)
-            OutputDB(dao)
+            OutputDB(viewModel)
         }
     }
 }
 
 @Composable
-fun AddNewPerson(dao: PersonDao) {
-    val repo = PersonRepository(dao)
-
-    Button(onClick = { repo.insert(Person(name = "Mandi", age = 18)) }) {
-        Text(
-            "Add New Person",
-            modifier = Modifier.padding(8.dp)
-        )
-    }
-}
-
-@Composable
-fun OutputDB(dao: PersonDao) {
-    val repo = PersonRepository(dao)
-    val people by repo.getAll().collectAsState(initial = emptyList())
+fun OutputDB(viewModel: ViewModel) {
+    val people by viewModel.readAll.collectAsState(initial = emptyList())
 
     Column(modifier = Modifier.padding(64.dp)) {
         people.forEach {
             Text(text = "${it.name} - ${it.age}")
+        }
+
+        Button(
+            onClick = {
+                viewModel.addNew(Person(name = "New Person", age = 20))
+            }
+        ) {
+            Text("Add Person")
         }
     }
 }

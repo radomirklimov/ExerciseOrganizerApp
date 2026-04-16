@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PersonDao {
     @Insert
-    fun insert(vararg people: Person)
+    suspend fun insert(vararg people: Person)
 
     @Query("SELECT * FROM Person")
     fun getAll(): Flow<List<Person>>

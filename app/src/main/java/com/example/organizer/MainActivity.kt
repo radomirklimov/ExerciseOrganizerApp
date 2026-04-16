@@ -4,8 +4,14 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.example.organizer.data.Person
+import com.example.organizer.data.PersonDao
 import com.example.organizer.data.PersonDatabase
 import com.example.organizer.ui.theme.ExerciseOrganizerAppTheme
 import kotlin.math.log
@@ -28,6 +34,21 @@ class MainActivity : ComponentActivity() {
 
         people.forEach {
             Log.d("DB", "${it.name} - ${it.age}")
+        }
+
+        setContent {
+            OutputDB(dao)
+        }
+
+    }
+}
+
+@Composable
+fun OutputDB(dao: PersonDao){
+    val people = dao.getPeople()
+    Column(modifier = Modifier.padding(16.dp)) {
+        people.forEach {
+            Text(text = "${it.name} - ${it.age}")
         }
     }
 }

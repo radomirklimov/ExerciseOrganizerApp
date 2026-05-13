@@ -1,21 +1,21 @@
-package com.example.organizer.data
+package com.example.organizer.local
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.organizer.data.dao.ExerciseDao
-import com.example.organizer.data.entity.ExerciseEntity
+import com.example.organizer.local.dao.CategoryDao
+import com.example.organizer.local.entity.CategoryEntity
 
 @Database(
     version = 1,
     entities = [
-        ExerciseEntity::class
+        CategoryEntity::class
     ],
     exportSchema = false
 )
 abstract class OrganizerDatabase : RoomDatabase() {
-    abstract val dao: ExerciseDao
+    abstract val dao: CategoryDao
 
     companion object {
         @Volatile private var INSTANCE: OrganizerDatabase? = null

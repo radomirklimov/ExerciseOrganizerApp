@@ -12,6 +12,8 @@ room_version = "2.7.0-alpha11"
 ksp = "2.3.4"
 coil-compose = "2.7.0"
 gson = "2.14.0"
+retrofit = "3.0.0"
+viewmodel-compose = "2.8.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -28,6 +30,7 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "viewmodel-compose" }
 
 #Room
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room_version" }
@@ -37,6 +40,11 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 
 #Gson
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+
+#Retrofit
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+#Retrofit with Scalar Converter
+converter-scalar = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
 
 [plugins]
 devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

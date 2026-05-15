@@ -50,8 +50,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.viewmodel.compose)
-    implementation(libs.retrofit)
-    implementation(libs.converter.scalar)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -59,7 +57,6 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
     //Room
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
@@ -67,4 +64,6 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.gson)
+    implementation(libs.retrofit)
+    implementation(libs.converter.scalar)
 }

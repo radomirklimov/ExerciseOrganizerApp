@@ -6,10 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.organizer.network.Api
+import com.example.organizer.network.models.Category
 import kotlinx.coroutines.launch
 
 class OrganizerViewModel: ViewModel() {
-    var categoriesUiState: String by mutableStateOf("")
+    var categoriesUiState: List<Category> by mutableStateOf(listOf())
         private set
 
     init {

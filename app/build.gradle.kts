@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.devtools.ksp)
+    alias(libs.plugins.serialization)
 }
 
 android {
@@ -60,10 +61,10 @@ dependencies {
     //Room
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
-
-    implementation(libs.coil.compose)
-
-    implementation(libs.gson)
     implementation(libs.retrofit)
     implementation(libs.converter.scalar)
+    implementation(libs.serialization.converter)
+    implementation(libs.okhttp)
+    implementation(libs.serialization.json)
+    implementation(libs.coil)
 }

@@ -1,13 +1,23 @@
 package com.example.organizer.local.entity
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
-import java.util.UUID
 
-@Entity
+@Entity(
+    "category",
+    foreignKeys = [
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["categoryId"],
+            childColumns = ["parentCategoryId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
+)
 data class CategoryEntity(
     @PrimaryKey
-    var categoryId: String = UUID.randomUUID().toString(),
-    var name: String,
-    var parentCategory: String,
+    val categoryId: Long,
+    val name: String,
+    val parentCategoryId: Long?,
 )

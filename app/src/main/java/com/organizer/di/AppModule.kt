@@ -26,13 +26,17 @@ import kotlin.jvm.java
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    private val json = Json {
+        ignoreUnknownKeys = true
+    }
+
     @Provides
     @Singleton
     fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(AppConfig.API_BASE_URL)
+            .baseUrl(AppConfig.API_BASE_URL.trimEnd('/') + "/")
             .addConverterFactory(
-                Json.asConverterFactory(
+                json.asConverterFactory(
                     "application/json".toMediaType()
                 )
             )

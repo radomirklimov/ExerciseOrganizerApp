@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,6 +29,16 @@ fun SportsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val errorMessage = viewModel.errorMessage
     val isLoading by viewModel.isSyncing.collectAsState()
+
+    // Visible sport icons download first; the rest of the library media keeps
+    // downloading in the background.
+    LaunchedEffect(searchResults, searchQuery) {
+        if (searchQuery.isBlank()) {
+            viewModel.prioritizeSportsIcons(
+                searchResults.filterIsInstance<SearchResult.Sport>().map { it.sport }
+            )
+        }
+    }
 
     Column(
         modifier = Modifier

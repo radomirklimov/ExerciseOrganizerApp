@@ -11,12 +11,19 @@ import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.AppDatabase
 import com.organizer.data.remote.ApiService
+import com.organizer.data.local.storage.FileStorage
+import com.organizer.data.local.storage.FileStore
+import com.organizer.data.media.MediaDownloadQueue
+import com.organizer.data.remote.repo.FileRemoteDataSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jakarta.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
@@ -61,6 +68,28 @@ object AppModule {
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
         ).build()
+    }
+
+    @Provides
+    fun provideFileStore(
+        impl: FileStorage
+    ): FileStore {
+        return impl
+    }
+
+    @Provides
+    @Singleton
+    fun provideMediaDownloadQueue(
+        store: FileStore,
+        remote: FileRemoteDataSource
+    ): MediaDownloadQueue {
+        // Application-scoped: downloads survive navigation and outlive any
+        // single screen or data-sync coroutine.
+        return MediaDownloadQueue(
+            store = store,
+            remote = remote,
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        )
     }
 
     @Provides

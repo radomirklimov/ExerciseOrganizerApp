@@ -27,16 +27,22 @@ class CategoryRepository @Inject constructor(
     suspend fun refreshSports() {
         val remoteSports = remoteDataSource.getSports()
         val localSports = categoryDao.getSportsOnce()
-        syncCategories(remoteSports, localSports)
+        val otherIcons = categoryDao.getCategoriesOnce().mapNotNull { it.iconUrl }.toSet()
+        syncCategories(remoteSports, localSports, otherIcons)
     }
 
     suspend fun refreshCategories() {
         val remoteCategories = remoteDataSource.getCategories()
         val localCategories = categoryDao.getCategoriesOnce()
-        syncCategories(remoteCategories, localCategories)
+        val otherIcons = categoryDao.getSportsOnce().mapNotNull { it.iconUrl }.toSet()
+        syncCategories(remoteCategories, localCategories, otherIcons)
     }
 
-    private suspend fun syncCategories(remoteCategories: List<CategoryEntity>, localCategories: List<CategoryEntity>) {
+    private suspend fun syncCategories(
+        remoteCategories: List<CategoryEntity>,
+        localCategories: List<CategoryEntity>,
+        otherReferencedIcons: Set<String>,
+    ) {
         val remoteIds = remoteCategories.map { it.categoryId }
         val localIds = localCategories.map { it.categoryId }
 
@@ -48,20 +54,39 @@ class CategoryRepository @Inject constructor(
             }
         }
 
-        val changedIcons = (toInsert + toUpdate).mapNotNull { it.iconUrl }
-        fileRepository.downloadAndSaveIcons(changedIcons)
-
         val toDelete = localCategories.filter { local ->
             local.categoryId !in remoteIds
         }
 
-        toDelete.forEach { category ->
-            categoryDao.delete(category)
-            fileRepository.deleteIcon(category.iconUrl)
-        }
-
+        // Database first: the UI can observe new data immediately, without
+        // waiting for any icon download.
+        toDelete.forEach { categoryDao.delete(it) }
         categoryDao.insertAll(toInsert)
         categoryDao.updateAll(toUpdate)
+
+        // Delete only icons no other record still references, including icons
+        // replaced on updated records.
+        val referencedIcons = remoteCategories.mapNotNull { it.iconUrl }.toSet() + otherReferencedIcons
+        val replacedIcons = toUpdate.mapNotNull { remote ->
+            localCategories.find { it.categoryId == remote.categoryId }
+                ?.iconUrl?.takeIf { it != remote.iconUrl }
+        }
+        (toDelete.mapNotNull { it.iconUrl } + replacedIcons)
+            .filter { it !in referencedIcons }
+            .forEach { fileRepository.deleteIcon(it) }
+
+        // Changed icons download in the background via the media queue.
+        fileRepository.enqueueIcons((toInsert + toUpdate).map { it.iconUrl })
+    }
+
+    /**
+     * Queue every missing icon referenced by local data. Called after data
+     * sync; returns as soon as everything is queued.
+     */
+    suspend fun enqueueMissingIcons() {
+        val sports = categoryDao.getSportsOnce()
+        val categories = categoryDao.getCategoriesOnce()
+        fileRepository.enqueueIcons((sports + categories).map { it.iconUrl })
     }
 
     suspend fun observeCategoryByIdOnce(id: Long): CategoryEntity? {

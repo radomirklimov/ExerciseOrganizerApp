@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -45,6 +46,11 @@ fun ExerciseCard(
     val exercise by viewModel.observeExercise(exerciseId).collectAsState(initial = null)
     var showSavePopup by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+
+    // All images of the displayed exercise download first.
+    LaunchedEffect(exercise) {
+        exercise?.let { viewModel.prioritizeExerciseMedia(it) }
+    }
 
     Column(
         modifier = Modifier

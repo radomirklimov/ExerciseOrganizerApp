@@ -56,19 +56,46 @@ class ExerciseRepository @Inject constructor(
             }
         }
 
-        (toInsert + toUpdate).forEach { fileRepository.downloadAndSaveImages(it.imageUrls) }
-
         val toDelete = localExercises.filter { local ->
             local.exerciseId !in remoteIds && !local.isCustom
         }
 
-        toDelete.forEach { exercise ->
-            exerciseDao.delete(exercise)
-            fileRepository.deleteImage(exercise.imageUrls)
-        }
-
+        // Database first: the UI can observe new data immediately, without
+        // waiting for any image download.
+        toDelete.forEach { exerciseDao.delete(it) }
         exerciseDao.insertAll(toInsert)
         exerciseDao.updateAll(toUpdate)
+
+        // Delete only image files no remaining record still references,
+        // including images replaced on updated records.
+        // Custom exercises always survive sync, so their images stay referenced.
+        val referencedImages =
+            (remoteExercises + localExercises.filter { it.isCustom })
+                .flatMap { it.imageUrls }
+                .toSet()
+        val localById = localExercises.associateBy { it.exerciseId }
+        val replacedImages = toUpdate.flatMap { remote ->
+            localById[remote.exerciseId]?.imageUrls.orEmpty() - remote.imageUrls.toSet()
+        }
+        fileRepository.deleteImage(
+            (toDelete.flatMap { it.imageUrls } + replacedImages)
+                .filter { it !in referencedImages }
+        )
+
+        // Changed images download in the background via the media queue.
+        // Custom images are local files and are never queued.
+        fileRepository.enqueueImages((toInsert + toUpdate).flatMap { it.imageUrls })
+    }
+
+    /**
+     * Queue every missing image referenced by local non-custom exercises.
+     * Called after data sync; returns as soon as everything is queued.
+     */
+    suspend fun enqueueMissingImages() {
+        val localExercises = exerciseDao.getAllOnce()
+        fileRepository.enqueueImages(
+            localExercises.filter { !it.isCustom }.flatMap { it.imageUrls }
+        )
     }
 
     suspend fun deleteCustomExercise(id: Long) {

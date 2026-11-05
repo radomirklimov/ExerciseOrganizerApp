@@ -24,6 +24,8 @@ splashscreen = "1.2.0"
 reorderable = "3.1.0"
 datastore = "1.2.1"
 gson = "2.14.0"
+junit = "4.13.2"
+coroutines-test = "1.9.0"
 
 [libraries]
 # Core Android
@@ -75,6 +77,9 @@ reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reo
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 # Convert Java Objects into their JSON representation
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+# Unit testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines-test" }
 
 [plugins]
 # KSP (Kotlin Symbol Processing)

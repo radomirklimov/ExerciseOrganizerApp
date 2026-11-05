@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.media.MediaPriority
 import com.organizer.data.repo.CategoryRepository
 import com.organizer.data.repo.ExerciseCategoryRepository
 import com.organizer.data.repo.ExerciseRepository
@@ -59,6 +60,9 @@ class OrganizerViewModel @Inject constructor(
     }
 
     fun syncDb() {
+        // Data sync only: repositories enqueue missing media in the background
+        // without waiting for downloads, so isSyncing never covers media.
+        if (isSyncing.value) return
         viewModelScope.launch {
             isSyncing.value = true
             errorMessage = null
@@ -67,6 +71,11 @@ class OrganizerViewModel @Inject constructor(
                 categoryRepo.refreshCategories()
                 exerciseRepo.refreshExercises()
                 exerciseCategoryRepo.refreshExerciseCategory()
+                // Catch-up for files missing for any reason (failed earlier,
+                // restored database, ...). Queuing is immediate; downloads run
+                // on the application-scoped media queue.
+                categoryRepo.enqueueMissingIcons()
+                exerciseRepo.enqueueMissingImages()
             } catch (e: IOException) {
                 Log.e("SYNC", "No internet connection", e)
                 errorMessage = "No internet connection. Please check your connection and try again."
@@ -176,12 +185,49 @@ class OrganizerViewModel @Inject constructor(
         exerciseRepo.observeExercisesByWorkout(workoutId)
 
     // File operations
+    // Bumped on every saved media file; image composables collect it so newly
+    // downloaded files appear without leaving the screen.
+    val mediaVersion: StateFlow<Long> = fileRepo.mediaVersion
+
     fun getIconFile(name: String): File? {
         return fileRepo.getIcon(name)
     }
 
     fun getImageFile(name: String, isCustom: Boolean): File? {
         return fileRepo.getImage(name, isCustom)
+    }
+
+    // Media prioritization: screens re-request their visible media with
+    // CURRENT priority using data they already observe. Queued entries are
+    // raised instead of duplicated; missing files keep downloading in order.
+    fun prioritizeSportsIcons(sports: List<CategoryEntity>) {
+        fileRepo.enqueueIcons(sports.map { it.iconUrl }, MediaPriority.CURRENT)
+    }
+
+    fun prioritizeCategoryMedia(
+        subcategories: List<CategoryEntity>,
+        exercises: List<ExerciseEntity>,
+        categoryPath: List<CategoryEntity>,
+    ) {
+        fileRepo.enqueueIcons(subcategories.map { it.iconUrl }, MediaPriority.CURRENT)
+        fileRepo.enqueueImages(
+            exercises.filter { !it.isCustom }.flatMap { it.imageUrls },
+            MediaPriority.CURRENT
+        )
+        fileRepo.enqueueIcons(categoryPath.map { it.iconUrl }, MediaPriority.UPCOMING)
+    }
+
+    fun prioritizeExerciseMedia(exercise: ExerciseEntity) {
+        if (!exercise.isCustom) {
+            fileRepo.enqueueImages(exercise.imageUrls, MediaPriority.CURRENT)
+        }
+    }
+
+    fun prioritizeWorkoutMedia(exercises: List<ExerciseEntity>) {
+        fileRepo.enqueueImages(
+            exercises.filter { !it.isCustom }.flatMap { it.imageUrls },
+            MediaPriority.CURRENT
+        )
     }
 
     fun saveCustomImage(uri: Uri): String? {

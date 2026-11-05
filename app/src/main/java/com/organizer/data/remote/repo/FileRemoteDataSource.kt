@@ -6,11 +6,13 @@ import com.organizer.constants.AppConfig
 import com.organizer.data.remote.ApiService
 import jakarta.inject.Inject
 
-class FileRemoteDataSource @Inject constructor(
+open class FileRemoteDataSource @Inject constructor(
     private val api: ApiService
 ) {
 
-    suspend fun downloadFile(
+    // Open for tests: unit tests override this with an in-memory fake so no
+    // network or Android APIs are involved.
+    open suspend fun downloadFile(
         subfolder: String,
         fileName: String
     ): ByteArray? {

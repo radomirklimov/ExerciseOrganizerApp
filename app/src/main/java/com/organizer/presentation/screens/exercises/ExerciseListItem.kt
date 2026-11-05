@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,6 +105,9 @@ fun ExerciseListItem(
                 dragHandle?.invoke()
 
                 if (exercise.imageUrls.isNotEmpty()) {
+                    // Re-read when any media file lands; File equality keeps
+                    // Coil from reloading unchanged images.
+                    val mediaTick by viewModel.mediaVersion.collectAsState()
                     Box(
                         modifier = Modifier
                             .size(80.dp)
@@ -111,7 +115,9 @@ fun ExerciseListItem(
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
-                            model = viewModel.getImageFile(exercise.imageUrls.first(), exercise.isCustom),
+                            model = remember(mediaTick) {
+                                viewModel.getImageFile(exercise.imageUrls.first(), exercise.isCustom)
+                            },
                             contentDescription = exercise.name,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop

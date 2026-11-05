@@ -42,7 +42,7 @@ fun WorkoutContentScreen(
     onBackClick: () -> Unit,
     viewModel: OrganizerViewModel,
 ) {
-    val workout by viewModel.workoutUiState.collectAsState()
+    val workout by viewModel.observeWorkout(workoutId).collectAsState(initial = null)
     val exercises by viewModel.observeWorkoutExercises(workoutId).collectAsState(initial = emptyList())
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }

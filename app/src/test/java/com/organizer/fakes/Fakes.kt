@@ -216,7 +216,9 @@ class FakeExerciseCategoryDao : ExerciseCategoryDao {
     }
 
     override suspend fun getExerciseIdsByCategoryId(categoryId: Long): List<Long> =
-        data.value.filter { it.categoryId == categoryId }.map { it.exerciseId }
+        data.value.filter { it.categoryId == categoryId }
+            .sortedWith(compareBy<ExerciseCategoryEntity> { it.sortOrder }.thenBy { it.exerciseCategoryId })
+            .map { it.exerciseId }
 
     override suspend fun delete(exerciseCategory: ExerciseCategoryEntity) {
         data.update { it.filter { e -> e.exerciseCategoryId != exerciseCategory.exerciseCategoryId } }

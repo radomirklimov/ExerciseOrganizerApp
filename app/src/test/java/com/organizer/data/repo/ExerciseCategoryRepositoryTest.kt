@@ -29,9 +29,9 @@ class ExerciseCategoryRepositoryTest {
             ExerciseCategoryEntity(2, 2, 10),
         )
         api.links = listOf(
-            ExerciseCategory(1, 1, 10),
-            ExerciseCategory(2, 2, 11),
-            ExerciseCategory(3, 3, 10),
+            ExerciseCategory(1, 1, 10, 1),
+            ExerciseCategory(2, 2, 11, 0),
+            ExerciseCategory(3, 3, 10, 0),
         )
 
         repo.refreshExerciseCategory()
@@ -41,6 +41,6 @@ class ExerciseCategoryRepositoryTest {
         assertEquals(10L, all.getValue(1).categoryId)
         assertEquals(11L, all.getValue(2).categoryId)
         assertEquals(3L, all.getValue(3).exerciseId)
-        assertEquals(listOf(1L, 3L), dao.getExerciseIdsByCategoryId(10))
+        assertEquals(listOf(3L, 1L), dao.getExerciseIdsByCategoryId(10))
     }
 }

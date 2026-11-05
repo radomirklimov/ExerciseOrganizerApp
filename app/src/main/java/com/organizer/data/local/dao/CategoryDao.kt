@@ -17,19 +17,19 @@ interface CategoryDao {
     @Update
     suspend fun updateAll(categories: List<CategoryEntity>)
 
-    @Query("SELECT * FROM category WHERE parentCategoryId IS NULL")
+    @Query("SELECT * FROM category WHERE parentCategoryId IS NULL ORDER BY sortOrder, categoryId")
     fun getSports(): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM category WHERE parentCategoryId IS NULL")
+    @Query("SELECT * FROM category WHERE parentCategoryId IS NULL ORDER BY sortOrder, categoryId")
     suspend fun getSportsOnce(): List<CategoryEntity>
 
-    @Query("SELECT * FROM category WHERE parentCategoryId IS NOT NULL")
+    @Query("SELECT * FROM category WHERE parentCategoryId IS NOT NULL ORDER BY sortOrder, categoryId")
     suspend fun getCategoriesOnce(): List<CategoryEntity>
 
-    @Query("SELECT * FROM category WHERE parentCategoryId IS NOT NULL")
+    @Query("SELECT * FROM category WHERE parentCategoryId IS NOT NULL ORDER BY sortOrder, categoryId")
     fun getCategories(): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM category WHERE parentCategoryId = :categoryId")
+    @Query("SELECT * FROM category WHERE parentCategoryId = :categoryId ORDER BY sortOrder, categoryId")
     fun getSubcategories(categoryId: Long): Flow<List<CategoryEntity>>
 
     @Query("SELECT * FROM category WHERE categoryId = :id")

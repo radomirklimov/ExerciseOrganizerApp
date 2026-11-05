@@ -32,7 +32,7 @@ interface ExerciseDao {
     @Query("""SELECT e.* FROM exercise e 
         JOIN exercise_category ec ON e.exerciseId = ec.exerciseId
         WHERE ec.categoryId = :categoryId
-        ORDER BY ec.exerciseCategoryId""")
+        ORDER BY ec.sortOrder, ec.exerciseCategoryId""")
     fun observeExercisesByCategory(categoryId: Long): Flow<List<ExerciseEntity>>
 
     @Query("""SELECT e.* FROM exercise e

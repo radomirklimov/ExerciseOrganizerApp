@@ -11,7 +11,8 @@ fun Category.asEntity() = CategoryEntity(
     categoryId = categoryId,
     name = name,
     iconUrl = iconUrl,
-    parentCategoryId = parentCategoryId
+    parentCategoryId = parentCategoryId,
+    sortOrder = sortOrder,
 )
 
 fun Exercise.asEntity() = ExerciseEntity(
@@ -26,4 +27,5 @@ fun ExerciseCategory.asEntity() = ExerciseCategoryEntity(
     exerciseCategoryId = exerciseCategoryId,
     exerciseId = exerciseId,
     categoryId = categoryId,
+    sortOrder = sortOrder,
 )

@@ -48,9 +48,11 @@ fun AddCardScreen(
     var showDuplicateNameError by remember { mutableStateOf(false) }
     val customExercises by viewModel.customExercisesUiState.collectAsState()
     val trimmedName = exerciseName.trim()
+    val hasBlankInstruction = instructions.any { it.trim().isBlank() }
     val canSave = trimmedName.isNotBlank() &&
             imageUri != null &&
-            !showDuplicateNameError
+            !showDuplicateNameError &&
+            !hasBlankInstruction
     val scrollState = rememberScrollState()
 
     Column(
@@ -146,7 +148,7 @@ fun AddCardScreen(
                 }
                 viewModel.createCustomExercise(
                     name = trimmedName,
-                    instructions = instructions,
+                    instructions = instructions.map { it.trim() }.filter { it.isNotBlank() },
                     imageName = imageName
                 )
                 onSaveClick()

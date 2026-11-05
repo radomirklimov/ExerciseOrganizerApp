@@ -158,6 +158,9 @@ class OrganizerViewModel @Inject constructor(
     fun observeExercise(id: Long): Flow<ExerciseEntity?> =
         exerciseRepo.observeExercise(id)
 
+    fun observeWorkout(id: Long): Flow<WorkoutEntity?> =
+        workoutRepo.observeWorkoutById(id)
+
     val customExercisesUiState: StateFlow<List<ExerciseEntity>> =
         exerciseRepo.observeCustomExercises()
             .stateIn(viewModelScope, Sharing, emptyList())

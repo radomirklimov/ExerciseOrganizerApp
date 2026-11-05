@@ -20,6 +20,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,6 +79,10 @@ fun CategoryListItem(
             defaultElevation = 4.dp
         )
     ) {
+        // Re-read when any media file lands so a downloaded icon appears
+        // without leaving the screen. File equality keeps Coil from reloading
+        // unchanged images.
+        val mediaTick by viewModel.mediaVersion.collectAsState()
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -83,6 +90,7 @@ fun CategoryListItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!category.iconUrl.isNullOrBlank()) {
+                val iconName: String = category.iconUrl
                 Box(
                     modifier = Modifier
                         .size(68.dp)
@@ -90,7 +98,7 @@ fun CategoryListItem(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = viewModel.getIconFile(category.iconUrl),
+                        model = remember(mediaTick) { viewModel.getIconFile(iconName) },
                         contentDescription = category.name,
                         contentScale = ContentScale.Fit
                     )

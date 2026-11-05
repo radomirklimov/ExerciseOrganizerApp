@@ -2,25 +2,33 @@ package com.organizer.data.repo
 
 import android.net.Uri
 import com.organizer.constants.StorageFolders
-import com.organizer.data.local.storage.FileStorage
+import com.organizer.data.local.storage.FileStore
+import com.organizer.data.media.MediaPriority
+import com.organizer.data.media.MediaDownloadQueue
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.flow.StateFlow
 
 class FileRepository @Inject constructor(
-    private val fileStorage: FileStorage,
+    private val fileStorage: FileStore,
+    private val mediaQueue: MediaDownloadQueue,
 ) {
-    suspend fun downloadAndSaveIcons(iconNames: List<String?>) {
-        fileStorage.downloadAndSaveFiles(
-            StorageFolders.ICONS,
-            iconNames.filterNotNull().filter { it.isNotBlank() }
-        )
+    /** Bumped on every saved media file; the UI collects it to reload images. */
+    val mediaVersion: StateFlow<Long> = mediaQueue.mediaVersion
+
+    /**
+     * Queue icons for background download. Returns immediately; data
+     * synchronization must never wait for media.
+     */
+    fun enqueueIcons(iconNames: List<String?>, priority: Int = MediaPriority.BACKGROUND) {
+        iconNames.filterNotNull().filter { it.isNotBlank() }
+            .forEach { mediaQueue.enqueue(StorageFolders.ICONS, it, priority) }
     }
 
-    suspend fun downloadAndSaveImages(imageNames: List<String>) {
-        fileStorage.downloadAndSaveFiles(
-            StorageFolders.IMAGES,
-            imageNames.filter { it.isNotBlank() }
-        )
+    /** Queue exercise images for background download. Custom images are never queued. */
+    fun enqueueImages(imageNames: List<String>, priority: Int = MediaPriority.BACKGROUND) {
+        imageNames.filter { it.isNotBlank() }
+            .forEach { mediaQueue.enqueue(StorageFolders.IMAGES, it, priority) }
     }
 
     fun saveCustomImage(uri: Uri): String? {
@@ -42,16 +50,17 @@ class FileRepository @Inject constructor(
         ).takeIf(File::exists)
 
     fun deleteIcon(iconName: String?) {
-        if (!iconName.isNullOrBlank()) {
-            fileStorage.deleteLocalFile(StorageFolders.ICONS, iconName)
-        }
+        if (iconName.isNullOrBlank()) return
+        // Never delete a file that is queued or currently downloading.
+        if (mediaQueue.isActive(StorageFolders.ICONS, iconName)) return
+        fileStorage.deleteLocalFile(StorageFolders.ICONS, iconName)
     }
 
     fun deleteImage(imageNames: List<String>) {
         for (name in imageNames) {
-            if (name.isNotBlank()) {
-                fileStorage.deleteLocalFile(StorageFolders.IMAGES, name)
-            }
+            if (name.isBlank()) continue
+            if (mediaQueue.isActive(StorageFolders.IMAGES, name)) continue
+            fileStorage.deleteLocalFile(StorageFolders.IMAGES, name)
         }
     }
 }

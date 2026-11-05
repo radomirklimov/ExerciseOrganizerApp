@@ -53,6 +53,7 @@ fun WorkoutContentScreen(
 
     LaunchedEffect(exercises) {
         exerciseList = exercises
+        viewModel.prioritizeWorkoutMedia(exercises)
     }
 
     val lazyListState = rememberLazyListState()

@@ -3,7 +3,6 @@ package com.organizer.data.local.storage
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.organizer.data.remote.repo.FileRemoteDataSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jakarta.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -12,35 +11,25 @@ import java.io.File
 
 class FileStorage @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val fileRemoteDataSource: FileRemoteDataSource
-) {
-    fun dir(subfolder: String): File {
+) : FileStore {
+    override fun dir(subfolder: String): File {
         val folder = File(context.filesDir, subfolder)
         if (!folder.exists()) folder.mkdirs()
         return folder
     }
 
-    suspend fun downloadAndSaveFiles(
-        subfolder: String,
-        fileNames: List<String>
-    ) {
-        for (fileName in fileNames) {
-            try {
-                val imageData = fileRemoteDataSource.downloadFile(subfolder, fileName)
+    override fun exists(subfolder: String, fileName: String): Boolean {
+        return File(dir(subfolder), fileName).isFile
+    }
 
-                imageData?.let {
-                    withContext(Dispatchers.IO) {
-                        File(dir(subfolder), fileName).writeBytes(imageData)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("FILES", "Failed downloading $fileName", e)
-            }
+    override suspend fun saveBytes(subfolder: String, fileName: String, bytes: ByteArray) {
+        withContext(Dispatchers.IO) {
+            File(dir(subfolder), fileName).writeBytes(bytes)
         }
     }
 
     // saves file from uri to device storage and returns its name
-    fun saveUriToStorage(
+    override fun saveUriToStorage(
         subfolder: String,
         uri: Uri,
     ): String? {
@@ -62,7 +51,7 @@ class FileStorage @Inject constructor(
         }
     }
 
-    fun deleteLocalFile(
+    override fun deleteLocalFile(
         subfolder: String,
         fileName: String
     ) {

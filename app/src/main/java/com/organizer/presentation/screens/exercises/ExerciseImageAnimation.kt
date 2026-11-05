@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -139,8 +140,13 @@ fun ExerciseImageAnimation(
                     },
                     label = "exercise_image_animation"
                 ) { index ->
+                    // Keyed by tick and index: a finished download recomposes
+                    // the model without reloading the other frames.
+                    val mediaTick by viewModel.mediaVersion.collectAsState()
                     AsyncImage(
-                        model = viewModel.getImageFile(imageUrls[index], isCustom),
+                        model = remember(mediaTick, index) {
+                            viewModel.getImageFile(imageUrls[index], isCustom)
+                        },
                         contentDescription = exerciseName,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -148,11 +154,14 @@ fun ExerciseImageAnimation(
                 }
             } else {
                 // Manual navigation uses a normal image(no fade)
+                val mediaTick by viewModel.mediaVersion.collectAsState()
                 AsyncImage(
-                    model = viewModel.getImageFile(
-                        imageUrls[currentIndex],
-                        isCustom
-                    ),
+                    model = remember(mediaTick, currentIndex) {
+                        viewModel.getImageFile(
+                            imageUrls[currentIndex],
+                            isCustom
+                        )
+                    },
                     contentDescription = exerciseName,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

@@ -82,4 +82,6 @@ dependencies {
     implementation(libs.reorderable)
     implementation(libs.datastore.preferences)
     implementation(libs.gson)
+    testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }

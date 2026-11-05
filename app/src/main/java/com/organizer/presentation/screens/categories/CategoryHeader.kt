@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,9 +59,11 @@ fun CategoryHeader(
 
             // Selected sport type
             sport?.let {
-
+                // Same media-tick pattern as the list items: the icon appears
+                // once its download completes.
+                val mediaTick by viewModel.mediaVersion.collectAsState()
                 AsyncImage(
-                    model = viewModel.getIconFile(it.iconUrl ?: ""),
+                    model = remember(mediaTick) { viewModel.getIconFile(it.iconUrl ?: "") },
                     contentDescription = it.name,
                     modifier = Modifier.size(40.dp),
                     contentScale = ContentScale.Fit

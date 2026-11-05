@@ -112,7 +112,7 @@ fun CategoryListItem(
                 modifier = Modifier
                     .weight(1f)
                     .horizontalScroll(textScrollState),
-                fontSize = 28.sp,
+                fontSize = 24.sp,
                 color = Color.Black,
                 fontWeight = FontWeight.Medium
             )
@@ -121,7 +121,7 @@ fun CategoryListItem(
 
             Text(
                 text = "➜",
-                fontSize = 28.sp,
+                fontSize = 24.sp,
                 color = Color.Black
             )
         }

@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.sp
 fun HeaderText() {
     Text(
         text = "Build Your\nOwn Workout!",
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
+        fontSize = 30.sp,
+        lineHeight = 34.sp,
         fontWeight = FontWeight.SemiBold,
         color = Color.Black,
     )
@@ -26,9 +26,9 @@ fun HeaderText() {
 
     Text(
         text = "What Would You Like To Do Today?",
-        fontSize = 18.sp,
+        fontSize = 16.sp,
         color = Color.Gray
     )
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 }

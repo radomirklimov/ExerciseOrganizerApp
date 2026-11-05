@@ -12,10 +12,13 @@ class ExerciseRepository @Inject constructor(
     private val fileRepository: FileRepository,
 ) {
     suspend fun addCustomExercise(name: String, instructions: List<String>, imageName: String) {
+        // An exercise may be created without instructions, but any instruction
+        // that is added must not be blank.
+        val cleanedInstructions = instructions.filter { it.isNotBlank() }
         exerciseDao.insert(
             ExerciseEntity(
                 name = name,
-                instructions = instructions,
+                instructions = cleanedInstructions,
                 imageUrls = listOf(imageName),
                 isCustom = true
             )

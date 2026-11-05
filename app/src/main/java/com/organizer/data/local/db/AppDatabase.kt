@@ -3,6 +3,8 @@ package com.organizer.data.local.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
@@ -16,7 +18,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 1,
+    version = 2,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -33,4 +35,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val exerciseCategoryDao: ExerciseCategoryDao
     abstract val workoutDao: WorkoutDao
     abstract val workoutExerciseDao: WorkoutExerciseDao
+}
+
+val DISPLAY_ORDER_MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE category ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("""
+            UPDATE category SET sortOrder = (
+                SELECT COUNT(*) FROM category AS earlier
+                WHERE earlier.categoryId < category.categoryId
+                  AND (earlier.parentCategoryId = category.parentCategoryId
+                       OR (earlier.parentCategoryId IS NULL AND category.parentCategoryId IS NULL))
+            )
+        """.trimIndent())
+        db.execSQL("ALTER TABLE exercise_category ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("""
+            UPDATE exercise_category SET sortOrder = (
+                SELECT COUNT(*) FROM exercise_category AS earlier
+                WHERE earlier.categoryId = exercise_category.categoryId
+                  AND earlier.exerciseCategoryId < exercise_category.exerciseCategoryId
+            )
+        """.trimIndent())
+    }
 }

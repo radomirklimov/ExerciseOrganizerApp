@@ -19,7 +19,7 @@ interface ExerciseCategoryDao {
     @Update
     suspend fun updateAll(exerciseCategories: List<ExerciseCategoryEntity>)
 
-    @Query("SELECT exerciseId FROM exercise_category WHERE :categoryId == categoryId ORDER BY exerciseCategoryId ASC")
+    @Query("SELECT exerciseId FROM exercise_category WHERE :categoryId == categoryId ORDER BY sortOrder ASC, exerciseCategoryId ASC")
     suspend fun getExerciseIdsByCategoryId(categoryId: Long): List<Long>
 
     @Delete

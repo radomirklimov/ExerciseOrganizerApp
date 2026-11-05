@@ -8,4 +8,5 @@ data class Category (
     val name: String,
     val iconUrl: String?,
     val parentCategoryId: Long?,
+    val sortOrder: Int = 0,
 )

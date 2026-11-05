@@ -10,6 +10,7 @@ import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.AppDatabase
+import com.organizer.data.local.db.DISPLAY_ORDER_MIGRATION_1_2
 import com.organizer.data.remote.ApiService
 import com.organizer.data.local.storage.FileStorage
 import com.organizer.data.local.storage.FileStore
@@ -67,7 +68,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).build()
+        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2).build()
     }
 
     @Provides

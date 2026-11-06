@@ -43,10 +43,10 @@ fun BottomNavigationBar(
 ) {
     NavigationBar(
         containerColor = NavigationBackgroundColor,
-        tonalElevation = 8.dp,
+        tonalElevation = 4.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .height(128.dp),
+            .height(118.dp),
     ) {
         CustomNavigationItem(
             selected = currentRoute == Routes.Sports.route,
@@ -74,7 +74,6 @@ fun BottomNavigationBar(
             icon = Icons.Outlined.Add,
             label = "Add Card",
             onClick = onAddCardClick,
-            isAddButton = true,
         )
     }
 }
@@ -122,7 +121,7 @@ private fun RowScope.CustomNavigationItem(
     ) {
         Box(
             modifier = Modifier
-                .size(if (isAddButton) 64.dp else 56.dp)
+                .size(if (isAddButton) 44.dp else 32.dp)
                 .scale(animatedScale)
                 .background(
                     color = when {
@@ -138,7 +137,7 @@ private fun RowScope.CustomNavigationItem(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(
-                    if (isAddButton) 32.dp else 28.dp
+                    if (isAddButton) 26.dp else 24.dp
                 ),
                 tint = if (isAddButton) {
                     Color.White
@@ -148,7 +147,7 @@ private fun RowScope.CustomNavigationItem(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = label,

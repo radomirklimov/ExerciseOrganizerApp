@@ -27,6 +27,8 @@ import com.organizer.presentation.screens.welcome.OnboardScreen
 import com.organizer.presentation.screens.welcome.OnboardingManager
 import com.organizer.presentation.screens.workout.WorkoutContentScreen
 import com.organizer.presentation.screens.workouts_and_exercises.CustomWorkoutsAndExercisesScreen
+import com.organizer.presentation.screens.workouts_and_exercises.WorkoutsScreen
+import com.organizer.presentation.screens.workouts_and_exercises.ExercisesScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -72,6 +74,9 @@ fun AppNavigation(showOnboarding: Boolean) {
                     },
                     onWorkoutsClick = {
                         navController.navigate(Routes.Workouts.route)
+                    },
+                    onExercisesClick = {
+                        navController.navigate(Routes.Exercises.route)
                     },
                     onAddCardClick = {
                         navController.navigate(Routes.AddCard.route)
@@ -167,19 +172,23 @@ fun AppNavigation(showOnboarding: Boolean) {
             }
 
             composable(Routes.Workouts.route) {
-
-                CustomWorkoutsAndExercisesScreen(
+                WorkoutsScreen(
                     onWorkoutClick = { workout ->
                         navController.navigate(
                             Routes.Workout.createRoute(workout.workoutId)
                         )
                     },
+                    onCreateWorkoutClick = { navController.navigate(Routes.CreateWorkout.route) },
+                )
+            }
+
+            composable(Routes.Exercises.route) {
+                ExercisesScreen(
                     onExerciseClick = { exercise ->
                         navController.navigate(
                             Routes.ExerciseCard.createRoute(exercise.exerciseId)
                         )
                     },
-                    onCreateWorkoutClick = { navController.navigate(Routes.CreateWorkout.route) },
                     onCreateExerciseClick = { navController.navigate(Routes.AddCard.route) },
                 )
             }

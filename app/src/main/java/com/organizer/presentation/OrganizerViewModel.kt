@@ -119,33 +119,23 @@ class OrganizerViewModel @Inject constructor(
     val searchResultsUiState: StateFlow<List<SearchResult>> =
         combine(
             categoryRepo.observeSports(),
-            categoryRepo.observeCategories(),
             exerciseRepo.observeAllExercises(),
             searchQuery
-        ) { sports, categories, exercises, query ->
+        ) { sports, exercises, query ->
             if (query.isBlank()) {
+                // Keep the home browse showing sports when nothing is typed.
                 sports.map { SearchResult.Sport(it) }
             } else {
-                val results = mutableListOf<SearchResult>()
-                results += sports
-                    .filter { matches(it.name, query) }
-                    .sortedBy { score(it.name, query) }
-                    .map { SearchResult.Sport(it) }
-
-                results += categories
-                    .filter { matches(it.name, query) }
-                    .sortedBy { score(it.name, query) }
-                    .map { SearchResult.Category(it) }
-
-                results += exercises
+                // Search returns exercises only. User-created custom exercises
+                // are excluded from the search results.
+                exercises
+                    .filter { !it.isCustom }
                     .filter { matches(it.name, query) }
                     .sortedBy { score(it.name, query) }
                     .map { SearchResult.Exercise(it) }
-
-                results
             }
         }.stateIn(
-            viewModelScope,Sharing,emptyList()
+            viewModelScope, Sharing, emptyList()
         )
 
     fun getCategoryPath(categoryId: Long): Flow<List<CategoryEntity>> =

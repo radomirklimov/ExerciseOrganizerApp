@@ -33,6 +33,7 @@ import com.organizer.presentation.screens.workout.WorkoutListItem
 
 @Composable
 fun CustomsList(
+    tab: CustomsTab,
     onWorkoutClick: (WorkoutEntity) -> Unit,
     onOpenExerciseClick: (ExerciseEntity) -> Unit,
     onCreateWorkoutClick: () -> Unit,
@@ -41,10 +42,9 @@ fun CustomsList(
 ) {
     val workouts by viewModel.workoutsUiState.collectAsState()
     val customExercises by viewModel.customExercisesUiState.collectAsState()
-    val selectedTab by viewModel.selectedTab.collectAsState()
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
 
-    val isEmpty = when (selectedTab) {
+    val isEmpty = when (tab) {
         CustomsTab.WORKOUTS -> workouts.isEmpty()
         CustomsTab.EXERCISES -> customExercises.isEmpty()
     }
@@ -61,7 +61,7 @@ fun CustomsList(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
-            when (selectedTab) {
+            when (tab) {
                 CustomsTab.WORKOUTS -> {
                     if (workouts.isEmpty()) {
                         item {
@@ -122,7 +122,7 @@ fun CustomsList(
         }
 
         if (!isEmpty) {
-            when (selectedTab) {
+            when (tab) {
                 CustomsTab.WORKOUTS -> {
                     CreateButton(
                         text = "Create New Workout",

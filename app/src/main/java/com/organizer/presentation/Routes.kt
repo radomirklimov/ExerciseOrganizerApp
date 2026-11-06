@@ -14,6 +14,7 @@ sealed class Routes(val route: String) {
         }
     }
     object Workouts: Routes("workouts")
+    object Exercises: Routes("exercises")
     object CreateWorkout: Routes("createWorkout")
     object AddCard: Routes("addCard")
     object Workout: Routes("workout/{workoutId}") {

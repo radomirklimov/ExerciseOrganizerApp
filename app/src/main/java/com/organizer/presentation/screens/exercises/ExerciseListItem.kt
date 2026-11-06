@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -119,7 +120,9 @@ fun ExerciseListItem(
                                 viewModel.getImageFile(exercise.imageUrls.first(), exercise.isCustom)
                             },
                             contentDescription = exercise.name,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .scale(1.1f),
                             contentScale = ContentScale.Crop
                         )
                     }

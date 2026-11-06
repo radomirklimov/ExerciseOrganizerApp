@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -91,7 +92,7 @@ fun ExerciseImageAnimation(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .pointerInput(imageUrls) {
                     var totalDrag = 0f
                     detectHorizontalDragGestures(
@@ -148,8 +149,8 @@ fun ExerciseImageAnimation(
                             viewModel.getImageFile(imageUrls[index], isCustom)
                         },
                         contentDescription = exerciseName,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.FillWidth
                     )
                 }
             } else {
@@ -163,8 +164,8 @@ fun ExerciseImageAnimation(
                         )
                     },
                     contentDescription = exerciseName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.FillWidth
                 )
             }
 

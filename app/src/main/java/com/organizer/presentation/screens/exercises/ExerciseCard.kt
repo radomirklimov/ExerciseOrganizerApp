@@ -100,8 +100,7 @@ fun ExerciseCard(
             isCustom = exercise.isCustom,
             viewModel = viewModel,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(320.dp),
+                .fillMaxWidth(),
             frameDurationMillis = 900L
         )
 

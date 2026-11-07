@@ -9,10 +9,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.media.MediaPriority
 import com.organizer.data.repo.CategoryRepository
 import com.organizer.data.repo.ExerciseCategoryRepository
+import com.organizer.data.repo.ExerciseProgressRepository
 import com.organizer.data.repo.ExerciseRepository
 import com.organizer.data.repo.FileRepository
 import com.organizer.data.repo.WorkoutExerciseRepository
@@ -37,6 +39,7 @@ import java.io.IOException
 class OrganizerViewModel @Inject constructor(
     private val categoryRepo: CategoryRepository,
     private val exerciseRepo: ExerciseRepository,
+    private val exerciseProgressRepo: ExerciseProgressRepository,
     private val exerciseCategoryRepo: ExerciseCategoryRepository,
     private val workoutRepo: WorkoutRepository,
     private val workoutExerciseRepo: WorkoutExerciseRepository,
@@ -148,6 +151,27 @@ class OrganizerViewModel @Inject constructor(
     fun observeExercise(id: Long): Flow<ExerciseEntity?> =
         exerciseRepo.observeExercise(id)
 
+    fun observeExerciseSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>> =
+        exerciseProgressRepo.observeSets(workoutId, exerciseId)
+
+    fun observeExerciseHistory(exerciseId: Long): Flow<List<ExerciseProgressEntity>> =
+        exerciseProgressRepo.observeHistory(exerciseId)
+
+    fun addExerciseSet(
+        workoutId: Long,
+        exerciseId: Long,
+        setNumber: Int,
+        reps: Int? = null,
+        weight: Double? = null,
+        durationSeconds: Int? = null,
+    ) = viewModelScope.launch {
+        exerciseProgressRepo.addSet(workoutId, exerciseId, setNumber, reps, weight, durationSeconds)
+    }
+
+    fun deleteExerciseSet(progressId: Long) = viewModelScope.launch {
+        exerciseProgressRepo.deleteSet(progressId)
+    }
+
     fun observeWorkout(id: Long): Flow<WorkoutEntity?> =
         workoutRepo.observeWorkoutById(id)
 
@@ -249,10 +273,14 @@ class OrganizerViewModel @Inject constructor(
             workoutExerciseRepo.updateExerciseOrder(workoutId, exercises)
         }
 
-    fun createCustomExercise(name: String, instructions: List<String>, imageName: String) =
-        viewModelScope.launch {
-            exerciseRepo.addCustomExercise(name, instructions, imageName)
-        }
+    fun createCustomExercise(
+        name: String,
+        instructions: List<String>,
+        imageName: String,
+        exerciseType: String = "REPS_WEIGHT",
+    ) = viewModelScope.launch {
+        exerciseRepo.addCustomExercise(name, instructions, imageName, exerciseType)
+    }
 
     fun deleteCustomExercise(id: Long) = viewModelScope.launch {
         exerciseRepo.deleteCustomExercise(id)

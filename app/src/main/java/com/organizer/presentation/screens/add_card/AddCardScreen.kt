@@ -2,6 +2,7 @@ package com.organizer.presentation.screens.add_card
 
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +44,7 @@ fun AddCardScreen(
     viewModel: OrganizerViewModel,
 ) {
     var exerciseName by remember { mutableStateOf("") }
+    var exerciseType by remember { mutableStateOf("REPS_WEIGHT") }
     val instructions = remember { mutableStateListOf<String>() }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
@@ -108,6 +112,25 @@ fun AddCardScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Exercise type
+        Text(text = "Exercise Type", fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                "REPS" to "Reps",
+                "REPS_WEIGHT" to "Reps + Weight",
+                "DURATION" to "Duration",
+            ).forEach { (value, label) ->
+                if (exerciseType == value) {
+                    Button(onClick = { exerciseType = value }) { Text(label) }
+                } else {
+                    OutlinedButton(onClick = { exerciseType = value }) { Text(label) }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Exercise instructions
         InstructionEditor(
             instructions = instructions
@@ -149,7 +172,8 @@ fun AddCardScreen(
                 viewModel.createCustomExercise(
                     name = trimmedName,
                     instructions = instructions.map { it.trim() }.filter { it.isNotBlank() },
-                    imageName = imageName
+                    imageName = imageName,
+                    exerciseType = exerciseType,
                 )
                 onSaveClick()
             }

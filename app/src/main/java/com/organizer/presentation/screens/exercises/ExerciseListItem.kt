@@ -55,6 +55,7 @@ fun ExerciseListItem(
     onClick: () -> Unit,
     onOpenClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onTrackClick: (() -> Unit)? = null,
     viewModel: OrganizerViewModel,
 ) {
     val textScrollState = rememberScrollState()
@@ -164,6 +165,17 @@ fun ExerciseListItem(
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
+
+                if (onTrackClick != null) {
+                    Button(
+                        onClick = onTrackClick,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Track")
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
 
                 Button(
                     onClick = { showDeleteDialog = true },

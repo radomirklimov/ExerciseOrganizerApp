@@ -18,4 +18,5 @@ data class ExerciseEntity(
     val instructions: List<String>,
     val imageUrls: List<String>,
     val isCustom: Boolean,
+    val exerciseType: String = "REPS_WEIGHT",
 )

@@ -21,6 +21,7 @@ fun Exercise.asEntity() = ExerciseEntity(
     instructions = instructions,
     imageUrls = images,
     isCustom = false,
+    exerciseType = exerciseType,
 )
 
 fun ExerciseCategory.asEntity() = ExerciseCategoryEntity(

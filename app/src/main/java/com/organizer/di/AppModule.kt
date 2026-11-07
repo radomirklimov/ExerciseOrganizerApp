@@ -9,8 +9,11 @@ import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
+import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.db.AppDatabase
 import com.organizer.data.local.db.DISPLAY_ORDER_MIGRATION_1_2
+import com.organizer.data.local.db.EXERCISE_TYPE_MIGRATION_2_3
+import com.organizer.data.local.db.EXERCISE_PROGRESS_MIGRATION_3_4
 import com.organizer.data.remote.ApiService
 import com.organizer.data.local.storage.FileStorage
 import com.organizer.data.local.storage.FileStore
@@ -68,7 +71,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2).build()
+        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4).build()
     }
 
     @Provides
@@ -126,5 +129,12 @@ object AppModule {
         database: AppDatabase
     ): WorkoutExerciseDao {
         return database.workoutExerciseDao
+    }
+
+    @Provides
+    fun provideExerciseProgressDao(
+        database: AppDatabase
+    ): ExerciseProgressDao {
+        return database.exerciseProgressDao
     }
 }

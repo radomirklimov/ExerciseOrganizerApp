@@ -154,9 +154,6 @@ class OrganizerViewModel @Inject constructor(
     fun observeExerciseSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>> =
         exerciseProgressRepo.observeSets(workoutId, exerciseId)
 
-    fun observeExerciseHistory(exerciseId: Long): Flow<List<ExerciseProgressEntity>> =
-        exerciseProgressRepo.observeHistory(exerciseId)
-
     fun addExerciseSet(
         workoutId: Long,
         exerciseId: Long,
@@ -170,6 +167,15 @@ class OrganizerViewModel @Inject constructor(
 
     fun deleteExerciseSet(progressId: Long) = viewModelScope.launch {
         exerciseProgressRepo.deleteSet(progressId)
+    }
+
+    fun updateExerciseSet(
+        progressId: Long,
+        reps: Int? = null,
+        weight: Double? = null,
+        durationSeconds: Int? = null,
+    ) = viewModelScope.launch {
+        exerciseProgressRepo.updateSet(progressId, reps, weight, durationSeconds)
     }
 
     fun observeWorkout(id: Long): Flow<WorkoutEntity?> =

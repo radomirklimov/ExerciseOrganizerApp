@@ -16,9 +16,6 @@ interface ExerciseProgressDao {
     @Query("SELECT * FROM exercise_progress WHERE workoutId = :workoutId AND exerciseId = :exerciseId ORDER BY setNumber ASC, progressId ASC")
     fun observeSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>>
 
-    @Query("SELECT * FROM exercise_progress WHERE exerciseId = :exerciseId ORDER BY recordedAt DESC LIMIT :limit")
-    fun observeHistory(exerciseId: Long, limit: Int): Flow<List<ExerciseProgressEntity>>
-
     @Query("SELECT COUNT(*) FROM exercise_progress WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
     suspend fun getSetCount(workoutId: Long, exerciseId: Long): Int
 
@@ -30,6 +27,9 @@ interface ExerciseProgressDao {
 
     @Query("UPDATE exercise_progress SET setNumber = :setNumber WHERE progressId = :progressId")
     suspend fun updateSetNumber(progressId: Long, setNumber: Int)
+
+    @Query("UPDATE exercise_progress SET reps = :reps, weight = :weight, durationSeconds = :durationSeconds WHERE progressId = :progressId")
+    suspend fun updateMetrics(progressId: Long, reps: Int?, weight: Double?, durationSeconds: Int?)
 
     @Query("DELETE FROM exercise_progress WHERE progressId = :progressId")
     suspend fun delete(progressId: Long)

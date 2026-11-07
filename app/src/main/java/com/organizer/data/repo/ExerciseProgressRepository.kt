@@ -12,10 +12,6 @@ class ExerciseProgressRepository @Inject constructor(
         return dao.observeSets(workoutId, exerciseId)
     }
 
-    fun observeHistory(exerciseId: Long): Flow<List<ExerciseProgressEntity>> {
-        return dao.observeHistory(exerciseId, 20)
-    }
-
     suspend fun addSet(
         workoutId: Long,
         exerciseId: Long,
@@ -34,6 +30,15 @@ class ExerciseProgressRepository @Inject constructor(
                 durationSeconds = durationSeconds,
             )
         )
+    }
+
+    suspend fun updateSet(
+        progressId: Long,
+        reps: Int? = null,
+        weight: Double? = null,
+        durationSeconds: Int? = null,
+    ) {
+        dao.updateMetrics(progressId, reps, weight, durationSeconds)
     }
 
     suspend fun deleteSet(progressId: Long) {

@@ -37,6 +37,6 @@ class ExerciseProgressRepository @Inject constructor(
     }
 
     suspend fun deleteSet(progressId: Long) {
-        dao.delete(progressId)
+        dao.deleteAndRenumber(progressId)
     }
 }

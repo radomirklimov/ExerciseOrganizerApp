@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +22,26 @@ interface ExerciseProgressDao {
     @Query("SELECT COUNT(*) FROM exercise_progress WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
     suspend fun getSetCount(workoutId: Long, exerciseId: Long): Int
 
+    @Query("SELECT * FROM exercise_progress WHERE progressId = :progressId")
+    suspend fun getById(progressId: Long): ExerciseProgressEntity?
+
+    @Query("SELECT * FROM exercise_progress WHERE workoutId = :workoutId AND exerciseId = :exerciseId ORDER BY setNumber ASC, progressId ASC")
+    suspend fun getSets(workoutId: Long, exerciseId: Long): List<ExerciseProgressEntity>
+
+    @Query("UPDATE exercise_progress SET setNumber = :setNumber WHERE progressId = :progressId")
+    suspend fun updateSetNumber(progressId: Long, setNumber: Int)
+
     @Query("DELETE FROM exercise_progress WHERE progressId = :progressId")
     suspend fun delete(progressId: Long)
+
+    @Transaction
+    suspend fun deleteAndRenumber(progressId: Long) {
+        val set = getById(progressId) ?: return
+        delete(progressId)
+        getSets(set.workoutId, set.exerciseId).forEachIndexed { index, remaining ->
+            if (remaining.setNumber != index + 1) {
+                updateSetNumber(remaining.progressId, index + 1)
+            }
+        }
+    }
 }

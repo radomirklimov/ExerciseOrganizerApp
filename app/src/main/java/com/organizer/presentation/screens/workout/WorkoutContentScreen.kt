@@ -35,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
@@ -169,14 +171,9 @@ fun WorkoutContentScreen(
                                         verticalArrangement = Arrangement.spacedBy(2.dp),
                                     ) {
                                         sets.forEach { set ->
-                                            val label = when (exercise.exerciseType) {
-                                                "DURATION" -> "Set ${set.setNumber}: ${set.durationSeconds ?: 0}s"
-                                                "REPS" -> "Set ${set.setNumber}: ${set.reps ?: 0} reps"
-                                                else -> "Set ${set.setNumber}: ${set.reps ?: 0} reps x ${set.weight ?: 0.0} kg"
-                                            }
-                                            Text(
-                                                text = label,
-                                                style = MaterialTheme.typography.bodyMedium,
+                                            ExerciseSetRow(
+                                                exerciseType = exercise.exerciseType,
+                                                set = set,
                                             )
                                         }
                                     }
@@ -231,27 +228,18 @@ fun WorkoutContentScreen(
                             Text("No sets recorded yet.")
                         } else {
                             trackedSets.forEach { set ->
-                                val label = when (trackedExercise.exerciseType) {
-                                    "DURATION" -> "Set ${set.setNumber}: ${set.durationSeconds ?: 0}s"
-                                    "REPS" -> "Set ${set.setNumber}: ${set.reps ?: 0} reps"
-                                    else -> "Set ${set.setNumber}: ${set.reps ?: 0} reps x ${set.weight ?: 0.0} kg"
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = label,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                    IconButton(onClick = { viewModel.deleteExerciseSet(set.progressId) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete set",
-                                        )
-                                    }
-                                }
+                                ExerciseSetRow(
+                                    exerciseType = trackedExercise.exerciseType,
+                                    set = set,
+                                    trailing = {
+                                        IconButton(onClick = { viewModel.deleteExerciseSet(set.progressId) }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete set",
+                                            )
+                                        }
+                                    },
+                                )
                             }
                         }
 
@@ -300,12 +288,10 @@ fun WorkoutContentScreen(
                             Text("No previous records.")
                         } else {
                             trackedHistory.take(5).forEach { set ->
-                                val label = when (trackedExercise.exerciseType) {
-                                    "DURATION" -> "${set.durationSeconds ?: 0}s"
-                                    "REPS" -> "${set.reps ?: 0} reps"
-                                    else -> "${set.reps ?: 0} reps x ${set.weight ?: 0.0} kg"
-                                }
-                                Text("Set ${set.setNumber}: $label")
+                                ExerciseSetRow(
+                                    exerciseType = trackedExercise.exerciseType,
+                                    set = set,
+                                )
                             }
                         }
                     }
@@ -334,6 +320,74 @@ fun WorkoutContentScreen(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun ExerciseSetRow(
+    exerciseType: String,
+    set: ExerciseProgressEntity,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val textStyle = MaterialTheme.typography.bodyMedium
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Set ${set.setNumber}",
+            modifier = Modifier.weight(1f),
+            style = textStyle,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        when (exerciseType) {
+            "DURATION" -> Text(
+                text = "${set.durationSeconds ?: 0}s",
+                modifier = Modifier.weight(1f),
+                style = textStyle,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            "REPS" -> Text(
+                text = "${set.reps ?: 0} reps",
+                modifier = Modifier.weight(1f),
+                style = textStyle,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            else -> {
+                Text(
+                    text = "${set.reps ?: 0} reps",
+                    modifier = Modifier.weight(1f),
+                    style = textStyle,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = formatWeight(set.weight),
+                    modifier = Modifier.weight(1f),
+                    style = textStyle,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        trailing?.invoke()
+    }
+}
+
+private fun formatWeight(weight: Double?): String {
+    val value = weight ?: 0.0
+    return if (value == value.toLong().toDouble()) {
+        "${value.toLong()} kg"
+    } else {
+        "$value kg"
     }
 }
 

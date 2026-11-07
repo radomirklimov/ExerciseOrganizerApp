@@ -56,6 +56,7 @@ fun ExerciseListItem(
     onOpenClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onTrackClick: (() -> Unit)? = null,
+    expandedContent: (@Composable () -> Unit)? = null,
     viewModel: OrganizerViewModel,
 ) {
     val textScrollState = rememberScrollState()
@@ -152,6 +153,11 @@ fun ExerciseListItem(
             }
         }
         if (expanded) {
+            if (expandedContent != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                expandedContent()
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),

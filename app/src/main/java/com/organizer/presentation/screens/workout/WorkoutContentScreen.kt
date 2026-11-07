@@ -160,41 +160,30 @@ fun WorkoutContentScreen(
                             onTrackClick = {
                                 trackedExerciseId = exercise.exerciseId
                             },
-                            viewModel = viewModel
-                        )
-
-                        if (sets.isNotEmpty()) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 12.dp, top = 6.dp, bottom = 6.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                sets.forEach { set ->
-                                    val label = when (exercise.exerciseType) {
-                                        "DURATION" -> "Set ${set.setNumber}: ${set.durationSeconds ?: 0}s"
-                                        "REPS" -> "Set ${set.setNumber}: ${set.reps ?: 0} reps"
-                                        else -> "Set ${set.setNumber}: ${set.reps ?: 0} reps x ${set.weight ?: 0.0} kg"
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            expandedContent = {
+                                if (sets.isNotEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
                                     ) {
-                                        Text(
-                                            text = label,
-                                            modifier = Modifier.weight(1f),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                        )
-                                        IconButton(onClick = { viewModel.deleteExerciseSet(set.progressId) }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Delete set",
+                                        sets.forEach { set ->
+                                            val label = when (exercise.exerciseType) {
+                                                "DURATION" -> "Set ${set.setNumber}: ${set.durationSeconds ?: 0}s"
+                                                "REPS" -> "Set ${set.setNumber}: ${set.reps ?: 0} reps"
+                                                else -> "Set ${set.setNumber}: ${set.reps ?: 0} reps x ${set.weight ?: 0.0} kg"
+                                            }
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.bodyMedium,
                                             )
                                         }
                                     }
                                 }
-                            }
-                        }
+                            },
+                            viewModel = viewModel
+                        )
                     }
                 }
             }
@@ -247,7 +236,22 @@ fun WorkoutContentScreen(
                                     "REPS" -> "Set ${set.setNumber}: ${set.reps ?: 0} reps"
                                     else -> "Set ${set.setNumber}: ${set.reps ?: 0} reps x ${set.weight ?: 0.0} kg"
                                 }
-                                Text(label)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = label,
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                    IconButton(onClick = { viewModel.deleteExerciseSet(set.progressId) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete set",
+                                        )
+                                    }
+                                }
                             }
                         }
 

@@ -8,4 +8,5 @@ data class Exercise (
     val name: String,
     val instructions: List<String>,
     val images: List<String>,
+    val exerciseType: String = "REPS_WEIGHT",
 )

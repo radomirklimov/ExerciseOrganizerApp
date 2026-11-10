@@ -2,8 +2,10 @@ package com.organizer.presentation.screens.exercises
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,6 +57,8 @@ fun ExerciseListItem(
     onClick: () -> Unit,
     onOpenClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onTrackClick: (() -> Unit)? = null,
+    expandedContent: (@Composable () -> Unit)? = null,
     viewModel: OrganizerViewModel,
 ) {
     val textScrollState = rememberScrollState()
@@ -130,16 +134,22 @@ fun ExerciseListItem(
 
                 Spacer(modifier = Modifier.width(24.dp))
 
-                Text(
-                    text = exercise.name,
-                    modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(textScrollState),
-                    fontSize = 28.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = exercise.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(textScrollState),
+                        fontSize = 28.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1
+                    )
+                    ExerciseTypePill(exerciseType = exercise.exerciseType)
+                }
 
                 Spacer(modifier = Modifier.width(15.dp))
 
@@ -151,6 +161,11 @@ fun ExerciseListItem(
             }
         }
         if (expanded) {
+            if (expandedContent != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                expandedContent()
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -164,6 +179,17 @@ fun ExerciseListItem(
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
+
+                if (onTrackClick != null) {
+                    Button(
+                        onClick = onTrackClick,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Track")
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
 
                 Button(
                     onClick = { showDeleteDialog = true },
@@ -191,5 +217,28 @@ fun ExerciseListItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ExerciseTypePill(exerciseType: String) {
+    val label = when (exerciseType) {
+        "DURATION" -> "Duration"
+        "REPS" -> "Reps"
+        else -> "Reps + Weight"
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.18f))
+            .padding(horizontal = 10.dp, vertical = 3.dp),
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
     }
 }

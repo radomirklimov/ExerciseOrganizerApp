@@ -11,7 +11,12 @@ class ExerciseRepository @Inject constructor(
     private val remoteDataSource: ExerciseRemoteDataSource,
     private val fileRepository: FileRepository,
 ) {
-    suspend fun addCustomExercise(name: String, instructions: List<String>, imageName: String) {
+    suspend fun addCustomExercise(
+        name: String,
+        instructions: List<String>,
+        imageName: String,
+        exerciseType: String = "REPS_WEIGHT",
+    ) {
         // An exercise may be created without instructions, but any instruction
         // that is added must not be blank.
         val cleanedInstructions = instructions.filter { it.isNotBlank() }
@@ -20,7 +25,8 @@ class ExerciseRepository @Inject constructor(
                 name = name,
                 instructions = cleanedInstructions,
                 imageUrls = listOf(imageName),
-                isCustom = true
+                isCustom = true,
+                exerciseType = exerciseType,
             )
         )
     }

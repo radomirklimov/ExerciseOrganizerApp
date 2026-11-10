@@ -8,23 +8,26 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
+import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 2,
+    version = 4,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
         ExerciseCategoryEntity::class,
         WorkoutEntity::class,
-        WorkoutExerciseEntity::class
+        WorkoutExerciseEntity::class,
+        ExerciseProgressEntity::class
     ],
     exportSchema = false
 )
@@ -35,6 +38,35 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val exerciseCategoryDao: ExerciseCategoryDao
     abstract val workoutDao: WorkoutDao
     abstract val workoutExerciseDao: WorkoutExerciseDao
+    abstract val exerciseProgressDao: ExerciseProgressDao
+}
+
+val EXERCISE_PROGRESS_MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS exercise_progress (
+                progressId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                workoutId INTEGER NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                setNumber INTEGER NOT NULL,
+                reps INTEGER,
+                weight REAL,
+                durationSeconds INTEGER,
+                recordedAt INTEGER NOT NULL,
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_workoutId ON exercise_progress (workoutId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_exerciseId ON exercise_progress (exerciseId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_recordedAt ON exercise_progress (recordedAt)")
+    }
+}
+
+val EXERCISE_TYPE_MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE exercise ADD COLUMN exerciseType TEXT NOT NULL DEFAULT 'REPS_WEIGHT'")
+    }
 }
 
 val DISPLAY_ORDER_MIGRATION_1_2 = object : Migration(1, 2) {

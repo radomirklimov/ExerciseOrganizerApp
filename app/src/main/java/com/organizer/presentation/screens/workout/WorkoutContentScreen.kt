@@ -127,6 +127,7 @@ fun WorkoutContentScreen(
                                 )
                             },
                             exercise = exercise,
+                            displayExerciseType = effectiveExerciseType(exercise, sets),
                             deletionInfo = Pair(
                                 "Delete Exercise?",
                                 "This exercise will be deleted from the workout."

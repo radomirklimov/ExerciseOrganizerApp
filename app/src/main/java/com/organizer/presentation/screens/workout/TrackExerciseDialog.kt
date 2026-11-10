@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,6 +96,35 @@ internal fun ExerciseProgressEntity.inferredExerciseType(): String = when {
     else -> TYPE_REPS
 }
 
+/**
+ * The type shown for an exercise in a workout follows the sets recorded there.
+ * The stored exercise type is used when there are no sets. When the most common
+ * set types are tied, the first recorded set among those types wins.
+ */
+internal fun effectiveExerciseType(
+    exercise: ExerciseEntity,
+    sets: List<ExerciseProgressEntity>,
+): String {
+    if (sets.isEmpty()) return exercise.exerciseType
+
+    val counts = sets.groupingBy { it.inferredExerciseType() }.eachCount()
+    val maxCount = counts.values.maxOrNull() ?: 0
+    val mostCommonTypes = counts.filterValues { it == maxCount }.keys
+
+    return if (mostCommonTypes.size == 1) {
+        mostCommonTypes.first()
+    } else {
+        sets.asSequence()
+            .filter { it.inferredExerciseType() in mostCommonTypes }
+            .minWithOrNull(
+                compareBy<ExerciseProgressEntity> { it.setNumber }
+                    .thenBy { it.progressId }
+            )
+            ?.inferredExerciseType()
+            ?: exercise.exerciseType
+    }
+}
+
 internal fun formatWeight(weight: Double?): String {
     val value = weight ?: 0.0
     return if (value == value.toLong().toDouble()) {
@@ -112,15 +142,23 @@ fun TrackExerciseDialog(
     viewModel: OrganizerViewModel,
     onDismiss: () -> Unit,
 ) {
-    // The stored exercise type is the default tracking mode. The user can
-    // switch modes for this dialog without changing the exercise itself.
-    var selectedType by remember(exercise.exerciseId) { mutableStateOf(exercise.exerciseType) }
+    val effectiveType = effectiveExerciseType(exercise, sets)
+    // The workout's current effective type is the default tracking mode. The
+    // user can switch modes for this dialog without changing the exercise.
+    var selectedType by remember(exercise.exerciseId) { mutableStateOf(effectiveType) }
+    var typeTouched by remember(exercise.exerciseId) { mutableStateOf(false) }
     var repsValue by remember(exercise.exerciseId) { mutableStateOf(0) }
     var weightTenths by remember(exercise.exerciseId) { mutableStateOf(0) }
     var durationValue by remember(exercise.exerciseId) { mutableStateOf(0) }
     var editingSetId by remember(exercise.exerciseId) { mutableStateOf<Long?>(null) }
     var isAddingSet by remember(exercise.exerciseId) { mutableStateOf(false) }
     var setToDelete by remember(exercise.exerciseId) { mutableStateOf<ExerciseProgressEntity?>(null) }
+
+    LaunchedEffect(effectiveType) {
+        if (!typeTouched) {
+            selectedType = effectiveType
+        }
+    }
 
     val editingSet = sets.find { it.progressId == editingSetId }
     val nextSetNumber = (sets.maxOfOrNull { it.setNumber } ?: 0) + 1
@@ -144,7 +182,14 @@ fun TrackExerciseDialog(
         isAddingSet = true
     }
 
+    fun cancelEditing() {
+        resetInputs()
+        typeTouched = false
+        selectedType = effectiveType
+    }
+
     fun loadSet(set: ExerciseProgressEntity) {
+        typeTouched = true
         selectedType = set.inferredExerciseType()
         repsValue = set.reps ?: 0
         weightTenths = ((set.weight ?: 0.0) * 10).roundToInt()
@@ -206,7 +251,10 @@ fun TrackExerciseDialog(
                     TrackingHeader(
                         exerciseName = exercise.name,
                         selectedType = selectedType,
-                        onTypeSelected = { selectedType = it },
+                        onTypeSelected = {
+                            typeTouched = true
+                            selectedType = it
+                        },
                         onClose = onDismiss,
                     )
 
@@ -241,7 +289,7 @@ fun TrackExerciseDialog(
                                     actionLabel = "Update Set ${set.setNumber}",
                                     actionEnabled = hasRequiredValues,
                                     onAction = ::saveSet,
-                                    onCancel = ::resetInputs,
+                                    onCancel = ::cancelEditing,
                                 )
                             } else {
                                 RecordedSetCard(
@@ -265,7 +313,7 @@ fun TrackExerciseDialog(
                                 actionLabel = "Add Set $nextSetNumber",
                                 actionEnabled = hasRequiredValues,
                                 onAction = ::saveSet,
-                                onCancel = ::resetInputs,
+                                onCancel = ::cancelEditing,
                             )
                         } else {
                             AddSetCard(
@@ -335,7 +383,7 @@ fun TrackExerciseDialog(
             onConfirm = {
                 viewModel.deleteExerciseSet(set.progressId)
                 if (editingSetId == set.progressId) {
-                    resetInputs()
+                    cancelEditing()
                 }
                 setToDelete = null
             },

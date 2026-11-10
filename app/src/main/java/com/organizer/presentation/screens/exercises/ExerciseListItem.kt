@@ -52,6 +52,7 @@ fun ExerciseListItem(
     modifier: Modifier = Modifier,
     dragHandle: @Composable (() -> Unit)? = null,
     exercise: ExerciseEntity,
+    displayExerciseType: String = exercise.exerciseType,
     deletionInfo: Pair<String, String>?,
     expanded: Boolean,
     onClick: () -> Unit,
@@ -148,7 +149,7 @@ fun ExerciseListItem(
                         fontWeight = FontWeight.Medium,
                         maxLines = 1
                     )
-                    ExerciseTypePill(exerciseType = exercise.exerciseType)
+                    ExerciseTypePill(exerciseType = displayExerciseType)
                 }
 
                 Spacer(modifier = Modifier.width(15.dp))

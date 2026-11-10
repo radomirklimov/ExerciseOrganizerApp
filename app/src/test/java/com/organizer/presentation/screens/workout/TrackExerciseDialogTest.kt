@@ -3,6 +3,7 @@ package com.organizer.presentation.screens.workout
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TrackExerciseDialogTest {
@@ -38,6 +39,16 @@ class TrackExerciseDialogTest {
         assertEquals("0 kg", formatWeight(0.0))
         assertEquals("15 kg", formatWeight(15.0))
         assertEquals("15.5 kg", formatWeight(15.5))
+    }
+
+    @Test
+    fun `duration formatting uses hours minutes and seconds`() {
+        assertEquals("0s", formatDuration(0))
+        assertEquals("30s", formatDuration(30))
+        assertEquals("5m 30s", formatDuration(330))
+        assertEquals("1h 5m 30s", formatDuration(3930))
+        assertEquals("1h 0m 5s", formatDuration(3605))
+        assertEquals("1h 5m 0s", formatDuration(3900))
     }
 
     @Test
@@ -81,6 +92,18 @@ class TrackExerciseDialogTest {
     @Test
     fun `workout type uses the stored type when there are no sets`() {
         assertEquals("DURATION", effectiveExerciseType(exercise(type = "DURATION"), emptyList()))
+    }
+
+    @Test
+    fun `drag steps accelerate with distance and follow direction`() {
+        assertEquals(0, dragStepsForDistance(0f, 1f))
+        assertEquals(1, dragStepsForDistance(8f, 1f))
+        assertEquals(-1, dragStepsForDistance(-8f, 1f))
+        assertEquals(1, dragStepsForDistance(16f, 2f))
+
+        val shortDrag = dragStepsForDistance(16f, 1f)
+        val longDrag = dragStepsForDistance(64f, 1f)
+        assertTrue(longDrag > shortDrag * 4)
     }
 
     private fun exercise(type: String) = ExerciseEntity(

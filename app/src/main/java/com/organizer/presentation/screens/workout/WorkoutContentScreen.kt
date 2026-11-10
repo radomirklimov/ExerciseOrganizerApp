@@ -238,7 +238,7 @@ private fun ExerciseSetRow(
         )
         when (exerciseType) {
             "DURATION" -> Text(
-                text = "${set.durationSeconds ?: 0}s",
+                text = formatDuration(set.durationSeconds ?: 0),
                 modifier = Modifier.weight(1f),
                 style = textStyle,
                 textAlign = TextAlign.Center,

@@ -3,6 +3,7 @@ package com.organizer.presentation.screens.workout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,6 +33,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
@@ -38,6 +42,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,20 +63,22 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
+import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 private const val TYPE_REPS = "REPS"
@@ -134,6 +142,41 @@ internal fun formatWeight(weight: Double?): String {
     }
 }
 
+internal fun formatDuration(totalSeconds: Int): String {
+    val safe = totalSeconds.coerceAtLeast(0)
+    val hours = safe / 3600
+    val minutes = (safe % 3600) / 60
+    val seconds = safe % 60
+
+    return buildList {
+        if (hours > 0) add("${hours}h")
+        if (hours > 0 || minutes > 0) add("${minutes}m")
+        add("${seconds}s")
+    }.joinToString(" ")
+}
+
+private data class DurationParts(
+    val hours: String = "",
+    val minutes: String = "",
+    val seconds: String = "",
+) {
+    val totalSeconds: Int
+        get() = (hours.toIntOrNull() ?: 0) * 3600 +
+            (minutes.toIntOrNull() ?: 0) * 60 +
+            (seconds.toIntOrNull() ?: 0)
+
+    companion object {
+        fun fromSeconds(totalSeconds: Int): DurationParts {
+            val safe = totalSeconds.coerceAtLeast(0)
+            return DurationParts(
+                hours = (safe / 3600).takeIf { it > 0 }?.toString().orEmpty(),
+                minutes = ((safe % 3600) / 60).takeIf { it > 0 }?.toString().orEmpty(),
+                seconds = (safe % 60).takeIf { it > 0 }?.toString().orEmpty(),
+            )
+        }
+    }
+}
+
 @Composable
 fun TrackExerciseDialog(
     workoutId: Long,
@@ -149,7 +192,7 @@ fun TrackExerciseDialog(
     var typeTouched by remember(exercise.exerciseId) { mutableStateOf(false) }
     var repsValue by remember(exercise.exerciseId) { mutableStateOf(0) }
     var weightTenths by remember(exercise.exerciseId) { mutableStateOf(0) }
-    var durationValue by remember(exercise.exerciseId) { mutableStateOf(0) }
+    var durationParts by remember(exercise.exerciseId) { mutableStateOf(DurationParts()) }
     var editingSetId by remember(exercise.exerciseId) { mutableStateOf<Long?>(null) }
     var isAddingSet by remember(exercise.exerciseId) { mutableStateOf(false) }
     var setToDelete by remember(exercise.exerciseId) { mutableStateOf<ExerciseProgressEntity?>(null) }
@@ -164,7 +207,7 @@ fun TrackExerciseDialog(
     val nextSetNumber = (sets.maxOfOrNull { it.setNumber } ?: 0) + 1
     val editorVisible = isAddingSet || editingSet != null
     val hasRequiredValues = when (selectedType) {
-        TYPE_DURATION -> durationValue > 0
+        TYPE_DURATION -> durationParts.totalSeconds > 0
         TYPE_REPS -> repsValue > 0
         else -> repsValue > 0
     }
@@ -172,7 +215,7 @@ fun TrackExerciseDialog(
     fun resetInputs() {
         repsValue = 0
         weightTenths = 0
-        durationValue = 0
+        durationParts = DurationParts()
         editingSetId = null
         isAddingSet = false
     }
@@ -193,7 +236,7 @@ fun TrackExerciseDialog(
         selectedType = set.inferredExerciseType()
         repsValue = set.reps ?: 0
         weightTenths = ((set.weight ?: 0.0) * 10).roundToInt()
-        durationValue = set.durationSeconds ?: 0
+        durationParts = DurationParts.fromSeconds(set.durationSeconds ?: 0)
         editingSetId = set.progressId
         isAddingSet = false
     }
@@ -201,7 +244,11 @@ fun TrackExerciseDialog(
     fun saveSet() {
         val reps = if (selectedType == TYPE_DURATION) null else repsValue.takeIf { it > 0 }
         val weight = if (selectedType == TYPE_REPS_WEIGHT) weightTenths / 10.0 else null
-        val duration = if (selectedType == TYPE_DURATION) durationValue.takeIf { it > 0 } else null
+        val duration = if (selectedType == TYPE_DURATION) {
+            durationParts.totalSeconds.takeIf { it > 0 }
+        } else {
+            null
+        }
 
         if (editingSet != null) {
             viewModel.updateExerciseSet(
@@ -284,8 +331,8 @@ fun TrackExerciseDialog(
                                     onRepsChange = { repsValue = it },
                                     weightTenths = weightTenths,
                                     onWeightChange = { weightTenths = it },
-                                    durationValue = durationValue,
-                                    onDurationChange = { durationValue = it },
+                                    durationParts = durationParts,
+                                    onDurationPartsChange = { durationParts = it },
                                     actionLabel = "Update Set ${set.setNumber}",
                                     actionEnabled = hasRequiredValues,
                                     onAction = ::saveSet,
@@ -308,8 +355,8 @@ fun TrackExerciseDialog(
                                 onRepsChange = { repsValue = it },
                                 weightTenths = weightTenths,
                                 onWeightChange = { weightTenths = it },
-                                durationValue = durationValue,
-                                onDurationChange = { durationValue = it },
+                                durationParts = durationParts,
+                                onDurationPartsChange = { durationParts = it },
                                 actionLabel = "Add Set $nextSetNumber",
                                 actionEnabled = hasRequiredValues,
                                 onAction = ::saveSet,
@@ -526,21 +573,61 @@ private fun RecordedSetCard(
         Row(
             modifier = Modifier.padding(start = 14.dp, top = 10.dp, end = 4.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryFixed),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = set.setNumber.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryFixed,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
                 Text(
-                    text = "Set ${set.setNumber}",
+                    text = "Set",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = setSummary(set),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                 )
             }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when (set.inferredExerciseType()) {
+                    TYPE_DURATION -> RecordedSetValue(
+                        text = formatDuration(set.durationSeconds ?: 0),
+                    )
+
+                    TYPE_REPS -> RecordedSetValue(
+                        text = "${set.reps ?: 0} reps",
+                    )
+
+                    else -> {
+                        RecordedSetValue(
+                            text = "${set.reps ?: 0} reps",
+                        )
+                        RecordedSetValue(
+                            text = formatWeight(set.weight),
+                        )
+                    }
+                }
+            }
+
             IconButton(
                 onClick = onEdit,
                 modifier = Modifier.size(36.dp),
@@ -568,29 +655,15 @@ private fun RecordedSetCard(
 }
 
 @Composable
-private fun setSummary(set: ExerciseProgressEntity): AnnotatedString {
-    val strongColor = MaterialTheme.colorScheme.onSurface
-    return when (set.inferredExerciseType()) {
-        TYPE_DURATION -> buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
-                append("${set.durationSeconds ?: 0}s")
-            }
-        }
-
-        TYPE_REPS -> buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
-                append("${set.reps ?: 0} reps")
-            }
-        }
-
-        else -> buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
-                append("${set.reps ?: 0} reps")
-            }
-            append(" • ")
-            append(formatWeight(set.weight))
-        }
-    }
+private fun RecordedSetValue(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable
@@ -601,8 +674,8 @@ private fun ActiveSetEditor(
     onRepsChange: (Int) -> Unit,
     weightTenths: Int,
     onWeightChange: (Int) -> Unit,
-    durationValue: Int,
-    onDurationChange: (Int) -> Unit,
+    durationParts: DurationParts,
+    onDurationPartsChange: (DurationParts) -> Unit,
     actionLabel: String,
     actionEnabled: Boolean,
     onAction: () -> Unit,
@@ -643,28 +716,14 @@ private fun ActiveSetEditor(
             }
 
             when (selectedType) {
-                TYPE_DURATION -> MetricStepper(
-                    label = "DURATION",
-                    valueText = durationValue.toString(),
-                    unit = "sec",
-                    onDecrease = {
-                        if (durationValue - 5 >= 0) onDurationChange(durationValue - 5)
-                    },
-                    onIncrease = {
-                        if (durationValue + 5 <= 3600) onDurationChange(durationValue + 5)
-                    },
+                TYPE_DURATION -> DurationInput(
+                    value = durationParts,
+                    onValueChange = onDurationPartsChange,
                 )
 
-                TYPE_REPS -> MetricStepper(
-                    label = "REPETITIONS",
-                    valueText = repsValue.toString(),
-                    unit = "reps",
-                    onDecrease = {
-                        if (repsValue - 1 >= 0) onRepsChange(repsValue - 1)
-                    },
-                    onIncrease = {
-                        if (repsValue + 1 <= 100) onRepsChange(repsValue + 1)
-                    },
+                TYPE_REPS -> RepsStepper(
+                    repsValue = repsValue,
+                    onRepsChange = onRepsChange,
                 )
 
                 else -> BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -719,6 +778,116 @@ private fun ActiveSetEditor(
 }
 
 @Composable
+private fun DurationInput(
+    value: DurationParts,
+    onValueChange: (DurationParts) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "DURATION (HH:MM:SS)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                DurationPartField(
+                    value = value.hours,
+                    onValueChange = { onValueChange(value.copy(hours = it)) },
+                    max = 99,
+                )
+                DurationSeparator()
+                DurationPartField(
+                    value = value.minutes,
+                    onValueChange = { onValueChange(value.copy(minutes = it)) },
+                    max = 59,
+                )
+                DurationSeparator()
+                DurationPartField(
+                    value = value.seconds,
+                    onValueChange = { onValueChange(value.copy(seconds = it)) },
+                    max = 59,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DurationSeparator() {
+    Text(
+        text = ":",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun DurationPartField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    max: Int,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { onValueChange(sanitizeTimePart(it, max)) },
+        modifier = Modifier.width(60.dp),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.titleLarge.copy(
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.SemiBold,
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        shape = RoundedCornerShape(12.dp),
+        placeholder = {
+            Text(
+                text = "00",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        },
+    )
+}
+
+private fun sanitizeTimePart(input: String, max: Int): String {
+    val digits = input.filter { it.isDigit() }.take(2)
+    if (digits.isEmpty()) return ""
+
+    return if (digits.toInt() > max) {
+        max.toString().padStart(digits.length, '0')
+    } else {
+        digits
+    }
+}
+
+internal fun dragStepsForDistance(dragPx: Float, density: Float): Int {
+    if (dragPx == 0f) return 0
+
+    val dragDp = abs(dragPx) / density
+    val magnitude = (dragDp / 8f).pow(1.8f).toInt()
+    return if (dragPx > 0) magnitude else -magnitude
+}
+
+@Composable
 private fun RepsStepper(
     modifier: Modifier = Modifier,
     repsValue: Int,
@@ -729,6 +898,10 @@ private fun RepsStepper(
         label = "REPETITIONS",
         valueText = repsValue.toString(),
         unit = "reps",
+        dragValue = repsValue,
+        dragValueRange = 0..100,
+        dragStepSize = 1,
+        onDragValueChange = onRepsChange,
         onDecrease = {
             if (repsValue - 1 >= 0) onRepsChange(repsValue - 1)
         },
@@ -750,6 +923,10 @@ private fun WeightStepper(
         valueText = formatWeightNumber(weightTenths / 10.0),
         unit = "kg",
         valueColor = MaterialTheme.colorScheme.onSurface,
+        dragValue = weightTenths,
+        dragValueRange = 0..5000,
+        dragStepSize = 5,
+        onDragValueChange = onWeightChange,
         onDecrease = {
             if (weightTenths - 5 >= 0) onWeightChange(weightTenths - 5)
         },
@@ -766,9 +943,16 @@ private fun MetricStepper(
     valueText: String,
     unit: String,
     valueColor: Color = MaterialTheme.colorScheme.primary,
+    dragValue: Int,
+    dragValueRange: IntRange,
+    dragStepSize: Int,
+    onDragValueChange: (Int) -> Unit,
     onDecrease: () -> Unit,
     onIncrease: () -> Unit,
 ) {
+    val currentDragValue by rememberUpdatedState(dragValue)
+    val currentOnDragValueChange by rememberUpdatedState(onDragValueChange)
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -779,7 +963,30 @@ private fun MetricStepper(
         ),
     ) {
         Column(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier
+                .pointerInput(Unit) {
+                    var dragPx = 0f
+                    var startValue = 0
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            dragPx = 0f
+                            startValue = currentDragValue
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            dragPx += dragAmount
+                            val steps = dragStepsForDistance(dragPx, density)
+                            val newValue = (startValue + steps * dragStepSize)
+                                .coerceIn(dragValueRange.first, dragValueRange.last)
+                            if (newValue != currentDragValue) {
+                                currentOnDragValueChange(newValue)
+                            }
+                        },
+                        onDragEnd = { dragPx = 0f },
+                        onDragCancel = { dragPx = 0f },
+                    )
+                }
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -800,7 +1007,10 @@ private fun MetricStepper(
                     contentDescription = "Decrease $label",
                     onClick = onDecrease,
                 )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Text(
                         text = valueText,
                         style = MaterialTheme.typography.headlineSmall,
@@ -821,6 +1031,45 @@ private fun MetricStepper(
                     onClick = onIncrease,
                 )
             }
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            ) {
+                DragHintArrow(icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft)
+                Text(
+                    text = "DRAG",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1,
+                )
+                DragHintArrow(icon = Icons.AutoMirrored.Filled.KeyboardArrowRight)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DragHintArrow(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Surface(
+        modifier = Modifier.size(18.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 1.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

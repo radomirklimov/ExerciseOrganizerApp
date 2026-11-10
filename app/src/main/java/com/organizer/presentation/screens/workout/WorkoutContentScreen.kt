@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -244,7 +245,7 @@ private fun TrackExerciseDialog(
     val hasRequiredValues = when (exercise.exerciseType) {
         "DURATION" -> durationValue > 0
         "REPS" -> repsValue > 0
-        else -> repsValue > 0 && weightTenths > 0
+        else -> repsValue > 0
     }
 
     fun resetInputs() {
@@ -273,9 +274,14 @@ private fun TrackExerciseDialog(
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
             ) {
-                Text("Sets this workout")
                 if (sets.isEmpty()) {
-                    Text("No sets recorded yet.")
+                    Text(
+                        text = "No sets recorded yet.",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        fontStyle = FontStyle.Italic
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 } else {
                     sets.forEach { set ->
                         ExerciseSetRow(
@@ -312,6 +318,9 @@ private fun TrackExerciseDialog(
                     Text(
                         text = editingSet?.let { "Edit set ${it.setNumber}" } ?: "Add a new set",
                         style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        fontStyle = FontStyle.Bold
                     )
                     if (editingSet != null) {
                         TextButton(onClick = { resetInputs() }) {

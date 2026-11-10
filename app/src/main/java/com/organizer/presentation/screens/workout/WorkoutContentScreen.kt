@@ -12,21 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DragIndicator
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,7 +40,6 @@ import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import kotlin.math.roundToInt
 
 @Composable
 fun WorkoutContentScreen(
@@ -170,7 +159,7 @@ fun WorkoutContentScreen(
                                     ) {
                                         sets.forEach { set ->
                                             ExerciseSetRow(
-                                                exerciseType = exercise.exerciseType,
+                                                exerciseType = set.inferredExerciseType(),
                                                 set = set,
                                             )
                                         }
@@ -227,208 +216,12 @@ fun WorkoutContentScreen(
 }
 
 @Composable
-private fun TrackExerciseDialog(
-    workoutId: Long,
-    exercise: ExerciseEntity,
-    sets: List<ExerciseProgressEntity>,
-    viewModel: OrganizerViewModel,
-    onDismiss: () -> Unit,
-) {
-    var repsValue by remember(exercise.exerciseId) { mutableStateOf(0) }
-    var weightTenths by remember(exercise.exerciseId) { mutableStateOf(0) }
-    var durationValue by remember(exercise.exerciseId) { mutableStateOf(0) }
-    var editingSetId by remember(exercise.exerciseId) { mutableStateOf<Long?>(null) }
-    var setToDelete by remember(exercise.exerciseId) { mutableStateOf<ExerciseProgressEntity?>(null) }
-
-    val editingSet = sets.find { it.progressId == editingSetId }
-    val nextSetNumber = (sets.maxOfOrNull { it.setNumber } ?: 0) + 1
-    val hasRequiredValues = when (exercise.exerciseType) {
-        "DURATION" -> durationValue > 0
-        "REPS" -> repsValue > 0
-        else -> repsValue > 0
-    }
-
-    fun resetInputs() {
-        repsValue = 0
-        weightTenths = 0
-        durationValue = 0
-        editingSetId = null
-    }
-
-    fun loadSet(set: ExerciseProgressEntity) {
-        when (exercise.exerciseType) {
-            "DURATION" -> durationValue = set.durationSeconds ?: 0
-            "REPS" -> repsValue = set.reps ?: 0
-            else -> {
-                repsValue = set.reps ?: 0
-                weightTenths = ((set.weight ?: 0.0) * 10).roundToInt()
-            }
-        }
-        editingSetId = set.progressId
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Track ${exercise.name}") },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-            ) {
-                if (sets.isEmpty()) {
-                    Text(
-                        text = "No sets recorded yet.",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontStyle = FontStyle.Italic
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                } else {
-                    sets.forEach { set ->
-                        ExerciseSetRow(
-                            exerciseType = exercise.exerciseType,
-                            set = set,
-                            highlighted = set.progressId == editingSetId,
-                            trailing = {
-                                Row {
-                                    IconButton(onClick = { loadSet(set) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit set",
-                                        )
-                                    }
-                                    IconButton(onClick = { setToDelete = set }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete set",
-                                        )
-                                    }
-                                }
-                            },
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = editingSet?.let { "Edit set ${it.setNumber}" } ?: "Add a new set",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontStyle = FontStyle.Bold
-                    )
-                    if (editingSet != null) {
-                        TextButton(onClick = { resetInputs() }) {
-                            Text("Cancel")
-                        }
-                    }
-                }
-
-                when (exercise.exerciseType) {
-                    "DURATION" -> {
-                        Stepper(
-                            label = "Duration (s)",
-                            value = durationValue,
-                            onValueChange = { durationValue = it },
-                            step = 5,
-                            max = 3600,
-                        )
-                    }
-                    "REPS" -> {
-                        Stepper(
-                            label = "Reps",
-                            value = repsValue,
-                            onValueChange = { repsValue = it },
-                            step = 1,
-                            max = 100,
-                        )
-                    }
-                    else -> {
-                        Stepper(
-                            label = "Reps",
-                            value = repsValue,
-                            onValueChange = { repsValue = it },
-                            step = 1,
-                            max = 100,
-                        )
-                        Stepper(
-                            label = "Weight",
-                            value = weightTenths,
-                            onValueChange = { weightTenths = it },
-                            step = 5,
-                            max = 5000,
-                            displayValue = formatWeight(weightTenths / 10.0),
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val reps = if (exercise.exerciseType == "DURATION") null else repsValue.takeIf { it > 0 }
-                    val weight = if (exercise.exerciseType == "REPS_WEIGHT") weightTenths / 10.0 else null
-                    val duration = if (exercise.exerciseType == "DURATION") durationValue.takeIf { it > 0 } else null
-
-                    if (editingSet != null) {
-                        viewModel.updateExerciseSet(
-                            progressId = editingSet.progressId,
-                            reps = reps,
-                            weight = weight,
-                            durationSeconds = duration,
-                        )
-                    } else {
-                        viewModel.addExerciseSet(
-                            workoutId = workoutId,
-                            exerciseId = exercise.exerciseId,
-                            setNumber = nextSetNumber,
-                            reps = reps,
-                            weight = weight,
-                            durationSeconds = duration,
-                        )
-                    }
-                    resetInputs()
-                },
-                enabled = hasRequiredValues,
-            ) {
-                Text(if (editingSet != null) "Update Set" else "Add Set")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
-        },
-    )
-
-    setToDelete?.let { set ->
-        DeleteConfirmationDialog(
-            title = "Delete Set?",
-            message = "Set ${set.setNumber} will be permanently deleted.",
-            onConfirm = {
-                viewModel.deleteExerciseSet(set.progressId)
-                if (editingSetId == set.progressId) resetInputs()
-                setToDelete = null
-            },
-            onDismiss = { setToDelete = null },
-        )
-    }
-}
-
-@Composable
 private fun ExerciseSetRow(
     exerciseType: String,
     set: ExerciseProgressEntity,
-    highlighted: Boolean = false,
-    trailing: (@Composable () -> Unit)? = null,
 ) {
     val textStyle = MaterialTheme.typography.bodyMedium.copy(
-        fontWeight = if (highlighted) FontWeight.SemiBold else FontWeight.Normal,
+        fontWeight = FontWeight.Normal,
     )
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -476,43 +269,6 @@ private fun ExerciseSetRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-        }
-        trailing?.invoke()
-    }
-}
-
-private fun formatWeight(weight: Double?): String {
-    val value = weight ?: 0.0
-    return if (value == value.toLong().toDouble()) {
-        "${value.toLong()} kg"
-    } else {
-        "$value kg"
-    }
-}
-
-@Composable
-private fun Stepper(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    step: Int,
-    max: Int,
-    displayValue: String = value.toString(),
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { if (value - step >= 0) onValueChange(value - step) }) {
-                Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease")
-            }
-            Text(text = displayValue, modifier = Modifier.padding(horizontal = 8.dp))
-            IconButton(onClick = { if (value + step <= max) onValueChange(value + step) }) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Increase")
             }
         }
     }

@@ -106,6 +106,21 @@ class TrackExerciseDialogTest {
         assertTrue(longDrag > shortDrag * 4)
     }
 
+    @Test
+    fun `drag values are not capped at the old limits`() {
+        assertEquals(150, adjustedDragValue(100, 50, 1, 0..Int.MAX_VALUE))
+        assertEquals(6000, adjustedDragValue(5000, 200, 5, 0..Int.MAX_VALUE))
+    }
+
+    @Test
+    fun `drag value arithmetic saturates instead of overflowing`() {
+        assertEquals(
+            Int.MAX_VALUE,
+            adjustedDragValue(Int.MAX_VALUE - 1, Int.MAX_VALUE, 5, 0..Int.MAX_VALUE),
+        )
+        assertEquals(0, adjustedDragValue(1, -Int.MAX_VALUE, 5, 0..Int.MAX_VALUE))
+    }
+
     private fun exercise(type: String) = ExerciseEntity(
         exerciseId = 1,
         name = "Bench Press",

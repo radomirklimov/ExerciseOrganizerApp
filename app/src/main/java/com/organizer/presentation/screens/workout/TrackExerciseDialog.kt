@@ -726,34 +726,20 @@ private fun ActiveSetEditor(
                     onRepsChange = onRepsChange,
                 )
 
-                else -> BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    if (maxWidth < 300.dp) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            RepsStepper(
-                                modifier = Modifier.fillMaxWidth(),
-                                repsValue = repsValue,
-                                onRepsChange = onRepsChange,
-                            )
-                            WeightStepper(
-                                modifier = Modifier.fillMaxWidth(),
-                                weightTenths = weightTenths,
-                                onWeightChange = onWeightChange,
-                            )
-                        }
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            RepsStepper(
-                                modifier = Modifier.weight(1f),
-                                repsValue = repsValue,
-                                onRepsChange = onRepsChange,
-                            )
-                            WeightStepper(
-                                modifier = Modifier.weight(1f),
-                                weightTenths = weightTenths,
-                                onWeightChange = onWeightChange,
-                            )
-                        }
-                    }
+                else -> Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RepsStepper(
+                        modifier = Modifier.fillMaxWidth(),
+                        repsValue = repsValue,
+                        onRepsChange = onRepsChange,
+                    )
+                    WeightStepper(
+                        modifier = Modifier.fillMaxWidth(),
+                        weightTenths = weightTenths,
+                        onWeightChange = onWeightChange,
+                    )
                 }
             }
 
@@ -887,6 +873,16 @@ internal fun dragStepsForDistance(dragPx: Float, density: Float): Int {
     return if (dragPx > 0) magnitude else -magnitude
 }
 
+internal fun adjustedDragValue(
+    startValue: Int,
+    steps: Int,
+    stepSize: Int,
+    range: IntRange,
+): Int {
+    val rawValue = startValue.toLong() + steps.toLong() * stepSize.toLong()
+    return rawValue.coerceIn(range.first.toLong(), range.last.toLong()).toInt()
+}
+
 @Composable
 private fun RepsStepper(
     modifier: Modifier = Modifier,
@@ -899,14 +895,14 @@ private fun RepsStepper(
         valueText = repsValue.toString(),
         unit = "reps",
         dragValue = repsValue,
-        dragValueRange = 0..100,
+        dragValueRange = 0..Int.MAX_VALUE,
         dragStepSize = 1,
         onDragValueChange = onRepsChange,
         onDecrease = {
-            if (repsValue - 1 >= 0) onRepsChange(repsValue - 1)
+            if (repsValue > 0) onRepsChange(repsValue - 1)
         },
         onIncrease = {
-            if (repsValue + 1 <= 100) onRepsChange(repsValue + 1)
+            if (repsValue < Int.MAX_VALUE) onRepsChange(repsValue + 1)
         },
     )
 }
@@ -924,14 +920,14 @@ private fun WeightStepper(
         unit = "kg",
         valueColor = MaterialTheme.colorScheme.onSurface,
         dragValue = weightTenths,
-        dragValueRange = 0..5000,
+        dragValueRange = 0..Int.MAX_VALUE,
         dragStepSize = 5,
         onDragValueChange = onWeightChange,
         onDecrease = {
-            if (weightTenths - 5 >= 0) onWeightChange(weightTenths - 5)
+            if (weightTenths >= 5) onWeightChange(weightTenths - 5)
         },
         onIncrease = {
-            if (weightTenths + 5 <= 5000) onWeightChange(weightTenths + 5)
+            if (weightTenths <= Int.MAX_VALUE - 5) onWeightChange(weightTenths + 5)
         },
     )
 }
@@ -976,8 +972,12 @@ private fun MetricStepper(
                             change.consume()
                             dragPx += dragAmount
                             val steps = dragStepsForDistance(dragPx, density)
-                            val newValue = (startValue + steps * dragStepSize)
-                                .coerceIn(dragValueRange.first, dragValueRange.last)
+                            val newValue = adjustedDragValue(
+                                startValue = startValue,
+                                steps = steps,
+                                stepSize = dragStepSize,
+                                range = dragValueRange,
+                            )
                             if (newValue != currentDragValue) {
                                 currentOnDragValueChange(newValue)
                             }

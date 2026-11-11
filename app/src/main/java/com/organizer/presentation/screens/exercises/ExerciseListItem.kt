@@ -111,10 +111,13 @@ fun ExerciseListItem(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp),
+                    .padding(start = 4.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 dragHandle?.invoke()
+                if (dragHandle != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
 
                 if (exercise.imageUrls.isNotEmpty()) {
                     // Re-read when any media file lands; File equality keeps

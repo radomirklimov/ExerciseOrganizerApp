@@ -427,57 +427,100 @@ private fun ExerciseSetRow(
     exerciseType: String,
     set: ExerciseProgressEntity,
 ) {
-    Row(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Light-purple circular badge with set number
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.primaryFixed
-        ) {
-            Box(
-                modifier = Modifier.size(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = set.setNumber.toString(),
-                    color = MaterialTheme.colorScheme.onPrimaryFixed,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "Set",
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-            modifier = Modifier.weight(1f)
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         )
-        when (exerciseType) {
-            "DURATION" -> Text(
-                text = formatDuration(set.durationSeconds ?: 0),
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Light-purple circular badge with set number
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryFixed
+            ) {
+                Box(
+                    modifier = Modifier.size(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = set.setNumber.toString(),
+                        color = MaterialTheme.colorScheme.onPrimaryFixed,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Set",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
             )
-            "REPS" -> Text(
-                text = "${set.reps ?: 0} reps",
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f)
-            )
-            else -> {
-                Text(
+            Spacer(modifier = Modifier.width(8.dp))
+            when (exerciseType) {
+                "DURATION" -> Text(
+                    text = formatDuration(set.durationSeconds ?: 0),
+                    textAlign = TextAlign.End,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                "REPS" -> Text(
                     text = "${set.reps ?: 0} reps",
                     textAlign = TextAlign.End,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = formatWeight(set.weight),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f)
-                )
+                else -> {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = formatWeightNumber(set.weight ?: 0.0),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "kg",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "${set.reps ?: 0}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "reps",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
+    }
+}
+
+private fun formatWeightNumber(weight: Double): String {
+    return if (weight == weight.toLong().toDouble()) {
+        weight.toLong().toString()
+    } else {
+        weight.toString()
     }
 }

@@ -482,23 +482,30 @@ private fun ExerciseSetRow(
                     modifier = Modifier.weight(1f)
                 )
                 else -> {
-                    Row(
+                    // Weight is centered in the space between "Set" and reps.
+                    Box(
                         modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = formatWeightNumber(set.weight ?: 0.0),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "kg",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    // Reps stays clearly visible and right-aligned.
+                    Row(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = formatWeightNumber(set.weight ?: 0.0),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "kg",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "${set.reps ?: 0}",
                             fontWeight = FontWeight.Bold,

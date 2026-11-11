@@ -14,6 +14,7 @@ import com.organizer.data.local.db.AppDatabase
 import com.organizer.data.local.db.DISPLAY_ORDER_MIGRATION_1_2
 import com.organizer.data.local.db.EXERCISE_TYPE_MIGRATION_2_3
 import com.organizer.data.local.db.EXERCISE_PROGRESS_MIGRATION_3_4
+import com.organizer.data.local.db.WORKOUT_NOTES_MIGRATION_4_5
 import com.organizer.data.remote.ApiService
 import com.organizer.data.local.storage.FileStorage
 import com.organizer.data.local.storage.FileStore
@@ -71,7 +72,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4).build()
+        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5).build()
     }
 
     @Provides

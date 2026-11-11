@@ -266,6 +266,10 @@ class OrganizerViewModel @Inject constructor(
         workoutRepo.deleteWorkout(id)
     }
 
+    fun updateWorkoutNotes(id: Long, notes: String) = viewModelScope.launch {
+        workoutRepo.updateWorkoutNotes(id, notes)
+    }
+
     fun addExerciseToWorkout(workoutId: Long, exerciseId: Long) = viewModelScope.launch {
         workoutExerciseRepo.addExerciseToWorkout(workoutId, exerciseId)
     }

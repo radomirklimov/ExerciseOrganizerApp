@@ -14,4 +14,5 @@ data class WorkoutEntity(
     @PrimaryKey(autoGenerate = true)
     val workoutId: Long = 0L,
     val name: String,
+    val notes: String = "",
 )

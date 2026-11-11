@@ -23,4 +23,8 @@ class WorkoutRepository @Inject constructor(
     suspend fun deleteWorkout(id: Long) {
         dao.delete(id)
     }
+
+    suspend fun updateWorkoutNotes(id: Long, notes: String) {
+        dao.updateNotes(id, notes)
+    }
 }

@@ -217,6 +217,12 @@ fun AppNavigation(showOnboarding: Boolean) {
                     onBackClick = {
                         popBackScreen()
                     },
+                    onAddStandardExercisesClick = {
+                        navController.navigate(Routes.Sports.route)
+                    },
+                    onAddCustomExercisesClick = {
+                        navController.navigate(Routes.Exercises.route)
+                    },
                     viewModel = organizerViewModel,
                 )
             }

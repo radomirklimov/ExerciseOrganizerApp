@@ -223,6 +223,9 @@ fun AppNavigation(showOnboarding: Boolean) {
                     onAddCustomExercisesClick = {
                         navController.navigate(Routes.Exercises.route)
                     },
+                    onCreateCustomExerciseClick = {
+                        navController.navigate(Routes.AddCard.route)
+                    },
                     viewModel = organizerViewModel,
                 )
             }

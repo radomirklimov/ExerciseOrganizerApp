@@ -49,6 +49,7 @@ fun CategoryContentScreen(
         CategoryHeader(
             categoryPath.toMutableList(),
             onBackClick,
+            onCategoryClick,
             viewModel
         )
 

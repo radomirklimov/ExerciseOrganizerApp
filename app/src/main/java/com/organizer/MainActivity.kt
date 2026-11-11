@@ -140,9 +140,10 @@ fun AppNavigation(showOnboarding: Boolean) {
                 CategoryContentScreen(
                     categoryId = categoryId,
                     onCategoryClick = { category ->
-                        navController.navigate(
-                            Routes.Subcategory.createRoute(category.categoryId)
-                        )
+                        val route = Routes.Subcategory.createRoute(category.categoryId)
+                        if (!navController.popBackStack(route, false)) {
+                            navController.navigate(route)
+                        }
                     },
                     onExerciseClick = { exercise ->
                         navController.navigate(

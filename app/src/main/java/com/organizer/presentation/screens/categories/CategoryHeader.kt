@@ -1,5 +1,6 @@
 package com.organizer.presentation.screens.categories
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -31,15 +32,17 @@ import com.organizer.presentation.OrganizerViewModel
 fun CategoryHeader(
     categoryPath: MutableList<CategoryEntity>,
     onBackClick: () -> Unit,
-    viewModel: OrganizerViewModel
+    onCategoryClick: (CategoryEntity) -> Unit,
+    viewModel: OrganizerViewModel,
+    modifier: Modifier = Modifier,
 ) {
     val sport = categoryPath.firstOrNull()
     val subcategories = categoryPath.drop(1)
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 4.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -80,26 +83,34 @@ fun CategoryHeader(
             }
         }
 
-        // Category path to the current category
-        if (subcategories.isNotEmpty()) {
+        // Breadcrumb path below the static sport header. The sport is always
+        // shown as the first item; every item except the current one is
+        // clickable and navigates directly to that level.
+        sport?.let { currentSport ->
+            val breadcrumbItems = listOf(currentSport) + subcategories
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             FlowRow(
                 modifier = Modifier.padding(start = 56.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalArrangement = Arrangement.Start
             ) {
-
-                subcategories.forEachIndexed { index, category ->
+                breadcrumbItems.forEachIndexed { index, category ->
+                    val isCurrent = index == breadcrumbItems.lastIndex
                     Text(
                         text = category.name,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.DarkGray
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isCurrent) Color.Black else Color(0xFF4F378A),
+                        modifier = if (isCurrent) {
+                            Modifier
+                        } else {
+                            Modifier.clickable { onCategoryClick(category) }
+                        }
                     )
 
-                    if (index < subcategories.lastIndex) {
+                    if (index < breadcrumbItems.lastIndex) {
                         Text(
                             text = ">",
                             modifier = Modifier.padding(horizontal = 6.dp),

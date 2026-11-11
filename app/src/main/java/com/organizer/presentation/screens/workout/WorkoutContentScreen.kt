@@ -48,6 +48,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -468,19 +473,27 @@ private fun ExerciseSetRow(
             Spacer(modifier = Modifier.width(8.dp))
             when (exerciseType) {
                 "DURATION" -> Text(
-                    text = formatDuration(set.durationSeconds ?: 0),
+                    text = styledDuration(formatDuration(set.durationSeconds ?: 0), MaterialTheme.colorScheme.onSurfaceVariant),
                     textAlign = TextAlign.End,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
                     modifier = Modifier.weight(1f)
                 )
-                "REPS" -> Text(
-                    text = "${set.reps ?: 0} reps",
-                    textAlign = TextAlign.End,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    modifier = Modifier.weight(1f)
-                )
+                "REPS" -> Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${set.reps ?: 0}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "reps",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 else -> {
                     // Weight is centered in the space between "Set" and reps.
                     Box(
@@ -518,6 +531,29 @@ private fun ExerciseSetRow(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+
+private fun styledDuration(value: String, unitColor: androidx.compose.ui.graphics.Color): AnnotatedString {
+    return buildAnnotatedString {
+        value.forEach { ch ->
+            if (ch.isDigit()) {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp)) {
+                    append(ch)
+                }
+            } else {
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 12.sp,
+                        color = unitColor
+                    )
+                ) {
+                    append(ch)
                 }
             }
         }

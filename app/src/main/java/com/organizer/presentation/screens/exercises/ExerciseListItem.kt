@@ -107,7 +107,7 @@ fun ExerciseListItem(
                 containerColor = Color(0xFF7B61A8)
             ),
             elevation = CardDefaults.cardElevation(
-                defaultElevation = 4.dp
+                defaultElevation = 8.dp
             )
         ) {
             Row(

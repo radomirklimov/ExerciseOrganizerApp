@@ -41,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -169,6 +170,7 @@ private fun MissingExerciseBlock(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp)
+            .shadow(4.dp, RoundedCornerShape(20.dp))
             .background(Color(0xFFF7F2F8), RoundedCornerShape(20.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),

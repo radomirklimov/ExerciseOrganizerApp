@@ -70,10 +70,10 @@ fun CategoryContentScreen(
                 .fillMaxSize()
                 .background(backgroundColor)
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
         ) {
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // An empty list while syncing (or failing) means "not loaded yet",
             // not "this category is empty". Reuses the existing loading design.

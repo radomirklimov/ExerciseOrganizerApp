@@ -45,7 +45,7 @@ fun CategoryHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(top = 4.dp, bottom = 0.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -96,8 +96,8 @@ fun CategoryHeader(
 
             FlowRow(
                 modifier = Modifier.padding(start = 56.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalArrangement = Arrangement.Start
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 breadcrumbItems.forEachIndexed { index, category ->
                     val isCurrent = index == breadcrumbItems.lastIndex

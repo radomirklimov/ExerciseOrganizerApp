@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,11 +56,13 @@ fun CategoryHeader(
 
             // Icon for back click
             IconButton(
-                onClick = onBackClick
+                onClick = onBackClick,
+                modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text(
-                    text = "←",
-                    fontSize = 28.sp
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -110,6 +115,7 @@ fun CategoryHeader(
                         } else {
                             Modifier.clickable { onCategoryClick(category) }
                         })
+                            .align(Alignment.CenterVertically)
                             .background(blockColor, RoundedCornerShape(50))
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
@@ -124,7 +130,9 @@ fun CategoryHeader(
                     if (index < breadcrumbItems.lastIndex) {
                         Text(
                             text = ">",
-                            modifier = Modifier.padding(horizontal = 6.dp),
+                            modifier = Modifier
+                                .align(Alignment.CenterVertically)
+                                .padding(horizontal = 6.dp),
                             color = Color.Gray
                         )
                     }

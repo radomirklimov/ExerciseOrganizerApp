@@ -99,7 +99,7 @@ fun CategoryListItem(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!category.iconUrl.isNullOrBlank()) {
@@ -118,7 +118,10 @@ fun CategoryListItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(24.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+
+            val subcategories by viewModel.observeSubcategories(category.categoryId).collectAsState(initial = null)
+            val categoryExercises by viewModel.observeExercisesByCategory(category.categoryId).collectAsState(initial = null)
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -136,6 +139,15 @@ fun CategoryListItem(
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
+                        fontSize = 13.sp,
+                        color = Color(0xFF494551),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (subcategories?.isEmpty() == true && categoryExercises?.isNotEmpty() == true) {
+                    Text(
+                        text = "${categoryExercises?.size ?: 0} Exercises",
                         fontSize = 13.sp,
                         color = Color(0xFF494551),
                         maxLines = 1,

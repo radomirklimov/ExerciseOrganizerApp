@@ -19,6 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -98,17 +101,25 @@ fun CategoryHeader(
             ) {
                 breadcrumbItems.forEachIndexed { index, category ->
                     val isCurrent = index == breadcrumbItems.lastIndex
-                    Text(
-                        text = category.name,
-                        fontSize = 18.sp,
-                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isCurrent) Color.Black else Color(0xFF4F378A),
-                        modifier = if (isCurrent) {
+                    val blockColor = if (isCurrent) Color(0xFF6750A4) else Color(0xFFF1ECF2)
+                    val textColor = if (isCurrent) Color.White else Color(0xFF6750A4)
+
+                    Box(
+                        modifier = (if (isCurrent) {
                             Modifier
                         } else {
                             Modifier.clickable { onCategoryClick(category) }
-                        }
-                    )
+                        })
+                            .background(blockColor, RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = category.name,
+                            fontSize = 16.sp,
+                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                            color = textColor,
+                        )
+                    }
 
                     if (index < breadcrumbItems.lastIndex) {
                         Text(

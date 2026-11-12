@@ -45,7 +45,7 @@ fun SportsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFDF8FD))
+            .background(Color(0xFFFEFBFE))
             .padding(horizontal = 24.dp)
             .padding(top = 16.dp)
     ) {
@@ -114,9 +114,9 @@ fun SportsScreen(
 }
 
 private fun sportSubtitle(name: String): String? = when (name) {
-    "Gym" -> "Machines, Free Weights & Racks"
-    "Calisthenics" -> "Bodyweight Strength & Form"
-    "Street Workout" -> "Bars, Rings & Park Routines"
-    "Home Workout" -> "Minimal Equipment & Quick Sessions"
+    "Gym" -> "Weights & Machines"
+    "Calisthenics" -> "Bodyweight Strength & Skills"
+    "Street Workout" -> "Bars, Tricks & Freestyle"
+    "Home Workout" -> "Home Equipment & Bodyweight"
     else -> null
 }

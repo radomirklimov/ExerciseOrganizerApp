@@ -38,14 +38,8 @@ fun CategoryContentScreen(
     val isLoading by viewModel.isSyncing.collectAsState()
     val errorMessage = viewModel.errorMessage
 
-    // Progressive purple tint based on how deep the user is in the category
-    // hierarchy. Root level stays white; deeper levels become slightly darker.
-    val depth = (categoryPath.size - 1).coerceAtLeast(0)
-    val backgroundColor = lerp(
-        Color.White,
-        Color(0xFF6750A4),
-        (depth * 0.05f).coerceIn(0f, 0.30f),
-    )
+    // Keep the same background color on every screen.
+    val backgroundColor = Color(0xFFFEFBFE)
 
     // Prioritize this category's media every time its data changes: opening
     // another category dynamically raises its images and icons above pending
@@ -60,7 +54,7 @@ fun CategoryContentScreen(
         // Keep the header in the default surface color, independent of the
         // category-depth background tint used by the content below.
         Surface(
-            color = MaterialTheme.colorScheme.surface,
+            color = Color(0xFFFEFBFE),
             modifier = Modifier.fillMaxWidth()
         ) {
             CategoryHeader(

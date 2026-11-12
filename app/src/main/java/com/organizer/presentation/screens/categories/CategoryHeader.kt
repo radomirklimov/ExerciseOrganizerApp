@@ -1,5 +1,6 @@
 package com.organizer.presentation.screens.categories
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -10,6 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +22,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -31,15 +38,17 @@ import com.organizer.presentation.OrganizerViewModel
 fun CategoryHeader(
     categoryPath: MutableList<CategoryEntity>,
     onBackClick: () -> Unit,
-    viewModel: OrganizerViewModel
+    onCategoryClick: (CategoryEntity) -> Unit,
+    viewModel: OrganizerViewModel,
+    modifier: Modifier = Modifier,
 ) {
     val sport = categoryPath.firstOrNull()
     val subcategories = categoryPath.drop(1)
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(top = 4.dp, bottom = 0.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -47,11 +56,13 @@ fun CategoryHeader(
 
             // Icon for back click
             IconButton(
-                onClick = onBackClick
+                onClick = onBackClick,
+                modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text(
-                    text = "←",
-                    fontSize = 28.sp
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -80,29 +91,48 @@ fun CategoryHeader(
             }
         }
 
-        // Category path to the current category
-        if (subcategories.isNotEmpty()) {
+        // Breadcrumb path below the static sport header. The sport is always
+        // shown as the first item; every item except the current one is
+        // clickable and navigates directly to that level.
+        sport?.let { currentSport ->
+            val breadcrumbItems = listOf(currentSport) + subcategories
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             FlowRow(
                 modifier = Modifier.padding(start = 56.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalArrangement = Arrangement.Start
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                breadcrumbItems.forEachIndexed { index, category ->
+                    val isCurrent = index == breadcrumbItems.lastIndex
+                    val blockColor = if (isCurrent) Color(0xFF6750A4) else Color(0xFFF1ECF2)
+                    val textColor = if (isCurrent) Color.White else Color(0xFF6750A4)
 
-                subcategories.forEachIndexed { index, category ->
-                    Text(
-                        text = category.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.DarkGray
-                    )
+                    Box(
+                        modifier = (if (isCurrent) {
+                            Modifier
+                        } else {
+                            Modifier.clickable { onCategoryClick(category) }
+                        })
+                            .align(Alignment.CenterVertically)
+                            .background(blockColor, RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = category.name,
+                            fontSize = 16.sp,
+                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                            color = textColor,
+                        )
+                    }
 
-                    if (index < subcategories.lastIndex) {
+                    if (index < breadcrumbItems.lastIndex) {
                         Text(
                             text = ">",
-                            modifier = Modifier.padding(horizontal = 6.dp),
+                            modifier = Modifier
+                                .align(Alignment.CenterVertically)
+                                .padding(horizontal = 6.dp),
                             color = Color.Gray
                         )
                     }

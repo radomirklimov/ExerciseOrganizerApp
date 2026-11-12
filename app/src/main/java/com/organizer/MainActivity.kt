@@ -1,11 +1,15 @@
 package com.organizer
 
+import android.app.Activity
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -56,6 +60,20 @@ fun AppNavigation(showOnboarding: Boolean) {
         ?.destination
         ?.route
 
+    val context = LocalContext.current
+    LaunchedEffect(currentRoute) {
+        val activity = context as? Activity ?: return@LaunchedEffect
+        val statusBarColor = if (currentRoute == Routes.Sports.route) {
+            android.graphics.Color.parseColor("#FEFBFE")
+        } else {
+            android.graphics.Color.parseColor("#F8F5F5")
+        }
+        activity.window.statusBarColor = statusBarColor
+        activity.window.setBackgroundDrawable(ColorDrawable(statusBarColor))
+        WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+            .isAppearanceLightStatusBars = true
+    }
+
     fun popBackScreen() {
         val currentRout = navController.currentDestination?.route
         if (currentRout != Routes.Sports.route) {
@@ -64,7 +82,7 @@ fun AppNavigation(showOnboarding: Boolean) {
     }
 
     Scaffold(
-        containerColor = Color(0xFFF8F5F5),
+        containerColor = Color(0xFFFEFBFE),
         bottomBar = {
             if (currentRoute != Routes.Onboarding.route) {
                 BottomNavigationBar(
@@ -140,9 +158,10 @@ fun AppNavigation(showOnboarding: Boolean) {
                 CategoryContentScreen(
                     categoryId = categoryId,
                     onCategoryClick = { category ->
-                        navController.navigate(
-                            Routes.Subcategory.createRoute(category.categoryId)
-                        )
+                        val route = Routes.Subcategory.createRoute(category.categoryId)
+                        if (!navController.popBackStack(route, false)) {
+                            navController.navigate(route)
+                        }
                     },
                     onExerciseClick = { exercise ->
                         navController.navigate(

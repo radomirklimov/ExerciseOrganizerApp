@@ -100,7 +100,7 @@ fun ExerciseListItem(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp),
+                .height(88.dp),
             onClick = onClick,
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
@@ -112,8 +112,7 @@ fun ExerciseListItem(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 4.dp, end = 12.dp),
+                    .fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 dragHandle?.invoke()
@@ -127,8 +126,7 @@ fun ExerciseListItem(
                     val mediaTick by viewModel.mediaVersion.collectAsState()
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(12.dp)),
+                            .size(80.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
@@ -144,7 +142,7 @@ fun ExerciseListItem(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(24.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(
                     modifier = Modifier.weight(1f),

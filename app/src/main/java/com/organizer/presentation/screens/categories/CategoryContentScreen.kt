@@ -30,6 +30,7 @@ fun CategoryContentScreen(
     onCategoryClick: (CategoryEntity) -> Unit,
     onExerciseClick: (ExerciseEntity) -> Unit,
     onBackClick: () -> Unit,
+    onAddCustomExerciseClick: () -> Unit,
     viewModel: OrganizerViewModel,
 ) {
     val categoryPath by viewModel.getCategoryPath(categoryId).collectAsState(initial = emptyList())
@@ -89,7 +90,15 @@ fun CategoryContentScreen(
                     )
                 }
             } else {
-                CategoryList(categoryId, onCategoryClick, onExerciseClick, viewModel)
+                CategoryList(
+                    categoryId = categoryId,
+                    categoryName = categoryPath.lastOrNull()?.name,
+                    categoryFullPath = categoryPath.joinToString(" > ") { it.name },
+                    onCategoryClick = onCategoryClick,
+                    onExerciseClick = onExerciseClick,
+                    onAddCustomClick = onAddCustomExerciseClick,
+                    viewModel = viewModel,
+                )
             }
         }
     }

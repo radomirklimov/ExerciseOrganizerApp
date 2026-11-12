@@ -4,7 +4,9 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,8 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -41,7 +52,9 @@ import kotlin.time.Duration.Companion.milliseconds
 fun CategoryListItem(
     category: CategoryEntity,
     onClick: () -> Unit,
-    viewModel: OrganizerViewModel
+    viewModel: OrganizerViewModel,
+    subtitle: String? = null,
+    selected: Boolean = false,
 ) {
     val textScrollState = rememberScrollState()
 
@@ -107,23 +120,63 @@ fun CategoryListItem(
 
             Spacer(modifier = Modifier.width(24.dp))
 
-            Text(
-                text = category.name,
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(textScrollState),
-                fontSize = 24.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Medium
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = category.name,
+                    modifier = Modifier
+                        .horizontalScroll(textScrollState),
+                    fontSize = 24.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        color = Color(0xFF494551),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.width(15.dp))
 
-            Text(
-                text = "➜",
-                fontSize = 24.sp,
-                color = Color.Black
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val arrowHighlighted = selected || isPressed
+            val arrowBackground by animateColorAsState(
+                targetValue = if (arrowHighlighted) Color(0xFF6750A4) else Color(0xFFF7F2F8),
+                label = "categoryArrowBackground",
             )
+            val arrowTint by animateColorAsState(
+                targetValue = if (arrowHighlighted) Color.White else Color(0xFF494551),
+                label = "categoryArrowTint",
+            )
+
+            Surface(
+                onClick = onClick,
+                shape = CircleShape,
+                color = arrowBackground,
+                modifier = Modifier.size(40.dp),
+                interactionSource = interactionSource,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Open ${category.name}",
+                        tint = arrowTint,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
         }
     }
 }

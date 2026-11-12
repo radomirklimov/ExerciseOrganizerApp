@@ -1,5 +1,6 @@
 package com.organizer.presentation.screens.sports
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
@@ -43,6 +45,7 @@ fun SportsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFFDF8FD))
             .padding(horizontal = 24.dp)
             .padding(top = 16.dp)
     ) {
@@ -81,7 +84,8 @@ fun SportsScreen(
                             CategoryListItem(
                                 category = result.sport,
                                 onClick = { onSportClick(result.sport) },
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                subtitle = sportSubtitle(result.sport.name)
                             )
                         }
                         is SearchResult.Category -> {
@@ -107,4 +111,12 @@ fun SportsScreen(
             }
         }
     }
+}
+
+private fun sportSubtitle(name: String): String? = when (name) {
+    "Gym" -> "Machines, Free Weights & Racks"
+    "Calisthenics" -> "Bodyweight Strength & Form"
+    "Street Workout" -> "Bars, Rings & Park Routines"
+    "Home Workout" -> "Minimal Equipment & Quick Sessions"
+    else -> null
 }

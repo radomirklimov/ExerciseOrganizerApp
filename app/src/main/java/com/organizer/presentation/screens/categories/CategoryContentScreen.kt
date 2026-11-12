@@ -1,17 +1,23 @@
 package com.organizer.presentation.screens.categories
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
@@ -32,6 +38,15 @@ fun CategoryContentScreen(
     val isLoading by viewModel.isSyncing.collectAsState()
     val errorMessage = viewModel.errorMessage
 
+    // Progressive purple tint based on how deep the user is in the category
+    // hierarchy. Root level stays white; deeper levels become slightly darker.
+    val depth = (categoryPath.size - 1).coerceAtLeast(0)
+    val backgroundColor = lerp(
+        Color.White,
+        Color(0xFF6750A4),
+        (depth * 0.05f).coerceIn(0f, 0.30f),
+    )
+
     // Prioritize this category's media every time its data changes: opening
     // another category dynamically raises its images and icons above pending
     // background downloads. Data itself renders from Room immediately.
@@ -40,36 +55,48 @@ fun CategoryContentScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 16.dp)
+        modifier = Modifier.fillMaxSize()
     ) {
+        // Keep the header in the default surface color, independent of the
+        // category-depth background tint used by the content below.
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            CategoryHeader(
+                categoryPath.toMutableList(),
+                onBackClick,
+                onCategoryClick,
+                viewModel
+            )
+        }
 
-        CategoryHeader(
-            categoryPath.toMutableList(),
-            onBackClick,
-            onCategoryClick,
-            viewModel
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundColor)
+                .padding(horizontal = 24.dp)
+                .padding(top = 16.dp)
+        ) {
 
-        Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-        // An empty list while syncing (or failing) means "not loaded yet",
-        // not "this category is empty". Reuses the existing loading design.
-        if (subcategories.isEmpty() && exercises.isEmpty() && (isLoading || errorMessage != null)) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                LoadingErrorView(
-                    isLoading = isLoading,
-                    errorMessage = errorMessage,
-                    onRetry = { viewModel.syncDb() }
-                )
+            // An empty list while syncing (or failing) means "not loaded yet",
+            // not "this category is empty". Reuses the existing loading design.
+            if (subcategories.isEmpty() && exercises.isEmpty() && (isLoading || errorMessage != null)) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingErrorView(
+                        isLoading = isLoading,
+                        errorMessage = errorMessage,
+                        onRetry = { viewModel.syncDb() }
+                    )
+                }
+            } else {
+                CategoryList(categoryId, onCategoryClick, onExerciseClick, viewModel)
             }
-        } else {
-            CategoryList(categoryId, onCategoryClick, onExerciseClick, viewModel)
         }
     }
 }

@@ -93,6 +93,7 @@ fun CategoryContentScreen(
                 CategoryList(
                     categoryId = categoryId,
                     categoryName = categoryPath.lastOrNull()?.name,
+                    categoryFullPath = categoryPath.joinToString(" > ") { it.name },
                     onCategoryClick = onCategoryClick,
                     onExerciseClick = onExerciseClick,
                     onAddCustomClick = onAddCustomExerciseClick,

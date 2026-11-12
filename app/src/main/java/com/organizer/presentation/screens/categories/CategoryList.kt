@@ -1,15 +1,9 @@
 package com.organizer.presentation.screens.categories
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationManager
 import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,19 +45,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
 
 @Composable
 fun CategoryList(
     categoryId: Long,
     categoryName: String?,
+    categoryFullPath: String?,
     onCategoryClick: (CategoryEntity) -> Unit,
     onExerciseClick: (ExerciseEntity) -> Unit,
     onAddCustomClick: () -> Unit,
@@ -75,19 +67,6 @@ fun CategoryList(
     val context = LocalContext.current
     var showSuggestDialog by remember { mutableStateOf(false) }
     var suggestionText by remember { mutableStateOf("") }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        sendSuggestionEmail(
-            context = context,
-            categoryName = categoryName,
-            message = suggestionText,
-            granted = granted,
-        )
-        showSuggestDialog = false
-        suggestionText = ""
-    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -153,22 +132,13 @@ fun CategoryList(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val hasPermission = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                        if (hasPermission) {
-                            sendSuggestionEmail(
-                                context = context,
-                                categoryName = categoryName,
-                                message = suggestionText,
-                                granted = true,
-                            )
-                            showSuggestDialog = false
-                            suggestionText = ""
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                        }
+                        sendSuggestionEmail(
+                            context = context,
+                            categoryName = categoryFullPath,
+                            message = suggestionText,
+                        )
+                        showSuggestDialog = false
+                        suggestionText = ""
                     },
                     enabled = suggestionText.isNotBlank(),
                 ) {
@@ -334,26 +304,20 @@ private fun sendSuggestionEmail(
     context: Context,
     categoryName: String?,
     message: String,
-    granted: Boolean,
 ) {
-    val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        .format(Date())
-    val location = if (granted) {
-        getLocationString(context)
-    } else {
-        "Permission denied"
-    }
     val body = buildString {
         appendLine("Message:")
         appendLine(message.trim())
-        appendLine()
-        appendLine("Category: ${categoryName ?: "Unknown"}")
-        appendLine("Location: $location")
-        appendLine("Time: $time")
     }
-    val intent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:radomirklimovv@gmail.com")
-        putExtra(Intent.EXTRA_SUBJECT, "Exercise suggestion: ${categoryName ?: "Unknown"}")
+    val subject = "Exercise suggestion: ${categoryName ?: "Unknown"}"
+    val uri = Uri.parse(
+        "mailto:radomirklimovv@gmail.com" +
+            "?subject=" + Uri.encode(subject) +
+            "&body=" + Uri.encode(body)
+    )
+    val intent = Intent(Intent.ACTION_SENDTO, uri).apply {
+        putExtra(Intent.EXTRA_EMAIL, arrayOf("radomirklimovv@gmail.com"))
+        putExtra(Intent.EXTRA_SUBJECT, subject)
         putExtra(Intent.EXTRA_TEXT, body)
     }
     try {
@@ -363,26 +327,3 @@ private fun sendSuggestionEmail(
     }
 }
 
-private fun getLocationString(context: Context): String {
-    return try {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val providers = locationManager.getProviders(true)
-        var location: Location? = null
-        for (provider in providers) {
-            val l = locationManager.getLastKnownLocation(provider)
-            if (l != null) {
-                location = l
-                break
-            }
-        }
-        if (location != null) {
-            "${location.latitude}, ${location.longitude}"
-        } else {
-            "Unavailable"
-        }
-    } catch (e: SecurityException) {
-        "Permission denied"
-    } catch (e: Exception) {
-        "Unavailable"
-    }
-}

@@ -188,9 +188,9 @@ fun ExerciseCard(
             Button(
                 onClick = { showSavePopup = true },
                 modifier = Modifier
-                    .width(256.dp)
+                    .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(25.dp)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,

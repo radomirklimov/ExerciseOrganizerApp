@@ -25,7 +25,7 @@ fun SaveButton(
             .height(56.dp),
         onClick = onClick,
         enabled = enabled && !isLoading,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(25.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -34,7 +34,7 @@ fun SaveButton(
             )
         } else {
             Text(
-                text = "Save",
+                text = "Create",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )

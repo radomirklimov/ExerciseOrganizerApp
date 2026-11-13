@@ -1,5 +1,6 @@
 package com.organizer.presentation.screens.workouts_and_exercises
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +28,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -129,16 +132,31 @@ fun CustomsList(
             }
         }
 
-        if (!isEmpty) {
-            when (tab) {
-                CustomsTab.WORKOUTS -> {
-                    CreateButton(
-                        text = "Create New Workout",
-                        onClick = onCreateWorkoutClick
-                    )
+        when (tab) {
+            CustomsTab.WORKOUTS -> {
+                if (!isEmpty) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .blur(48.dp)
+                                .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+                        )
+                        CreateButton(
+                            text = "Create New Workout",
+                            onClick = onCreateWorkoutClick
+                        )
+                    }
                 }
+            }
 
-                CustomsTab.EXERCISES -> {
+            CustomsTab.EXERCISES -> {
+                if (!isEmpty) {
                     CreateButton(
                         text = "Create New Exercise",
                         onClick = onCreateExerciseClick

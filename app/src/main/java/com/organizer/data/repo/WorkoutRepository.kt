@@ -8,8 +8,8 @@ import javax.inject.Inject
 class WorkoutRepository @Inject constructor(
     private val dao: WorkoutDao
 ) {
-    suspend fun createWorkout(name: String) {
-        dao.insert(WorkoutEntity(name = name))
+    suspend fun createWorkout(name: String, notes: String = "") {
+        dao.insert(WorkoutEntity(name = name, notes = notes))
     }
 
     fun observeWorkouts(): Flow<List<WorkoutEntity>> {

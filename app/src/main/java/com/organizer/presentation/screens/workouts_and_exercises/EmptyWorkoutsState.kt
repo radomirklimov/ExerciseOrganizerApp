@@ -109,7 +109,7 @@ fun EmptyWorkoutsState(
             modifier = Modifier.padding(horizontal = 8.dp),
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = onCreateWorkoutClick,

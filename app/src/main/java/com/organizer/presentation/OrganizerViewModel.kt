@@ -258,8 +258,8 @@ class OrganizerViewModel @Inject constructor(
     }
 
     // Commands
-    fun createWorkout(name: String) = viewModelScope.launch {
-        workoutRepo.createWorkout(name)
+    fun createWorkout(name: String, notes: String = "") = viewModelScope.launch {
+        workoutRepo.createWorkout(name, notes)
     }
 
     fun deleteWorkout(id: Long) = viewModelScope.launch {

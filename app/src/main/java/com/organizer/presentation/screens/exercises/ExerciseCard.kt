@@ -1,6 +1,9 @@
 package com.organizer.presentation.screens.exercises
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,18 +22,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import coil.compose.AsyncImage
 import com.organizer.presentation.OrganizerViewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,13 +59,17 @@ fun ExerciseCard(
         exercise?.let { viewModel.prioritizeExerciseMedia(it) }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 88.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
         if (exercise == null) {
             Box(
@@ -83,15 +94,39 @@ fun ExerciseCard(
                 .padding(top = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = null
-                )
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val arrowBackground by animateColorAsState(
+                targetValue = if (isPressed) Color(0xFF6750A4) else Color(0xFFF7F2F8),
+                label = "exerciseBackArrowBackground",
+            )
+            val arrowTint by animateColorAsState(
+                targetValue = if (isPressed) Color.White else Color(0xFF494551),
+                label = "exerciseBackArrowTint",
+            )
+
+            Surface(
+                onClick = onBackClick,
+                shape = CircleShape,
+                color = arrowBackground,
+                modifier = Modifier.size(40.dp),
+                interactionSource = interactionSource,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = arrowTint,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // MAIN IMAGE CARD
         ExerciseImageAnimation(
@@ -104,7 +139,7 @@ fun ExerciseCard(
             frameDurationMillis = 900L
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = exercise.name,
@@ -113,7 +148,7 @@ fun ExerciseCard(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         if (exercise.instructions.isNotEmpty()) {
             InstructionPager(
@@ -121,23 +156,7 @@ fun ExerciseCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Save button
-        Button(
-            onClick = { showSavePopup = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                "Save",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (showSavePopup) {
             SaveExercisePopup(
@@ -149,5 +168,43 @@ fun ExerciseCard(
                 viewModel = viewModel
             )
         }
+    }
+
+    if (exercise != null) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .matchParentSize()
+                    .blur(48.dp)
+                    .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+            )
+            Button(
+                onClick = { showSavePopup = true },
+                modifier = Modifier
+                    .width(256.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Add to Workout",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
     }
 }

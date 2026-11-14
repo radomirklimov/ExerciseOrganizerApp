@@ -72,12 +72,14 @@ class StarterTemplateRepository @Inject constructor(
                 .filter { it in availableIds }
                 .distinct()
             val dominant = dominantCategory(exerciseIds, linksByExercise, categories)
+            val usedCategories = usedCategories(exerciseIds, linksByExercise, categories)
 
             StarterTemplateEntity(
                 templateId = template.workoutId,
                 name = template.name,
                 notes = template.notes,
                 categoryName = dominant?.name,
+                categoryNames = usedCategories,
                 iconUrl = dominant?.iconUrl,
                 exerciseCount = exerciseIds.size,
             )
@@ -186,6 +188,98 @@ internal fun dominantCategory(
         iconUrl = closestIcon(category, categories),
     )
 }
+
+/**
+ * Collects every category the template exercises belong to, e.g.
+ * ["Chest", "Arms"]. For each exercise the most specific mapped branch is
+ * used, and its broadest non-root category ("Chest" rather than "Barbell")
+ * is taken as the exercise's category. Results are ordered by how many
+ * exercises use each category.
+ */
+internal fun usedCategories(
+    exerciseIds: List<Long>,
+    linksByExercise: Map<Long, List<ExerciseCategoryEntity>>,
+    categories: Map<Long, CategoryEntity>,
+): List<String> {
+    if (exerciseIds.isEmpty()) return emptyList()
+
+    val coverage = mutableMapOf<Long, Int>()
+    for (exerciseId in exerciseIds) {
+        val categoryId = primaryCategory(linksByExercise[exerciseId].orEmpty(), categories)
+            ?: continue
+        coverage[categoryId] = (coverage[categoryId] ?: 0) + 1
+    }
+
+    return coverage.entries
+        .sortedWith(
+            compareByDescending<Map.Entry<Long, Int>> { it.value }
+                .thenByDescending { depth(it.key, categories) }
+                .thenBy { it.key }
+        )
+        .mapNotNull { categories[it.key]?.name }
+        .distinct()
+}
+
+/**
+ * Picks the broadest non-root category ("Chest", "Arms", ...) for an
+ * exercise. Exercises are often cross-listed in several sports; the primary
+ * sport classification is preferred, and inside it the most specific branch
+ * wins. That keeps equipment-only duplicates such as "No Equipment" or
+ * "Dumbbells" from replacing the actual muscle group.
+ */
+private fun primaryCategory(
+    links: List<ExerciseCategoryEntity>,
+    categories: Map<Long, CategoryEntity>,
+): Long? {
+    if (links.isEmpty()) return null
+
+    val candidates = links.mapNotNull { link ->
+        var current = categories[link.categoryId] ?: return@mapNotNull null
+        var topNonRoot: CategoryEntity? = null
+        var branchDepth = 1
+        val visited = mutableSetOf<Long>()
+
+        while (visited.add(current.categoryId)) {
+            val parentId = current.parentCategoryId ?: break
+            topNonRoot = current
+            current = categories[parentId] ?: break
+            branchDepth++
+        }
+
+        val category = topNonRoot ?: return@mapNotNull null
+        CategoryCandidate(category, current, branchDepth)
+    }
+    if (candidates.isEmpty()) return null
+
+    val primaryRoot = candidates
+        .minWith(
+            compareBy<CategoryCandidate>(
+                { it.root.sortOrder },
+                { it.root.categoryId },
+            )
+        )
+        .root
+
+    return candidates
+        .filter { it.root.categoryId == primaryRoot.categoryId }
+        .sortedWith(
+            compareByDescending<CategoryCandidate> { it.branchDepth }
+                .thenBy { it.category.sortOrder }
+                .thenBy { it.category.categoryId }
+        )
+        .first()
+        .category
+        .categoryId
+}
+
+private data class CategoryCandidate(
+    /** Broadest non-root category of the branch (e.g. "Chest"). */
+    val category: CategoryEntity,
+    /** Sport root of the branch (e.g. "Gym"). */
+    val root: CategoryEntity,
+    /** Number of nodes in the branch; deeper means more specific. */
+    val branchDepth: Int,
+)
 
 private fun closestIcon(
     category: CategoryEntity,

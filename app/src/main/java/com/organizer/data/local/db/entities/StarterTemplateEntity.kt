@@ -18,10 +18,25 @@ data class StarterTemplateEntity(
     val notes: String = "",
     /** Category whose exercises dominate the template (e.g. "Chest"). */
     val categoryName: String? = null,
+    /**
+     * All categories the template's exercises belong to (e.g. ["Chest", "Arms"]),
+     * ordered by how many exercises use them.
+     */
+    val categoryNames: List<String> = emptyList(),
     /** Icon file of the dominant category (or its closest ancestor with one). */
     val iconUrl: String? = null,
     val exerciseCount: Int = 0,
-)
+) {
+    /** Human-readable category summary shown under the template name. */
+    val categoryLabel: String
+        get() = when {
+            categoryNames.isEmpty() -> categoryName?.takeIf { it.isNotBlank() } ?: "Workout"
+            categoryNames.size == 1 -> categoryNames.first()
+            categoryNames.size == 2 -> categoryNames.joinToString(" & ")
+            else -> categoryNames.joinToString(" · ")
+        }
+}
+
 
 @Entity(
     tableName = "starter_template_exercise",

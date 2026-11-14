@@ -120,7 +120,7 @@ fun StarterTemplateCard(
                     if (iconFile != null) {
                         AsyncImage(
                             model = iconFile,
-                            contentDescription = template.categoryName ?: template.name,
+                            contentDescription = template.categoryLabel,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.size(28.dp),
                         )
@@ -158,10 +158,10 @@ fun StarterTemplateCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = template.categoryName ?: "Workout",
+                text = template.categoryLabel,
                 fontSize = 12.sp,
                 color = Color(0xFF7A7582),
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )

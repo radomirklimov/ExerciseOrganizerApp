@@ -166,7 +166,7 @@ private fun StarterTemplateListItem(
                     if (iconFile != null) {
                         AsyncImage(
                             model = iconFile,
-                            contentDescription = template.categoryName ?: template.name,
+                            contentDescription = template.categoryLabel,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.size(38.dp),
                         )
@@ -194,11 +194,11 @@ private fun StarterTemplateListItem(
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = template.categoryName ?: "Workout",
+                        text = template.categoryLabel,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = OnSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(modifier = Modifier.height(6.dp))

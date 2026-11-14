@@ -183,7 +183,7 @@ fun WorkoutContentScreen(
                     text = if (isTemplate) {
                         listOfNotNull(
                             "${exerciseList.size} exercises",
-                            template?.categoryName?.takeIf { it.isNotBlank() }
+                            template?.categoryLabel?.takeIf { it.isNotBlank() }
                         ).joinToString(" · ")
                     } else {
                         "${exerciseList.size} exercises"

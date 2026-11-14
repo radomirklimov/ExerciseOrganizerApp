@@ -23,7 +23,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 6,
+    version = 7,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -45,6 +45,14 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val workoutExerciseDao: WorkoutExerciseDao
     abstract val exerciseProgressDao: ExerciseProgressDao
     abstract val starterTemplateDao: StarterTemplateDao
+}
+
+val STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE starter_template ADD COLUMN categoryNames TEXT NOT NULL DEFAULT '[]'"
+        )
+    }
 }
 
 val STARTER_TEMPLATES_MIGRATION_5_6 = object : Migration(5, 6) {

@@ -48,6 +48,7 @@ fun CustomsList(
     onOpenExerciseClick: (ExerciseEntity) -> Unit,
     onCreateWorkoutClick: () -> Unit,
     onCreateExerciseClick: () -> Unit,
+    onBrowseStandardExercisesClick: () -> Unit = {},
     onTemplateClick: (Long) -> Unit,
     onViewAllTemplatesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
@@ -112,10 +113,9 @@ fun CustomsList(
                 CustomsTab.EXERCISES -> {
                     if (customExercises.isEmpty()) {
                         item {
-                            EmptyStateWithButton(
-                                message = "No exercises created yet",
-                                buttonText = "Create New Exercise",
-                                onButtonClick = onCreateExerciseClick
+                            EmptyExercisesState(
+                                onCreateExerciseClick = onCreateExerciseClick,
+                                onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
                             )
                         }
                     } else {

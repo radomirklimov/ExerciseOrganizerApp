@@ -151,8 +151,8 @@ fun CustomsList(
                 if (!isEmpty) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                            .fillMaxWidth(),
+//                            .padding(16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(

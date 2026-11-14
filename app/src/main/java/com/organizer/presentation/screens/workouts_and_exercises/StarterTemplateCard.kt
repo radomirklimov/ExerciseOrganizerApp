@@ -2,16 +2,21 @@ package com.organizer.presentation.screens.workouts_and_exercises
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -36,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,8 +102,9 @@ fun StarterTemplateCard(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+                .fillMaxSize()
+                .padding(14.dp)
+                .padding(start = 6.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -160,7 +167,7 @@ fun StarterTemplateCard(
                 modifier = Modifier.padding(top = 2.dp),
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.weight(1f).height(12.dp))
 
             HorizontalDivider(color = Color(0xFFF1ECF2), thickness = 1.dp)
 
@@ -189,7 +196,10 @@ fun StarterTemplateCard(
 }
 
 /**
- * Header plus the first two templates shown on the workout page.
+ * Horizontally scrollable starter template section shown on the workout page.
+ *
+ * Shows up to [MAX_VISIBLE_TEMPLATES] templates; the list ends with a
+ * "View all" card so the full catalogue stays one swipe away.
  */
 @Composable
 fun StarterTemplatesSection(
@@ -202,6 +212,8 @@ fun StarterTemplatesSection(
 ) {
     if (templates.isEmpty()) return
 
+    val visibleTemplates = templates.take(MAX_VISIBLE_TEMPLATES)
+
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -209,50 +221,113 @@ fun StarterTemplatesSection(
         ) {
             Text(
                 text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = OnSurfaceVariant,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = OnSurface,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(modifier = Modifier.weight(1f))
-            Row(
+            Text(
+                text = "${templates.size} " +
+                    if (templates.size == 1) "routine" else "routines",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF7A7582),
                 modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .clickable(onClick = onViewAllClick)
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "View all",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Primary,
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(Color(0xFFF1ECF2))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(end = 4.dp),
         ) {
-            templates.take(2).forEach { template ->
+            items(
+                items = visibleTemplates,
+                key = { it.templateId },
+            ) { template ->
                 StarterTemplateCard(
                     template = template,
                     onClick = { onTemplateClick(template.templateId) },
                     viewModel = viewModel,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .width(TEMPLATE_CARD_WIDTH)
+                        .height(TEMPLATE_CARD_HEIGHT),
                 )
             }
-            if (templates.size == 1) {
-                Spacer(modifier = Modifier.weight(1f))
+
+            item(key = "view_all_templates") {
+                ViewAllTemplatesCard(
+                    onClick = onViewAllClick,
+                    modifier = Modifier
+                        .width(VIEW_ALL_CARD_WIDTH)
+                        .height(TEMPLATE_CARD_HEIGHT),
+                )
             }
         }
     }
 }
+
+/** Last card of the horizontal list: opens the full template catalogue. */
+@Composable
+private fun ViewAllTemplatesCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = Primary,
+        shadowElevation = 4.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "View all",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "All templates",
+                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
+}
+
+private const val MAX_VISIBLE_TEMPLATES = 5
+private val TEMPLATE_CARD_WIDTH = 176.dp
+private val TEMPLATE_CARD_HEIGHT = 172.dp
+private val VIEW_ALL_CARD_WIDTH = 116.dp

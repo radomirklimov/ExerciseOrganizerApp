@@ -51,7 +51,7 @@ fun EmptyWorkoutsState(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
+                .padding(bottom = 18.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(

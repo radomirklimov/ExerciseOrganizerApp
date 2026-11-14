@@ -83,7 +83,7 @@ fun WorkoutsScreen(
             )
         }
 
-        Spacer(Modifier.height(8.dp))
+//        Spacer(Modifier.height(8.dp))
 
         CustomsList(
             tab = CustomsTab.WORKOUTS,

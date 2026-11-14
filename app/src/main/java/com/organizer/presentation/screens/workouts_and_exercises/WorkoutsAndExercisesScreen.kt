@@ -28,6 +28,8 @@ fun CustomWorkoutsAndExercisesScreen(
     onExerciseClick: (ExerciseEntity) -> Unit,
     onCreateWorkoutClick: () -> Unit,
     onCreateExerciseClick: () -> Unit,
+    onTemplateClick: (Long) -> Unit,
+    onViewAllTemplatesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
     Column(
@@ -47,6 +49,8 @@ fun CustomWorkoutsAndExercisesScreen(
             onOpenExerciseClick = onExerciseClick,
             onCreateWorkoutClick = onCreateWorkoutClick,
             onCreateExerciseClick = onCreateExerciseClick,
+            onTemplateClick = onTemplateClick,
+            onViewAllTemplatesClick = onViewAllTemplatesClick,
             viewModel = viewModel,
         )
     }
@@ -56,6 +60,8 @@ fun CustomWorkoutsAndExercisesScreen(
 fun WorkoutsScreen(
     onWorkoutClick: (WorkoutEntity) -> Unit,
     onCreateWorkoutClick: () -> Unit,
+    onTemplateClick: (Long) -> Unit,
+    onViewAllTemplatesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
     Column(
@@ -85,6 +91,8 @@ fun WorkoutsScreen(
             onOpenExerciseClick = {},
             onCreateWorkoutClick = onCreateWorkoutClick,
             onCreateExerciseClick = {},
+            onTemplateClick = onTemplateClick,
+            onViewAllTemplatesClick = onViewAllTemplatesClick,
             viewModel = viewModel,
         )
     }
@@ -109,6 +117,8 @@ fun ExercisesScreen(
             onOpenExerciseClick = onExerciseClick,
             onCreateWorkoutClick = {},
             onCreateExerciseClick = onCreateExerciseClick,
+            onTemplateClick = {},
+            onViewAllTemplatesClick = {},
             viewModel = viewModel,
         )
     }

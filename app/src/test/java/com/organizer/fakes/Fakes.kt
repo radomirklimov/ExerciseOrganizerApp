@@ -11,6 +11,7 @@ import com.organizer.data.remote.ApiService
 import com.organizer.data.remote.model.Category
 import com.organizer.data.remote.model.Exercise
 import com.organizer.data.remote.model.ExerciseCategory
+import com.organizer.data.remote.model.WorkoutTemplate
 import com.organizer.data.remote.repo.FileRemoteDataSource
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
@@ -27,6 +28,7 @@ class FakeApiService(
     var categories: List<Category> = emptyList(),
     var exercises: List<Exercise> = emptyList(),
     var links: List<ExerciseCategory> = emptyList(),
+    var templates: List<WorkoutTemplate> = emptyList(),
 ) : ApiService {
     val pageCalls = mutableListOf<Pair<Int, Int>>()
 
@@ -42,6 +44,8 @@ class FakeApiService(
     }
 
     override suspend fun getExerciseCategory(): List<ExerciseCategory> = links
+
+    override suspend fun getStarterWorkouts(): List<WorkoutTemplate> = templates
 
     override suspend fun downloadFile(url: String): Response<ResponseBody> =
         throw UnsupportedOperationException("FakeApiService.downloadFile is never called in tests")

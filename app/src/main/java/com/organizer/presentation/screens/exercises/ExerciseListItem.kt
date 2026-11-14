@@ -66,6 +66,7 @@ fun ExerciseListItem(
     onClick: () -> Unit,
     onOpenClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    showDelete: Boolean = true,
     onTrackClick: (() -> Unit)? = null,
     expandedContent: (@Composable () -> Unit)? = null,
     viewModel: OrganizerViewModel,
@@ -233,39 +234,41 @@ fun ExerciseListItem(
                     }
                 }
 
-                Button(
-                    onClick = { showDeleteDialog = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Delete")
-                }
+                if (showDelete) {
+                    Button(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Delete")
+                    }
 
-                if (showDeleteDialog) {
-                    DeleteConfirmationDialog(
-                        title = deletionInfo?.first ?: "no message provided",
-                        message = deletionInfo?.second ?: "no message provided",
-                        onConfirm = {
-                            onDeleteClick()
-                            showDeleteDialog = false
-                        },
-                        onDismiss = {
-                            showDeleteDialog = false
-                        }
-                    )
+                    if (showDeleteDialog) {
+                        DeleteConfirmationDialog(
+                            title = deletionInfo?.first ?: "no message provided",
+                            message = deletionInfo?.second ?: "no message provided",
+                            onConfirm = {
+                                onDeleteClick()
+                                showDeleteDialog = false
+                            },
+                            onDismiss = {
+                                showDeleteDialog = false
+                            }
+                        )
+                    }
                 }
             }
         }

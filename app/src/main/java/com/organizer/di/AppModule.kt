@@ -10,10 +10,12 @@ import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
+import com.organizer.data.local.dao.StarterTemplateDao
 import com.organizer.data.local.db.AppDatabase
 import com.organizer.data.local.db.DISPLAY_ORDER_MIGRATION_1_2
 import com.organizer.data.local.db.EXERCISE_TYPE_MIGRATION_2_3
 import com.organizer.data.local.db.EXERCISE_PROGRESS_MIGRATION_3_4
+import com.organizer.data.local.db.STARTER_TEMPLATES_MIGRATION_5_6
 import com.organizer.data.local.db.WORKOUT_NOTES_MIGRATION_4_5
 import com.organizer.data.remote.ApiService
 import com.organizer.data.local.storage.FileStorage
@@ -72,7 +74,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5).build()
+        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5, STARTER_TEMPLATES_MIGRATION_5_6).build()
     }
 
     @Provides
@@ -137,5 +139,12 @@ object AppModule {
         database: AppDatabase
     ): ExerciseProgressDao {
         return database.exerciseProgressDao
+    }
+
+    @Provides
+    fun provideStarterTemplateDao(
+        database: AppDatabase
+    ): StarterTemplateDao {
+        return database.starterTemplateDao
     }
 }

@@ -48,9 +48,12 @@ fun CustomsList(
     onOpenExerciseClick: (ExerciseEntity) -> Unit,
     onCreateWorkoutClick: () -> Unit,
     onCreateExerciseClick: () -> Unit,
+    onTemplateClick: (Long) -> Unit,
+    onViewAllTemplatesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
     val workouts by viewModel.workoutsUiState.collectAsState()
+    val starterTemplates by viewModel.starterTemplatesUiState.collectAsState()
     val customExercises by viewModel.customExercisesUiState.collectAsState()
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
 
@@ -76,13 +79,24 @@ fun CustomsList(
                     if (workouts.isEmpty()) {
                         item {
                             EmptyWorkoutsState(
+                                templates = starterTemplates,
                                 onCreateWorkoutClick = onCreateWorkoutClick,
-                                onTemplateClick = { name ->
-                                    viewModel.createWorkout(name)
-                                }
+                                onTemplateClick = onTemplateClick,
+                                onViewAllTemplatesClick = onViewAllTemplatesClick,
+                                viewModel = viewModel,
                             )
                         }
                     } else {
+                        if (starterTemplates.isNotEmpty()) {
+                            item {
+                                StarterTemplatesSection(
+                                    templates = starterTemplates,
+                                    onTemplateClick = onTemplateClick,
+                                    onViewAllClick = onViewAllTemplatesClick,
+                                    viewModel = viewModel,
+                                )
+                            }
+                        }
                         items(
                             items = workouts,
                             key = { it.workoutId }

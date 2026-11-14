@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.media.MediaPriority
 import com.organizer.data.repo.CategoryRepository
@@ -17,6 +18,7 @@ import com.organizer.data.repo.ExerciseCategoryRepository
 import com.organizer.data.repo.ExerciseProgressRepository
 import com.organizer.data.repo.ExerciseRepository
 import com.organizer.data.repo.FileRepository
+import com.organizer.data.repo.StarterTemplateRepository
 import com.organizer.data.repo.WorkoutExerciseRepository
 import com.organizer.data.repo.WorkoutRepository
 import com.organizer.presentation.model.SearchResult
@@ -43,6 +45,7 @@ class OrganizerViewModel @Inject constructor(
     private val exerciseCategoryRepo: ExerciseCategoryRepository,
     private val workoutRepo: WorkoutRepository,
     private val workoutExerciseRepo: WorkoutExerciseRepository,
+    private val starterTemplateRepo: StarterTemplateRepository,
     private val fileRepo: FileRepository,
 ) : ViewModel() {
 
@@ -74,6 +77,13 @@ class OrganizerViewModel @Inject constructor(
                 categoryRepo.refreshCategories()
                 exerciseRepo.refreshExercises()
                 exerciseCategoryRepo.refreshExerciseCategory()
+                // Starter templates are optional content: a failure here must
+                // not mark the whole library sync as failed.
+                try {
+                    starterTemplateRepo.refreshTemplates()
+                } catch (e: Exception) {
+                    Log.w("SYNC", "Couldn't refresh starter templates", e)
+                }
                 // Catch-up for files missing for any reason (failed earlier,
                 // restored database, ...). Queuing is immediate; downloads run
                 // on the application-scoped media queue.
@@ -195,6 +205,38 @@ class OrganizerViewModel @Inject constructor(
     val workoutsUiState: StateFlow<List<WorkoutEntity>> =
         workoutRepo.observeWorkouts()
             .stateIn(viewModelScope, Sharing, emptyList())
+
+    // Starter workout templates (server content, never mixed into workouts).
+    val starterTemplatesUiState: StateFlow<List<StarterTemplateEntity>> =
+        starterTemplateRepo.observeTemplates()
+            .stateIn(viewModelScope, Sharing, emptyList())
+
+    fun observeStarterTemplate(templateId: Long): Flow<StarterTemplateEntity?> =
+        starterTemplateRepo.observeTemplate(templateId)
+
+    fun observeStarterTemplateExercises(templateId: Long): Flow<List<ExerciseEntity>> =
+        starterTemplateRepo.observeTemplateExercises(templateId)
+
+    /**
+     * Copies the opened template into the user's workouts and hands the new
+     * local workout id to [onCreated] so the UI can open the editable screen.
+     */
+    fun addStarterTemplateToWorkouts(
+        templateId: Long,
+        onCreated: (Long) -> Unit,
+    ) = viewModelScope.launch {
+        try {
+            val workoutId = starterTemplateRepo.importTemplate(templateId)
+            if (workoutId != null) {
+                onCreated(workoutId)
+            } else {
+                errorMessage = "Couldn't add this template. Please try again."
+            }
+        } catch (e: Exception) {
+            Log.e("WORKOUT", "Couldn't add starter template", e)
+            errorMessage = "Couldn't add this template. Please try again."
+        }
+    }
 
     val workoutUiState: StateFlow<WorkoutEntity?> =
         selectedWorkoutId

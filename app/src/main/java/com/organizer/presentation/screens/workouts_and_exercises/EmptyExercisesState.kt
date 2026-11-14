@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.SportsGymnastics
+import androidx.compose.material.icons.outlined.List
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -42,7 +43,7 @@ fun EmptyExercisesState(
     onCreateExerciseClick: () -> Unit = {},
     onBrowseStandardExercisesClick: () -> Unit = {},
     title: String = "No Custom Exercises Created",
-    description: String = "Build your personal library of custom movements with specialized metrics: Reps, Reps + Weight, or Timed sets.",
+    description: String = "Build your personal library of custom movements with specialized metrics: Reps, Reps + Weight, or Duration.",
     showCreateButton: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
@@ -73,28 +74,12 @@ fun EmptyExercisesState(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.SportsGymnastics,
+                        imageVector = Icons.Outlined.List,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(38.dp),
                     )
                 }
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 4.dp, y = 4.dp)
-                    .size(30.dp)
-                    .background(Color.White, CircleShape)
-                    .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    tint = Color(0xFF4F378A),
-                    modifier = Modifier.size(18.dp),
-                )
             }
         }
 

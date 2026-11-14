@@ -23,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -51,6 +53,7 @@ fun ExerciseCard(
     viewModel: OrganizerViewModel,
 ) {
     val exercise by viewModel.observeExercise(exerciseId).collectAsState(initial = null)
+    val favoriteIds by viewModel.favoriteExerciseIds.collectAsState()
     var showSavePopup by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
@@ -124,6 +127,13 @@ fun ExerciseCard(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            FavoriteToggle(
+                isFavorite = exerciseId in favoriteIds,
+                onToggle = { viewModel.toggleFavoriteExercise(exerciseId) },
+            )
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -206,5 +216,47 @@ fun ExerciseCard(
             }
         }
     }
+    }
+}
+
+/**
+ * Heart shown in the top-right corner of the exercise detail screen.
+ * Filled and pink when the exercise is a favorite, outlined otherwise.
+ */
+@Composable
+private fun FavoriteToggle(
+    isFavorite: Boolean,
+    onToggle: () -> Unit,
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isFavorite) Color(0xFFFBE4EC) else Color(0xFFF7F2F8),
+        label = "exerciseFavoriteBackground",
+    )
+
+    Surface(
+        onClick = onToggle,
+        shape = CircleShape,
+        color = containerColor,
+        modifier = Modifier.size(40.dp),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (isFavorite) {
+                    Icons.Filled.Favorite
+                } else {
+                    Icons.Outlined.FavoriteBorder
+                },
+                contentDescription = if (isFavorite) {
+                    "Remove from favorite exercises"
+                } else {
+                    "Add to favorite exercises"
+                },
+                tint = if (isFavorite) Color(0xFFE05275) else Color(0xFF494551),
+                modifier = Modifier.size(22.dp),
+            )
+        }
     }
 }

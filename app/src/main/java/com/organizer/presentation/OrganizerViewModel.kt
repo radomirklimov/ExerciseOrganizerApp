@@ -17,6 +17,7 @@ import com.organizer.data.repo.CategoryRepository
 import com.organizer.data.repo.ExerciseCategoryRepository
 import com.organizer.data.repo.ExerciseProgressRepository
 import com.organizer.data.repo.ExerciseRepository
+import com.organizer.data.repo.FavoriteExerciseRepository
 import com.organizer.data.repo.FileRepository
 import com.organizer.data.repo.StarterTemplateRepository
 import com.organizer.data.repo.WorkoutExerciseRepository
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -46,6 +48,7 @@ class OrganizerViewModel @Inject constructor(
     private val workoutRepo: WorkoutRepository,
     private val workoutExerciseRepo: WorkoutExerciseRepository,
     private val starterTemplateRepo: StarterTemplateRepository,
+    private val favoriteExerciseRepo: FavoriteExerciseRepository,
     private val fileRepo: FileRepository,
 ) : ViewModel() {
 
@@ -194,6 +197,26 @@ class OrganizerViewModel @Inject constructor(
     val customExercisesUiState: StateFlow<List<ExerciseEntity>> =
         exerciseRepo.observeCustomExercises()
             .stateIn(viewModelScope, Sharing, emptyList())
+
+    // Favorite exercises: ids are used by every exercise card to render its
+    // heart, the full list backs the Exercises page "Favorites" tab.
+    val favoriteExerciseIds: StateFlow<Set<Long>> =
+        favoriteExerciseRepo.observeFavoriteExerciseIds()
+            .map { it.toSet() }
+            .stateIn(viewModelScope, Sharing, emptySet())
+
+    val favoriteExercisesUiState: StateFlow<List<ExerciseEntity>> =
+        favoriteExerciseRepo.observeFavoriteExercises()
+            .stateIn(viewModelScope, Sharing, emptyList())
+
+    fun toggleFavoriteExercise(exerciseId: Long) = viewModelScope.launch {
+        try {
+            favoriteExerciseRepo.toggleFavorite(exerciseId)
+        } catch (e: Exception) {
+            Log.e("FAVORITES", "Couldn't update favorites", e)
+            errorMessage = "Couldn't update favorites. Please try again."
+        }
+    }
 
     // Workouts
     private val selectedWorkoutId = MutableStateFlow<Long?>(null)

@@ -3,6 +3,7 @@ package com.organizer.presentation.screens.exercises
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,10 +29,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +78,8 @@ fun ExerciseListItem(
 ) {
     val textScrollState = rememberScrollState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val favoriteIds by viewModel.favoriteExerciseIds.collectAsState()
+    val isFavorite = exercise.exerciseId in favoriteIds
 
     LaunchedEffect(exercise.name) {
         if (textScrollState.maxValue > 0) {
@@ -162,20 +169,33 @@ fun ExerciseListItem(
                     ExerciseTypePill(exerciseType = displayExerciseType)
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(4.dp))
 
-                val arrowRotation by androidx.compose.animation.core.animateFloatAsState(
-                    targetValue = if (expanded) 90f else 0f,
-                    label = "exerciseExpandArrow"
-                )
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowRight,
-                    contentDescription = if (expanded) "Collapse exercise" else "Expand exercise",
+                Column(
                     modifier = Modifier
-                        .size(20.dp)
-                        .graphicsLayer { rotationZ = arrowRotation },
-                    tint = Color.White.copy(alpha = 0.9f)
-                )
+                        .fillMaxHeight()
+                        .padding(top = 8.dp, bottom = 10.dp, end = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    FavoriteHeart(
+                        isFavorite = isFavorite,
+                        onToggle = { viewModel.toggleFavoriteExercise(exercise.exerciseId) },
+                    )
+
+                    val arrowRotation by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (expanded) 90f else 0f,
+                        label = "exerciseExpandArrow"
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowRight,
+                        contentDescription = if (expanded) "Collapse exercise" else "Expand exercise",
+                        modifier = Modifier
+                            .size(20.dp)
+                            .graphicsLayer { rotationZ = arrowRotation },
+                        tint = Color.White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
         if (expanded) {
@@ -272,6 +292,39 @@ fun ExerciseListItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FavoriteHeart(
+    isFavorite: Boolean,
+    onToggle: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onToggle),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (isFavorite) {
+                Icons.Filled.Favorite
+            } else {
+                Icons.Outlined.FavoriteBorder
+            },
+            contentDescription = if (isFavorite) {
+                "Remove from favorite exercises"
+            } else {
+                "Add to favorite exercises"
+            },
+            tint = if (isFavorite) {
+                Color(0xFFFFB1C8)
+            } else {
+                Color.White.copy(alpha = 0.75f)
+            },
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 

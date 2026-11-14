@@ -9,6 +9,7 @@ import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
+import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.dao.StarterTemplateDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
@@ -16,6 +17,7 @@ import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
@@ -23,7 +25,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 7,
+    version = 8,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -31,6 +33,7 @@ import com.organizer.data.mapper.ListConverters
         WorkoutEntity::class,
         WorkoutExerciseEntity::class,
         ExerciseProgressEntity::class,
+        FavoriteExerciseEntity::class,
         StarterTemplateEntity::class,
         StarterTemplateExerciseEntity::class
     ],
@@ -44,7 +47,20 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val workoutDao: WorkoutDao
     abstract val workoutExerciseDao: WorkoutExerciseDao
     abstract val exerciseProgressDao: ExerciseProgressDao
+    abstract val favoriteExerciseDao: FavoriteExerciseDao
     abstract val starterTemplateDao: StarterTemplateDao
+}
+
+val FAVORITE_EXERCISE_MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS favorite_exercise (
+                exerciseId INTEGER NOT NULL PRIMARY KEY,
+                addedAt INTEGER NOT NULL,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+        """.trimIndent())
+    }
 }
 
 val STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7 = object : Migration(6, 7) {

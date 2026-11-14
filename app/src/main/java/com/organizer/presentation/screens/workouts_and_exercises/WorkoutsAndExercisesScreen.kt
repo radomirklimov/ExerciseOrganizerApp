@@ -202,17 +202,11 @@ fun ExercisesScreen(
                     viewModel = viewModel,
                 )
             } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    EmptyExercisesState(
-                        title = "No Favorite Exercises Yet",
-                        description = "Mark exercises as favorite to quickly access them here.",
-                        showCreateButton = false,
-                        onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
-                    )
-                }
+                FavoriteExercisesList(
+                    onExerciseClick = onExerciseClick,
+                    onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
+                    viewModel = viewModel,
+                )
             }
         }
     }

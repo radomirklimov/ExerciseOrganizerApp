@@ -30,9 +30,11 @@ import com.organizer.presentation.screens.general.BottomNavigationBar
 import com.organizer.presentation.screens.welcome.OnboardScreen
 import com.organizer.presentation.screens.welcome.OnboardingManager
 import com.organizer.presentation.screens.workout.WorkoutContentScreen
+import com.organizer.presentation.screens.workout.StarterTemplatePreviewScreen
 import com.organizer.presentation.screens.workouts_and_exercises.CustomWorkoutsAndExercisesScreen
 import com.organizer.presentation.screens.workouts_and_exercises.WorkoutsScreen
 import com.organizer.presentation.screens.workouts_and_exercises.ExercisesScreen
+import com.organizer.presentation.screens.workouts_and_exercises.StarterTemplatesScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -201,6 +203,54 @@ fun AppNavigation(showOnboarding: Boolean) {
                         )
                     },
                     onCreateWorkoutClick = { navController.navigate(Routes.CreateWorkout.route) },
+                    onTemplateClick = { templateId ->
+                        navController.navigate(
+                            Routes.StarterTemplate.createRoute(templateId)
+                        )
+                    },
+                    onViewAllTemplatesClick = {
+                        navController.navigate(Routes.StarterTemplates.route)
+                    },
+                )
+            }
+
+            composable(Routes.StarterTemplates.route) {
+                StarterTemplatesScreen(
+                    onTemplateClick = { templateId ->
+                        navController.navigate(
+                            Routes.StarterTemplate.createRoute(templateId)
+                        )
+                    },
+                    onBackClick = {
+                        popBackScreen()
+                    },
+                    viewModel = organizerViewModel,
+                )
+            }
+
+            composable(Routes.StarterTemplate.route) { backStackEntry ->
+                val templateId = backStackEntry.arguments
+                    ?.getString("templateId")
+                    ?.toLongOrNull() ?: 0L
+
+                StarterTemplatePreviewScreen(
+                    templateId = templateId,
+                    onOpenExerciseClick = { exercise ->
+                        navController.navigate(
+                            Routes.ExerciseCard.createRoute(exercise.exerciseId)
+                        )
+                    },
+                    onBackClick = {
+                        popBackScreen()
+                    },
+                    onWorkoutCreated = { newWorkoutId ->
+                        navController.navigate(
+                            Routes.Workout.createRoute(newWorkoutId)
+                        ) {
+                            popUpTo(Routes.StarterTemplate.route) { inclusive = true }
+                        }
+                    },
+                    viewModel = organizerViewModel,
                 )
             }
 

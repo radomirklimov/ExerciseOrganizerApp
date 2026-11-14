@@ -11,7 +11,10 @@ import kotlinx.coroutines.flow.Flow
 interface WorkoutDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insert(workoutEntity: WorkoutEntity)
+    suspend fun insert(workoutEntity: WorkoutEntity): Long
+
+    @Query("SELECT EXISTS(SELECT 1 FROM workout WHERE name = :name)")
+    suspend fun nameExists(name: String): Boolean
 
     @Query("SELECT * FROM workout ORDER BY workoutId DESC")
     fun getAll(): Flow<List<WorkoutEntity>>

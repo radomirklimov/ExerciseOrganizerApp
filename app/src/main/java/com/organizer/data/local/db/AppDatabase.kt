@@ -9,25 +9,30 @@ import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
+import com.organizer.data.local.dao.StarterTemplateDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.StarterTemplateEntity
+import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 5,
+    version = 7,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
         ExerciseCategoryEntity::class,
         WorkoutEntity::class,
         WorkoutExerciseEntity::class,
-        ExerciseProgressEntity::class
+        ExerciseProgressEntity::class,
+        StarterTemplateEntity::class,
+        StarterTemplateExerciseEntity::class
     ],
     exportSchema = false
 )
@@ -39,6 +44,42 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val workoutDao: WorkoutDao
     abstract val workoutExerciseDao: WorkoutExerciseDao
     abstract val exerciseProgressDao: ExerciseProgressDao
+    abstract val starterTemplateDao: StarterTemplateDao
+}
+
+val STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE starter_template ADD COLUMN categoryNames TEXT NOT NULL DEFAULT '[]'"
+        )
+    }
+}
+
+val STARTER_TEMPLATES_MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS starter_template (
+                templateId INTEGER NOT NULL PRIMARY KEY,
+                name TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                categoryName TEXT,
+                iconUrl TEXT,
+                exerciseCount INTEGER NOT NULL
+            )
+        """.trimIndent())
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS starter_template_exercise (
+                templateId INTEGER NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                orderIndex INTEGER NOT NULL,
+                PRIMARY KEY (templateId, exerciseId),
+                FOREIGN KEY (templateId) REFERENCES starter_template (templateId) ON DELETE CASCADE,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_starter_template_exercise_templateId ON starter_template_exercise (templateId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_starter_template_exercise_exerciseId ON starter_template_exercise (exerciseId)")
+    }
 }
 
 val WORKOUT_NOTES_MIGRATION_4_5 = object : Migration(4, 5) {

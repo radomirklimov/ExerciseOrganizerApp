@@ -21,12 +21,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -71,6 +73,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
@@ -86,9 +89,19 @@ fun WorkoutContentScreen(
     onAddCustomExercisesClick: () -> Unit,
     onCreateCustomExerciseClick: () -> Unit,
     viewModel: OrganizerViewModel,
+    template: StarterTemplateEntity? = null,
+    templateExercises: List<ExerciseEntity> = emptyList(),
+    isTemplatePreview: Boolean = false,
+    onAddToMyWorkouts: (() -> Unit)? = null,
 ) {
+    val isTemplate = isTemplatePreview
     val workout by viewModel.observeWorkout(workoutId).collectAsState(initial = null)
-    val exercises by viewModel.observeWorkoutExercises(workoutId).collectAsState(initial = emptyList())
+    val storedExercises by viewModel.observeWorkoutExercises(workoutId)
+        .collectAsState(initial = emptyList())
+    val exercises = if (isTemplate) templateExercises else storedExercises
+    val workoutName = if (isTemplate) template?.name.orEmpty() else workout?.name.orEmpty()
+    val templateNotes = template?.notes.orEmpty()
+
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
     var trackedExerciseId by remember { mutableStateOf<Long?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -117,7 +130,7 @@ fun WorkoutContentScreen(
         }
     )
 
-    val trackedSets by if (trackedExerciseId != null) {
+    val trackedSets by if (!isTemplate && trackedExerciseId != null) {
         viewModel.observeExerciseSets(workoutId, trackedExerciseId!!).collectAsState(initial = emptyList())
     } else {
         remember { mutableStateOf(emptyList<ExerciseProgressEntity>()) }
@@ -126,10 +139,11 @@ fun WorkoutContentScreen(
     // Session notes: keep a local buffer so typing does not fight Room re-emissions.
     var notesText by remember { mutableStateOf("") }
     var notesInitialized by remember { mutableStateOf(false) }
-    LaunchedEffect(workout) {
-        val currentWorkout = workout
-        if (!notesInitialized && currentWorkout != null) {
-            notesText = currentWorkout.notes
+    val notesReady = if (isTemplate) template != null else workout != null
+    val initialNotes = if (isTemplate) templateNotes else workout?.notes.orEmpty()
+    LaunchedEffect(notesReady, initialNotes) {
+        if (!notesInitialized && notesReady) {
+            notesText = initialNotes
             notesInitialized = true
         }
     }
@@ -160,13 +174,20 @@ fun WorkoutContentScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = workout?.name ?: "",
+                    text = workoutName,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1C1B1F)
                 )
                 Text(
-                    text = "${exerciseList.size} exercises",
+                    text = if (isTemplate) {
+                        listOfNotNull(
+                            "${exerciseList.size} exercises",
+                            template?.categoryLabel?.takeIf { it.isNotBlank() }
+                        ).joinToString(" · ")
+                    } else {
+                        "${exerciseList.size} exercises"
+                    },
                     fontSize = 12.sp,
                     color = Color(0xFF7A7582)
                 )
@@ -196,14 +217,46 @@ fun WorkoutContentScreen(
                         .collectAsState(initial = emptyList())
 
                     Column {
-                        ExerciseListItem(
-                            modifier = Modifier.longPressDraggableHandle(),
-                            dragHandle = {
+                        val dragHandle: (@Composable () -> Unit)? = if (isTemplate) {
+                            null
+                        } else {
+                            {
                                 Icon(
                                     imageVector = Icons.Rounded.DragIndicator,
                                     contentDescription = "Reorder exercise"
                                 )
-                            },
+                            }
+                        }
+                        val trackClick: (() -> Unit)? = if (isTemplate) {
+                            null
+                        } else {
+                            { trackedExerciseId = exercise.exerciseId }
+                        }
+                        val setsContent: (@Composable () -> Unit)? = if (isTemplate) {
+                            null
+                        } else {
+                            {
+                                if (sets.isNotEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        sets.forEach { set ->
+                                            ExerciseSetRow(
+                                                exerciseType = set.inferredExerciseType(),
+                                                set = set,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        ExerciseListItem(
+                            modifier = if (isTemplate) Modifier else Modifier.longPressDraggableHandle(),
+                            dragHandle = dragHandle,
                             exercise = exercise,
                             displayExerciseType = effectiveExerciseType(exercise, sets),
                             deletionInfo = Pair(
@@ -220,31 +273,16 @@ fun WorkoutContentScreen(
                             },
                             onOpenClick = { onOpenExerciseClick(exercise) },
                             onDeleteClick = {
-                                viewModel.deleteExerciseFromWorkout(
-                                    workoutId,
-                                    exercise.exerciseId
-                                )
-                            },
-                            onTrackClick = {
-                                trackedExerciseId = exercise.exerciseId
-                            },
-                            expandedContent = {
-                                if (sets.isNotEmpty()) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 4.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                                    ) {
-                                        sets.forEach { set ->
-                                            ExerciseSetRow(
-                                                exerciseType = set.inferredExerciseType(),
-                                                set = set,
-                                            )
-                                        }
-                                    }
+                                if (!isTemplate) {
+                                    viewModel.deleteExerciseFromWorkout(
+                                        workoutId,
+                                        exercise.exerciseId
+                                    )
                                 }
                             },
+                            onTrackClick = trackClick,
+                            expandedContent = setsContent,
+                            showDelete = !isTemplate,
                             viewModel = viewModel
                         )
                     }
@@ -258,47 +296,49 @@ fun WorkoutContentScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Dashed "Add Exercise to Routine" button
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(50))
-                            .drawBehind {
-                                val stroke = 2.dp.toPx()
-                                drawRoundRect(
-                                    color = Color(0xFFCBC4D2).copy(alpha = 0.8f),
-                                    topLeft = Offset(stroke / 2, stroke / 2),
-                                    size = Size(size.width - stroke, size.height - stroke),
-                                    cornerRadius = CornerRadius(50.dp.toPx()),
-                                    style = Stroke(
-                                        width = stroke,
-                                        pathEffect = PathEffect.dashPathEffect(
-                                            floatArrayOf(12.dp.toPx(), 8.dp.toPx())
+                    if (!isTemplate) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .clip(RoundedCornerShape(50))
+                                .drawBehind {
+                                    val stroke = 2.dp.toPx()
+                                    drawRoundRect(
+                                        color = Color(0xFFCBC4D2).copy(alpha = 0.8f),
+                                        topLeft = Offset(stroke / 2, stroke / 2),
+                                        size = Size(size.width - stroke, size.height - stroke),
+                                        cornerRadius = CornerRadius(50.dp.toPx()),
+                                        style = Stroke(
+                                            width = stroke,
+                                            pathEffect = PathEffect.dashPathEffect(
+                                                floatArrayOf(12.dp.toPx(), 8.dp.toPx())
+                                            )
                                         )
                                     )
+                                }
+                                .background(Color.White.copy(alpha = 0.5f))
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TextButton(
+                                onClick = { showAddExerciseDialog = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4F378A),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "+ Add Exercise to Routine",
+                                    color = Color(0xFF4F378A),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
                                 )
                             }
-                            .background(Color.White.copy(alpha = 0.5f))
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TextButton(
-                            onClick = { showAddExerciseDialog = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Add,
-                                contentDescription = null,
-                                tint = Color(0xFF4F378A),
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "+ Add Exercise to Routine",
-                                color = Color(0xFF4F378A),
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp,
-                            )
                         }
                     }
 
@@ -321,39 +361,80 @@ fun WorkoutContentScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Session Notes",
+                                    text = if (isTemplate) "Template Notes" else "Session Notes",
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF1C1B1F)
                                 )
                             }
-                            OutlinedTextField(
-                                value = notesText,
-                                onValueChange = {
-                                    notesText = it
-                                    viewModel.updateWorkoutNotes(workoutId, it)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(120.dp),
-                                placeholder = { Text("Add your thoughts, energy levels, or notes for this workout...") },
-                                minLines = 3
-                            )
+                            if (isTemplate) {
+                                Text(
+                                    text = notesText.ifBlank { "No notes for this template." },
+                                    fontSize = 14.sp,
+                                    color = if (notesText.isBlank()) {
+                                        Color(0xFF7A7582)
+                                    } else {
+                                        Color(0xFF1C1B1F)
+                                    },
+                                    lineHeight = 20.sp,
+                                )
+                            } else {
+                                OutlinedTextField(
+                                    value = notesText,
+                                    onValueChange = {
+                                        notesText = it
+                                        viewModel.updateWorkoutNotes(workoutId, it)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(120.dp),
+                                    placeholder = { Text("Add your thoughts, energy levels, or notes for this workout...") },
+                                    minLines = 3
+                                )
+                            }
                         }
                     }
 
-                    // Delete workout
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TextButton(
-                            onClick = { showDeleteDialog = true }
+                    if (isTemplate) {
+                        Text(
+                            text = "Add this starter routine to your workouts to edit it, track sets, and keep your own notes.",
+                            fontSize = 12.sp,
+                            color = Color(0xFF7A7582),
+                            lineHeight = 16.sp,
+                        )
+                        Button(
+                            onClick = { onAddToMyWorkouts?.invoke() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(50),
                         ) {
-                            Text(
-                                text = "Delete Workout",
-                                color = Color(0xFFB3261E),
-                                fontWeight = FontWeight.SemiBold
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Add to My Workouts",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    } else {
+                        // Delete workout
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TextButton(
+                                onClick = { showDeleteDialog = true }
+                            ) {
+                                Text(
+                                    text = "Delete Workout",
+                                    color = Color(0xFFB3261E),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
@@ -394,7 +475,7 @@ fun WorkoutContentScreen(
         }
 
         val trackedExercise = exerciseList.find { it.exerciseId == trackedExerciseId }
-        if (trackedExerciseId != null && trackedExercise != null) {
+        if (!isTemplate && trackedExerciseId != null && trackedExercise != null) {
             TrackExerciseDialog(
                 workoutId = workoutId,
                 exercise = trackedExercise,

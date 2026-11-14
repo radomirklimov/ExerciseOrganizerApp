@@ -14,6 +14,12 @@ sealed class Routes(val route: String) {
         }
     }
     object Workouts: Routes("workouts")
+    object StarterTemplates: Routes("starterTemplates")
+    object StarterTemplate: Routes("starterTemplate/{templateId}") {
+        fun createRoute(templateId: Long): String {
+            return "starterTemplate/$templateId"
+        }
+    }
     object Exercises: Routes("exercises")
     object CreateWorkout: Routes("createWorkout")
     object AddCard: Routes("addCard")

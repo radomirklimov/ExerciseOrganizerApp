@@ -3,6 +3,7 @@ package com.organizer.data.remote
 import com.organizer.data.remote.model.Category
 import com.organizer.data.remote.model.Exercise
 import com.organizer.data.remote.model.ExerciseCategory
+import com.organizer.data.remote.model.WorkoutTemplate
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.GET
@@ -26,6 +27,9 @@ interface ApiService {
 
     @GET("api/v1/exercise-category")
     suspend fun getExerciseCategory(): List<ExerciseCategory>
+
+    @GET("api/v1/starter-workouts")
+    suspend fun getStarterWorkouts(): List<WorkoutTemplate>
 
     @Streaming
     @GET

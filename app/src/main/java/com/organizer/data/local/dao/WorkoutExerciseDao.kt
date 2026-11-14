@@ -16,6 +16,9 @@ interface WorkoutExerciseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(workoutExerciseEntity: WorkoutExerciseEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(workoutExercises: List<WorkoutExerciseEntity>)
+
     @Query("""UPDATE workout_exercise SET orderIndex = :orderIndex WHERE workoutId = :workoutId AND exerciseId = :exerciseId""")
     suspend fun updateOrderIndex(workoutId: Long, exerciseId: Long, orderIndex: Int)
 

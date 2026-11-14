@@ -33,6 +33,7 @@ fun CreateWorkoutScreen(
     viewModel: OrganizerViewModel,
 ) {
     var workoutName by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
     var showDuplicateNameError by remember { mutableStateOf(false) }
     val workouts by viewModel.workoutsUiState.collectAsState()
     val trimmedName = workoutName.trim()
@@ -60,7 +61,7 @@ fun CreateWorkoutScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Create Your Workout",
+                text = "Create New Workout",
                 fontSize = 26.sp
             )
 
@@ -90,6 +91,21 @@ fun CreateWorkoutScreen(
             singleLine = true
         )
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedTextField(
+            value = notes,
+            onValueChange = { notes = it },
+            placeholder = {
+                Text("Add your thoughts, energy levels, or notes for this workout...")
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            minLines = 3
+        )
+
         Spacer(modifier = Modifier.weight(1f))
 
         SaveButton(
@@ -103,7 +119,7 @@ fun CreateWorkoutScreen(
                     return@SaveButton
                 }
 
-                viewModel.createWorkout(trimmedName)
+                viewModel.createWorkout(trimmedName, notes.trim())
                 onBackClick()
             }
         )

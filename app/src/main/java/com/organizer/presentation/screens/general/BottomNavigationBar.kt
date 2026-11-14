@@ -56,7 +56,9 @@ fun BottomNavigationBar(
         )
 
         CustomNavigationItem(
-            selected = currentRoute == Routes.Workouts.route,
+            selected = currentRoute == Routes.Workouts.route ||
+                currentRoute == Routes.StarterTemplates.route ||
+                currentRoute == Routes.StarterTemplate.route,
             icon = Icons.Outlined.FitnessCenter,
             label = "Workouts",
             onClick = onWorkoutsClick,

@@ -104,7 +104,6 @@ fun StarterTemplateCard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(14.dp)
-                .padding(start = 6.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -244,7 +243,7 @@ fun StarterTemplatesSection(
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(end = 4.dp),
+            contentPadding = PaddingValues(start = 4.dp, end = 4.dp),
         ) {
             items(
                 items = visibleTemplates,

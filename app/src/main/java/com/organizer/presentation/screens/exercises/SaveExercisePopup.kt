@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
@@ -638,39 +638,46 @@ private fun EmptyStateBody(
             .padding(top = 22.dp, bottom = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box {
+        // Same illustration treatment as the empty Workouts page: soft lavender
+        // glow, white rounded card and a lavender tile with a deep-purple icon.
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
             Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Brand50)
-                    .border(1.dp, Brand200, RoundedCornerShape(28.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.FitnessCenter,
-                    contentDescription = null,
-                    tint = Brand,
-                    modifier = Modifier.size(48.dp),
-                )
-            }
+                    .size(152.dp)
+                    .blur(48.dp)
+                    .background(Color(0xFFE9DDFF).copy(alpha = 0.5f), CircleShape),
+            )
 
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 5.dp, y = 5.dp)
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(Brand)
-                    .border(2.dp, Color.White, CircleShape),
+                    .size(128.dp)
+                    .shadow(4.dp, RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .border(
+                        1.dp,
+                        Color(0xFFCBC4D2).copy(alpha = 0.3f),
+                        RoundedCornerShape(24.dp),
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(84.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFE9DDFF)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.FitnessCenter,
+                        contentDescription = null,
+                        tint = Color(0xFF4F378A),
+                        modifier = Modifier.size(42.dp),
+                    )
+                }
             }
         }
 

@@ -186,12 +186,7 @@ fun SaveExercisePopup(
                                 modifier = Modifier.weight(1f, fill = false),
                             )
 
-                            EmptyStateFooter(
-                                onCreateWorkout = {
-                                    onDismiss()
-                                    onCreateWorkoutClick()
-                                },
-                            )
+                            EmptyStateFooter()
                         } else {
                             WorkoutFilterField(
                                 query = query,
@@ -797,7 +792,7 @@ private fun QuickStartChip(
 }
 
 @Composable
-private fun EmptyStateFooter(onCreateWorkout: () -> Unit) {
+private fun EmptyStateFooter() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -808,7 +803,7 @@ private fun EmptyStateFooter(onCreateWorkout: () -> Unit) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp, bottom = 14.dp),
+                .padding(top = 16.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Button(
@@ -830,34 +825,10 @@ private fun EmptyStateFooter(onCreateWorkout: () -> Unit) {
                 contentPadding = PaddingValues(horizontal = 16.dp),
             ) {
                 Text(
-                    text = "Save Exercise",
+                    text = "Select a Workout",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.2.sp,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .clickable(onClick = onCreateWorkout)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    tint = Brand,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Create New Workout",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Brand,
                 )
             }
         }
@@ -866,8 +837,7 @@ private fun EmptyStateFooter(onCreateWorkout: () -> Unit) {
 
 private fun saveLabel(selectedCount: Int): String = when (selectedCount) {
     0 -> "Select a Workout"
-    1 -> "Save to 1 Workout"
-    else -> "Save to $selectedCount Workouts"
+    else -> "Add Exercise"
 }
 
 private fun exerciseCountLabel(count: Int): String =

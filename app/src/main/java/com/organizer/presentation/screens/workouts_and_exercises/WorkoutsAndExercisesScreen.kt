@@ -83,18 +83,6 @@ fun WorkoutsScreen(
     ) {
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Workouts",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1C1B1F),
-            )
-        }
-
 //        Spacer(Modifier.height(8.dp))
 
         CustomsList(
@@ -122,21 +110,9 @@ fun ExercisesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 24.dp)
     ) {
         Spacer(Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Exercises",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1C1B1F),
-            )
-        }
 
         Spacer(Modifier.height(8.dp))
 

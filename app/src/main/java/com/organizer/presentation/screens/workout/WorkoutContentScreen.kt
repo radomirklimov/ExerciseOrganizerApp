@@ -283,6 +283,7 @@ fun WorkoutContentScreen(
                             onTrackClick = trackClick,
                             expandedContent = setsContent,
                             showDelete = !isTemplate,
+                            expandedButtonsSpacing = if (isTemplate) 8.dp else 4.dp,
                             viewModel = viewModel
                         )
                     }

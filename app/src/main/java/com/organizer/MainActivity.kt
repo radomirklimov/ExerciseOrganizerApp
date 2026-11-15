@@ -262,6 +262,7 @@ fun AppNavigation(showOnboarding: Boolean) {
                         )
                     },
                     onCreateExerciseClick = { navController.navigate(Routes.AddCard.route) },
+                    onBrowseStandardExercisesClick = { navController.navigate(Routes.Sports.route) },
                 )
             }
 

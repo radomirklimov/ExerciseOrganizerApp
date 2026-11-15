@@ -48,6 +48,7 @@ fun CustomsList(
     onOpenExerciseClick: (ExerciseEntity) -> Unit,
     onCreateWorkoutClick: () -> Unit,
     onCreateExerciseClick: () -> Unit,
+    onBrowseStandardExercisesClick: () -> Unit = {},
     onTemplateClick: (Long) -> Unit,
     onViewAllTemplatesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
@@ -70,7 +71,7 @@ fun CustomsList(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            contentPadding = PaddingValues(top = 20.dp, bottom = 20.dp),
+            contentPadding = PaddingValues(top = if (isEmpty) 40.dp else 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
@@ -93,7 +94,7 @@ fun CustomsList(
                                     templates = starterTemplates,
                                     onTemplateClick = onTemplateClick,
                                     onViewAllClick = onViewAllTemplatesClick,
-                                    viewModel = viewModel,
+                                 viewModel = viewModel,
                                 )
                             }
                         }
@@ -112,10 +113,9 @@ fun CustomsList(
                 CustomsTab.EXERCISES -> {
                     if (customExercises.isEmpty()) {
                         item {
-                            EmptyStateWithButton(
-                                message = "No exercises created yet",
-                                buttonText = "Create New Exercise",
-                                onButtonClick = onCreateExerciseClick
+                            EmptyExercisesState(
+                                onCreateExerciseClick = onCreateExerciseClick,
+                                onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
                             )
                         }
                     } else {
@@ -138,6 +138,7 @@ fun CustomsList(
                                 onDeleteClick = {
                                     viewModel.deleteCustomExercise(exercise.exerciseId)
                                 },
+                                expandedButtonsSpacing = 8.dp,
                                 viewModel = viewModel
                             )
                         }

@@ -3,9 +3,11 @@ package com.organizer.fakes
 import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
+import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.storage.FileStore
 import com.organizer.data.remote.ApiService
 import com.organizer.data.remote.model.Category
@@ -226,5 +228,31 @@ class FakeExerciseCategoryDao : ExerciseCategoryDao {
 
     override suspend fun delete(exerciseCategory: ExerciseCategoryEntity) {
         data.update { it.filter { e -> e.exerciseCategoryId != exerciseCategory.exerciseCategoryId } }
+    }
+}
+
+class FakeFavoriteExerciseDao : FavoriteExerciseDao {
+    val favorites = MutableStateFlow<List<FavoriteExerciseEntity>>(emptyList())
+
+    override fun observeFavoriteIds(): Flow<List<Long>> =
+        favorites.map { list -> list.map { it.exerciseId } }
+
+    override fun observeFavoriteExercises(): Flow<List<ExerciseEntity>> =
+        throw UnsupportedOperationException("join tested via the real database")
+
+    override fun observeIsFavorite(exerciseId: Long): Flow<Boolean> =
+        favorites.map { list -> list.any { it.exerciseId == exerciseId } }
+
+    override suspend fun isFavorite(exerciseId: Long): Boolean =
+        favorites.value.any { it.exerciseId == exerciseId }
+
+    override suspend fun insert(favorite: FavoriteExerciseEntity) {
+        favorites.update { current ->
+            current.filterNot { it.exerciseId == favorite.exerciseId } + favorite
+        }
+    }
+
+    override suspend fun deleteById(exerciseId: Long) {
+        favorites.update { current -> current.filterNot { it.exerciseId == exerciseId } }
     }
 }

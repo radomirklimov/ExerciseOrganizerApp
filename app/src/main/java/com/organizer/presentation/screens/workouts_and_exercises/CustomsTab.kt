@@ -4,3 +4,8 @@ enum class CustomsTab {
     EXERCISES,
     WORKOUTS
 }
+
+enum class ExercisesTab {
+    CUSTOM,
+    FAVORITES
+}

@@ -47,9 +47,10 @@ fun EmptyExercisesState(
     onCreateExerciseClick: () -> Unit = {},
     onBrowseStandardExercisesClick: () -> Unit = {},
     title: String = "No Custom Exercises Created",
-    description: String = "Build your personal library of custom movements with specialized metrics: Reps, Reps + Weight, or Duration.",
+    description: String = "Build your personal library of custom movements with specialized metrics:",
     showCreateButton: Boolean = true,
     icon: ImageVector = Icons.Outlined.List,
+    capabilityPills: List<String> = listOf("Reps", "Weight", "Duration", "Instructions", "Photo"),
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -119,36 +120,33 @@ fun EmptyExercisesState(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Capability pills
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val pills = listOf(
-                "\u2696\ufe0f" to "Reps + Weight",
-                "\u23f1\ufe0f" to "Timed / Duration",
-                "\ud83d\udcf8" to "Photos & Notes",
-            )
-            pills.forEach { (emoji, label) ->
-                Row(
-                    modifier = Modifier
-                        .background(Color(0xFFF1ECF2), RoundedCornerShape(50))
-                        .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), RoundedCornerShape(50))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(text = emoji, fontSize = 12.sp)
-                    Text(
-                        text = label,
-                        fontSize = 13.sp,
-                        color = Color(0xFF1C1B1F),
-                        fontWeight = FontWeight.Medium,
-                    )
+        if (capabilityPills.isNotEmpty()) {
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                maxItemsInEachRow = 3,
+            ) {
+                capabilityPills.forEach { label ->
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFF1ECF2), RoundedCornerShape(50))
+                            .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 13.sp,
+                            color = Color(0xFF1C1B1F),
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -163,7 +161,9 @@ fun EmptyExercisesState(
             if (showCreateButton) {
                 Button(
                     onClick = onCreateExerciseClick,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF6750A4),
@@ -188,6 +188,12 @@ fun EmptyExercisesState(
                         )
                     }
                 }
+            } else {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(143.dp),
+                )
             }
 
             Button(

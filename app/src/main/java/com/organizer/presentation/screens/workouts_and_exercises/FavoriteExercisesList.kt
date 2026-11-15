@@ -33,17 +33,23 @@ fun FavoriteExercisesList(
     val favorites by viewModel.favoriteExercisesUiState.collectAsState()
 
     if (favorites.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(top = 40.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            EmptyExercisesState(
-                title = "No Favorite Exercises Yet",
-                description = "Mark exercises as favorite to quickly access them here.",
-                showCreateButton = false,
-                icon = Icons.Filled.Favorite,
-                onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
-            )
+            item {
+                EmptyExercisesState(
+                    title = "No Favorite Exercises Yet",
+                    description = "Mark exercises as favorite to quickly access them here.",
+                    showCreateButton = false,
+                    icon = Icons.Filled.Favorite,
+                    capabilityPills = emptyList(),
+                    onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
+                )
+            }
         }
     } else {
         LazyColumn(

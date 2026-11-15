@@ -26,7 +26,7 @@ fun SearchBar(
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth(),
         placeholder = {
-            Text("Search")
+            Text("Search exercises...")
         },
         shape = RoundedCornerShape(18.dp),
         colors = OutlinedTextFieldDefaults.colors(

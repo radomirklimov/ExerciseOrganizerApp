@@ -59,7 +59,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
@@ -81,7 +80,6 @@ import com.organizer.presentation.OrganizerViewModel
 private val Brand = Color(0xFF5E43DA)
 private val BrandDark = Color(0xFF4F35C2)
 private val Brand50 = Color(0xFFF5F3FF)
-private val Brand100 = Color(0xFFEDE9FE)
 private val Brand200 = Color(0xFFDDD6FE)
 private val TextPrimary = Color(0xFF1C1B1F)
 private val TextSecondary = Color(0xFF7A7582)
@@ -104,9 +102,6 @@ fun SaveExercisePopup(
     viewModel: OrganizerViewModel,
 ) {
     val workouts by viewModel.workoutsWithCountsUiState.collectAsState()
-    val exercise by viewModel.observeExercise(exerciseId).collectAsState(initial = null)
-    val categoryLabel by viewModel.observeExerciseCategoryLabel(exerciseId)
-        .collectAsState(initial = null)
     val starterTemplates by viewModel.starterTemplatesUiState.collectAsState()
 
     var query by remember { mutableStateOf("") }
@@ -173,11 +168,6 @@ fun SaveExercisePopup(
                         SheetHeader(
                             title = if (workouts.isEmpty()) "Save to Workout" else "Add to Workout",
                             onClose = onDismiss,
-                        )
-
-                        ExerciseContextStrip(
-                            exerciseName = exercise?.name ?: "Exercise",
-                            categoryLabel = categoryLabel,
                         )
 
                         if (workouts.isEmpty()) {
@@ -338,84 +328,6 @@ private fun SheetHeader(
 }
 
 @Composable
-private fun ExerciseContextStrip(
-    exerciseName: String,
-    categoryLabel: String?,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Brand50, Color(0xFFF2F0FF))
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brand.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.FitnessCenter,
-                    contentDescription = null,
-                    tint = Brand,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = exerciseName,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!categoryLabel.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = categoryLabel,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = BrandDark,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = Color.White,
-                border = BorderStroke(1.dp, Color(0xFFE6E3EC)),
-                shadowElevation = 1.dp,
-            ) {
-                Text(
-                    text = "Target Exercise",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF5B5662),
-                )
-            }
-        }
-
-        HorizontalDivider(color = Brand100.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
 private fun WorkoutFilterField(
     query: String,
     onQueryChange: (String) -> Unit,
@@ -462,7 +374,7 @@ private fun WorkoutFilterField(
                     ) {
                         if (query.isEmpty()) {
                             Text(
-                                text = "Filter workouts...",
+                                text = "Search workouts...",
                                 fontSize = 14.sp,
                                 color = Color(0xFF9A95A3),
                             )

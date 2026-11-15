@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -74,6 +75,7 @@ fun ExerciseListItem(
     showDelete: Boolean = true,
     onTrackClick: (() -> Unit)? = null,
     expandedContent: (@Composable () -> Unit)? = null,
+    expandedButtonsSpacing: Dp = 4.dp,
     viewModel: OrganizerViewModel,
 ) {
     val textScrollState = rememberScrollState()
@@ -202,7 +204,9 @@ fun ExerciseListItem(
             if (expandedContent != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 expandedContent()
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(expandedButtonsSpacing))
+            } else {
+                Spacer(modifier = Modifier.height(expandedButtonsSpacing))
             }
             Row(
                 modifier = Modifier

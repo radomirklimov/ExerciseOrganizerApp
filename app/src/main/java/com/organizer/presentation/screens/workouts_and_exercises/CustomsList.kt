@@ -94,7 +94,7 @@ fun CustomsList(
                                     templates = starterTemplates,
                                     onTemplateClick = onTemplateClick,
                                     onViewAllClick = onViewAllTemplatesClick,
-                                    viewModel = viewModel,
+                                 viewModel = viewModel,
                                 )
                             }
                         }
@@ -138,6 +138,7 @@ fun CustomsList(
                                 onDeleteClick = {
                                     viewModel.deleteCustomExercise(exercise.exerciseId)
                                 },
+                                expandedButtonsSpacing = 8.dp,
                                 viewModel = viewModel
                             )
                         }

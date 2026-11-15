@@ -28,6 +28,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.organizer.data.local.db.entities.ExerciseEntity
@@ -105,7 +107,7 @@ fun ExercisesScreen(
     onBrowseStandardExercisesClick: () -> Unit = {},
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
-    var selectedTab by remember { mutableStateOf(ExercisesTab.FAVORITES) }
+    var selectedTab by rememberSaveable { mutableStateOf(ExercisesTab.FAVORITES) }
 
     Column(
         modifier = Modifier

@@ -166,7 +166,7 @@ fun SaveExercisePopup(
                         DragHandle()
 
                         SheetHeader(
-                            title = if (workouts.isEmpty()) "Save to Workout" else "Add to Workout",
+                            title = "Add to Workout",
                             onClose = onDismiss,
                         )
 

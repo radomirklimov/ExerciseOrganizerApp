@@ -2,18 +2,23 @@ package com.organizer.data.repo
 
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class WorkoutRepository @Inject constructor(
     private val dao: WorkoutDao
 ) {
-    suspend fun createWorkout(name: String, notes: String = "") {
-        dao.insert(WorkoutEntity(name = name, notes = notes))
+    suspend fun createWorkout(name: String, notes: String = ""): Long {
+        return dao.insert(WorkoutEntity(name = name, notes = notes))
     }
 
     fun observeWorkouts(): Flow<List<WorkoutEntity>> {
         return dao.getAll()
+    }
+
+    fun observeWorkoutsWithExerciseCount(): Flow<List<WorkoutWithExerciseCount>> {
+        return dao.getWorkoutsWithExerciseCount()
     }
 
     fun observeWorkoutById(id: Long): Flow<WorkoutEntity?> {

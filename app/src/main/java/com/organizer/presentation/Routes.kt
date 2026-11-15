@@ -21,7 +21,11 @@ sealed class Routes(val route: String) {
         }
     }
     object Exercises: Routes("exercises")
-    object CreateWorkout: Routes("createWorkout")
+    object CreateWorkout : Routes("createWorkout?exerciseId={exerciseId}") {
+        /** Optionally pre-selects an exercise to add once the workout is created. */
+        fun createRoute(exerciseId: Long? = null): String =
+            if (exerciseId == null) "createWorkout" else "createWorkout?exerciseId=$exerciseId"
+    }
     object AddCard: Routes("addCard")
     object Workout: Routes("workout/{workoutId}") {
         fun createRoute(workoutId: Long): String {

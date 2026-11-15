@@ -12,6 +12,7 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.data.media.MediaPriority
 import com.organizer.data.repo.CategoryRepository
 import com.organizer.data.repo.ExerciseCategoryRepository
@@ -22,6 +23,8 @@ import com.organizer.data.repo.FileRepository
 import com.organizer.data.repo.StarterTemplateRepository
 import com.organizer.data.repo.WorkoutExerciseRepository
 import com.organizer.data.repo.WorkoutRepository
+import com.organizer.data.repo.exerciseCategoryNames
+import com.organizer.data.repo.joinCategoryNames
 import com.organizer.presentation.model.SearchResult
 import com.organizer.presentation.screens.workouts_and_exercises.CustomsTab
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -164,6 +167,15 @@ class OrganizerViewModel @Inject constructor(
     fun observeExercise(id: Long): Flow<ExerciseEntity?> =
         exerciseRepo.observeExercise(id)
 
+    /** Short category summary shown under the exercise name, e.g. "Chest & Arms". */
+    fun observeExerciseCategoryLabel(exerciseId: Long): Flow<String?> = combine(
+        exerciseCategoryRepo.observeCategoriesForExercise(exerciseId),
+        categoryRepo.observeSports(),
+        categoryRepo.observeCategories(),
+    ) { linked, sports, categories ->
+        joinCategoryNames(exerciseCategoryNames(linked, sports + categories))
+    }
+
     fun observeExerciseSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>> =
         exerciseProgressRepo.observeSets(workoutId, exerciseId)
 
@@ -227,6 +239,11 @@ class OrganizerViewModel @Inject constructor(
 
     val workoutsUiState: StateFlow<List<WorkoutEntity>> =
         workoutRepo.observeWorkouts()
+            .stateIn(viewModelScope, Sharing, emptyList())
+
+    /** Workouts with their exercise counts, used by the Add-to-workout sheet. */
+    val workoutsWithCountsUiState: StateFlow<List<WorkoutWithExerciseCount>> =
+        workoutRepo.observeWorkoutsWithExerciseCount()
             .stateIn(viewModelScope, Sharing, emptyList())
 
     // Starter workout templates (server content, never mixed into workouts).
@@ -323,8 +340,13 @@ class OrganizerViewModel @Inject constructor(
     }
 
     // Commands
-    fun createWorkout(name: String, notes: String = "") = viewModelScope.launch {
-        workoutRepo.createWorkout(name, notes)
+    fun createWorkout(
+        name: String,
+        notes: String = "",
+        onCreated: (Long) -> Unit = {},
+    ) = viewModelScope.launch {
+        val workoutId = workoutRepo.createWorkout(name, notes)
+        onCreated(workoutId)
     }
 
     fun deleteWorkout(id: Long) = viewModelScope.launch {

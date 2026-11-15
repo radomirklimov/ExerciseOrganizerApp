@@ -6,7 +6,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExerciseCategoryDao {
@@ -21,6 +23,14 @@ interface ExerciseCategoryDao {
 
     @Query("SELECT exerciseId FROM exercise_category WHERE :categoryId == categoryId ORDER BY sortOrder ASC, exerciseCategoryId ASC")
     suspend fun getExerciseIdsByCategoryId(categoryId: Long): List<Long>
+
+    @Query(
+        """SELECT c.* FROM category c
+        JOIN exercise_category ec ON c.categoryId = ec.categoryId
+        WHERE ec.exerciseId = :exerciseId
+        ORDER BY ec.sortOrder ASC, ec.exerciseCategoryId ASC"""
+    )
+    fun observeCategoriesForExercise(exerciseId: Long): Flow<List<CategoryEntity>>
 
     @Delete
     suspend fun delete(exerciseCategory: ExerciseCategoryEntity)

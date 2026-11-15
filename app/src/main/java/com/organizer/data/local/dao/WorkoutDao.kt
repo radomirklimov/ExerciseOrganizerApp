@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,6 +19,17 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout ORDER BY workoutId DESC")
     fun getAll(): Flow<List<WorkoutEntity>>
+
+    @Query(
+        """SELECT w.workoutId AS workoutId,
+               w.name AS name,
+               COUNT(we.exerciseId) AS exerciseCount
+        FROM workout w
+        LEFT JOIN workout_exercise we ON we.workoutId = w.workoutId
+        GROUP BY w.workoutId, w.name
+        ORDER BY w.workoutId DESC"""
+    )
+    fun getWorkoutsWithExerciseCount(): Flow<List<WorkoutWithExerciseCount>>
 
     @Query("SELECT * FROM workout WHERE workoutId = :id")
     fun getById(id: Long): Flow<WorkoutEntity?>

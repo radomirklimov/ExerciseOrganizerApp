@@ -19,7 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,7 +117,7 @@ fun ExercisesScreen(
     onBrowseStandardExercisesClick: () -> Unit = {},
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
-    var selectedTab by remember { mutableStateOf(ExercisesTab.CUSTOM) }
+    var selectedTab by remember { mutableStateOf(ExercisesTab.FAVORITES) }
 
     Column(
         modifier = Modifier
@@ -130,21 +130,6 @@ fun ExercisesScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.Transparent),
-                contentAlignment = Alignment.Center,
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Filled.FitnessCenter,
-                    contentDescription = null,
-                    tint = Color(0xFF1C1B1F),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            Spacer(Modifier.width(12.dp))
             Text(
                 text = "Exercises",
                 fontSize = 22.sp,
@@ -163,7 +148,7 @@ fun ExercisesScreen(
                 .background(Color(0xFFF1ECF2))
                 .padding(4.dp),
         ) {
-            listOf(ExercisesTab.CUSTOM to "Custom", ExercisesTab.FAVORITES to "Favorites").forEach { (tab, label) ->
+            listOf(ExercisesTab.FAVORITES to "Favorites", ExercisesTab.CUSTOM to "Custom").forEach { (tab, label) ->
                 val selected = selectedTab == tab
                 Box(
                     modifier = Modifier

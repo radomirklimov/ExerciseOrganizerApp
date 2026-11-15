@@ -13,6 +13,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
@@ -39,6 +41,7 @@ fun FavoriteExercisesList(
                 title = "No Favorite Exercises Yet",
                 description = "Mark exercises as favorite to quickly access them here.",
                 showCreateButton = false,
+                icon = Icons.Filled.Favorite,
                 onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
             )
         }

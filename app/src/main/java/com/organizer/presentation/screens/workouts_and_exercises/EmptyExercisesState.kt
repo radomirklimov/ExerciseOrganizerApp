@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.SportsGymnastics
 import androidx.compose.material.icons.outlined.List
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -32,7 +33,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,6 +49,7 @@ fun EmptyExercisesState(
     title: String = "No Custom Exercises Created",
     description: String = "Build your personal library of custom movements with specialized metrics: Reps, Reps + Weight, or Duration.",
     showCreateButton: Boolean = true,
+    icon: ImageVector = Icons.Outlined.List,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -52,32 +57,41 @@ fun EmptyExercisesState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // Hero badge
+        // Hero badge (same visuals as empty workouts state)
         Box(
-            modifier = Modifier.padding(bottom = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 18.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                modifier = Modifier.size(112.dp),
-                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(176.dp)
+                    .blur(48.dp)
+                    .background(Color(0xFFE9DDFF).copy(alpha = 0.5f), CircleShape),
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(144.dp)
+                    .shadow(4.dp, RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(112.dp)
-                        .blur(24.dp)
-                        .background(Color(0xFFE9DDFF).copy(alpha = 0.5f), CircleShape),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(Color(0xFF6750A4), CircleShape),
+                        .align(Alignment.Center)
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFE9DDFF)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.List,
+                        imageVector = icon,
                         contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(38.dp),
+                        tint = Color(0xFF4F378A),
+                        modifier = Modifier.size(48.dp),
                     )
                 }
             }

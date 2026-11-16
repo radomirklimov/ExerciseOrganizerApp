@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -192,17 +191,15 @@ private fun CreateWorkoutFooter(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White),
+            .background(ScreenBackground),
     ) {
-        HorizontalDivider(color = DividerColor)
-
         Button(
             onClick = onCreate,
             enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(top = 14.dp, bottom = 18.dp)
+                .padding(bottom = 18.dp)
                 .height(58.dp)
                 .shadow(
                     elevation = if (enabled) 14.dp else 0.dp,

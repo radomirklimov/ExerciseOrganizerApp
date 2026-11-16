@@ -140,53 +140,57 @@ internal fun ExercisePickerSection(
             onSelect = { selectedFilter = it },
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // Hide the suggestion heading and hint entirely when there is nothing
+        // to suggest yet, e.g. before the user has created any workouts.
+        if (query.isNotBlank() || results.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(20.dp))
 
-        Text(
-            text = if (query.isBlank()) {
-                "Recently Used in Other Workouts"
-            } else {
-                "Search Results"
-            },
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp,
-            color = TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (results.isEmpty()) {
             Text(
-                text = emptyMessage(query, selectedFilter),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 20.dp),
+                text = if (query.isBlank()) {
+                    "Recently Used in Other Workouts"
+                } else {
+                    "Search Results"
+                },
                 fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
                 color = TextSecondary,
             )
-        } else {
-            val visibleResults = results.take(MAX_SEARCH_RESULTS)
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                visibleResults.forEach { entry ->
-                    ExerciseOptionRow(
-                        entry = entry,
-                        selected = entry.exercise.exerciseId in selectedExerciseIds,
-                        onClick = { onToggleExercise(entry.exercise.exerciseId) },
-                        mediaTick = mediaTick,
-                        viewModel = viewModel,
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(12.dp))
 
-            if (results.size > MAX_SEARCH_RESULTS) {
-                Spacer(modifier = Modifier.height(10.dp))
+            if (results.isEmpty()) {
                 Text(
-                    text = "Showing the first $MAX_SEARCH_RESULTS results. Refine your search.",
-                    fontSize = 12.sp,
+                    text = emptyMessage(query, selectedFilter),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 20.dp),
+                    fontSize = 14.sp,
                     color = TextSecondary,
                 )
+            } else {
+                val visibleResults = results.take(MAX_SEARCH_RESULTS)
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    visibleResults.forEach { entry ->
+                        ExerciseOptionRow(
+                            entry = entry,
+                            selected = entry.exercise.exerciseId in selectedExerciseIds,
+                            onClick = { onToggleExercise(entry.exercise.exerciseId) },
+                            mediaTick = mediaTick,
+                            viewModel = viewModel,
+                        )
+                    }
+                }
+
+                if (results.size > MAX_SEARCH_RESULTS) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Showing the first $MAX_SEARCH_RESULTS results. Refine your search.",
+                        fontSize = 12.sp,
+                        color = TextSecondary,
+                    )
+                }
             }
         }
     }

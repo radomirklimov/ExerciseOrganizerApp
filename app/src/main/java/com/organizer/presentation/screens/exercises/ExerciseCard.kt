@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 fun ExerciseCard(
     exerciseId: Long,
     onCreateWorkoutClick: (Long) -> Unit,
+    onOpenWorkoutsClick: () -> Unit,
     onBackClick: () -> Unit,
     viewModel: OrganizerViewModel,
 ) {
@@ -175,6 +176,7 @@ fun ExerciseCard(
                     showSavePopup = false
                 },
                 onCreateWorkoutClick = { onCreateWorkoutClick(exerciseId) },
+                onOpenWorkoutsClick = onOpenWorkoutsClick,
                 viewModel = viewModel
             )
         }

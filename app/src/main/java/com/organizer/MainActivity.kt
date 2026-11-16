@@ -192,6 +192,9 @@ fun AppNavigation(showOnboarding: Boolean) {
                     onCreateWorkoutClick = { id ->
                         navController.navigate(Routes.CreateWorkout.createRoute(id))
                     },
+                    onOpenWorkoutsClick = {
+                        navController.navigate(Routes.Workouts.route)
+                    },
                     onBackClick = {
                         popBackScreen()
                     },

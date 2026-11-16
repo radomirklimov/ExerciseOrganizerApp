@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -73,14 +71,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
 
-private val Brand = Color(0xFF5E43DA)
-private val BrandDark = Color(0xFF4F35C2)
-private val Brand50 = Color(0xFFF5F3FF)
-private val Brand200 = Color(0xFFDDD6FE)
+private val Brand = Color(0xFF6750A4)
+private val BrandDark = Color(0xFF4F378A)
+private val Brand50 = Color(0xFFF1ECF2)
+private val Brand200 = Color(0xFFCBC4D2)
 private val TextPrimary = Color(0xFF1C1B1F)
 private val TextSecondary = Color(0xFF7A7582)
 private val DividerColor = Color(0xFFF0EEF3)
@@ -91,18 +88,17 @@ private val DisabledText = Color(0xFFA9A4B2)
 
 /**
  * Bottom sheet that lets the user add [exerciseId] to one or more existing
- * workouts, create a new workout that already contains it, or start from a
- * starter template.
+ * workouts, or create a new workout that already contains it.
  */
 @Composable
 fun SaveExercisePopup(
     exerciseId: Long,
     onDismiss: () -> Unit,
     onCreateWorkoutClick: () -> Unit,
+    onOpenWorkoutsClick: () -> Unit,
     viewModel: OrganizerViewModel,
 ) {
     val workouts by viewModel.workoutsWithCountsUiState.collectAsState()
-    val starterTemplates by viewModel.starterTemplatesUiState.collectAsState()
 
     var query by remember { mutableStateOf("") }
     var selectedWorkoutIds by remember { mutableStateOf(setOf<Long>()) }
@@ -165,28 +161,16 @@ fun SaveExercisePopup(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         DragHandle()
 
-                        SheetHeader(
-                            title = "Add to Workout",
-                            onClose = onDismiss,
-                        )
+                        SheetHeader(onClose = onDismiss)
 
                         if (workouts.isEmpty()) {
                             EmptyStateBody(
-                                templates = starterTemplates,
-                                onCreateWorkout = {
+                                onOpenWorkoutsClick = {
                                     onDismiss()
-                                    onCreateWorkoutClick()
-                                },
-                                onTemplateClick = { templateId ->
-                                    viewModel.addStarterTemplateToWorkouts(templateId) { workoutId ->
-                                        viewModel.addExerciseToWorkout(workoutId, exerciseId)
-                                        onDismiss()
-                                    }
+                                    onOpenWorkoutsClick()
                                 },
                                 modifier = Modifier.weight(1f, fill = false),
                             )
-
-                            EmptyStateFooter()
                         } else {
                             WorkoutFilterField(
                                 query = query,
@@ -224,7 +208,15 @@ fun SaveExercisePopup(
                                 }
 
                                 if (visibleWorkouts.isEmpty()) {
-                                    NoMatchesRow(query = query)
+                                    Text(
+                                        text = "No workouts match \"${query.trim()}\"",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 24.dp),
+                                        fontSize = 14.sp,
+                                        color = TextSecondary,
+                                        textAlign = TextAlign.Center,
+                                    )
                                 }
                             }
 
@@ -267,10 +259,7 @@ private fun DragHandle() {
 }
 
 @Composable
-private fun SheetHeader(
-    title: String,
-    onClose: () -> Unit,
-) {
+private fun SheetHeader(onClose: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -281,7 +270,7 @@ private fun SheetHeader(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
+                    text = "Add to Workout",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -327,76 +316,72 @@ private fun WorkoutFilterField(
     query: String,
     onQueryChange: (String) -> Unit,
 ) {
-    Box(
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        textStyle = TextStyle(
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextPrimary,
+        ),
+        cursorBrush = SolidColor(Brand),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
             .padding(top = 14.dp, bottom = 4.dp),
-    ) {
-        BasicTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            singleLine = true,
-            textStyle = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary,
-            ),
-            cursorBrush = SolidColor(Brand),
-            modifier = Modifier.fillMaxWidth(),
-            decorationBox = { innerTextField ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(FieldBackground)
-                        .padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(FieldBackground)
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null,
+                    tint = Color(0xFF9A95A3),
+                    modifier = Modifier.size(20.dp),
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = null,
-                        tint = Color(0xFF9A95A3),
-                        modifier = Modifier.size(20.dp),
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        if (query.isEmpty()) {
-                            Text(
-                                text = "Search workouts...",
-                                fontSize = 14.sp,
-                                color = Color(0xFF9A95A3),
-                            )
-                        }
-                        innerTextField()
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Search workouts...",
+                            fontSize = 14.sp,
+                            color = Color(0xFF9A95A3),
+                        )
                     }
+                    innerTextField()
+                }
 
-                    if (query.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .clickable { onQueryChange("") },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Clear filter",
-                                tint = Color(0xFF9A95A3),
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
+                if (query.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable { onQueryChange("") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Clear filter",
+                            tint = Color(0xFF9A95A3),
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
-            },
-        )
-    }
+            }
+        },
+    )
 }
 
 @Composable
@@ -550,19 +535,6 @@ private fun SelectionIndicator(selected: Boolean) {
 }
 
 @Composable
-private fun NoMatchesRow(query: String) {
-    Text(
-        text = "No workouts match \"${query.trim()}\"",
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        fontSize = 14.sp,
-        color = TextSecondary,
-        textAlign = TextAlign.Center,
-    )
-}
-
-@Composable
 private fun SaveFooter(
     selectedCount: Int,
     onSave: () -> Unit,
@@ -620,9 +592,7 @@ private fun SaveFooter(
 
 @Composable
 private fun EmptyStateBody(
-    templates: List<StarterTemplateEntity>,
-    onCreateWorkout: () -> Unit,
-    onTemplateClick: (Long) -> Unit,
+    onOpenWorkoutsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -701,7 +671,7 @@ private fun EmptyStateBody(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = onCreateWorkout,
+            onClick = onOpenWorkoutsClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
@@ -729,116 +699,11 @@ private fun EmptyStateBody(
                 letterSpacing = 0.2.sp,
             )
         }
-
-        if (templates.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFFF8F7FA))
-                    .border(1.dp, Color(0xFFE9E7EE), RoundedCornerShape(18.dp))
-                    .padding(16.dp),
-            ) {
-                Text(
-                    text = "QUICK START TEMPLATES",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4A4653),
-                    letterSpacing = 0.7.sp,
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    templates.take(3).forEach { template ->
-                        QuickStartChip(
-                            label = template.name,
-                            onClick = { onTemplateClick(template.templateId) },
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
-@Composable
-private fun QuickStartChip(
-    label: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE4E2EA)),
-        shadowElevation = 1.dp,
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF4A4653),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun EmptyStateFooter() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White),
-    ) {
-        HorizontalDivider(color = DividerColor)
-
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .padding(top = 16.dp, bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(
-                onClick = {},
-                enabled = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(
-                    disabledContainerColor = DisabledBackground,
-                    disabledContentColor = DisabledText,
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 0.dp,
-                    pressedElevation = 0.dp,
-                    disabledElevation = 0.dp,
-                ),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-            ) {
-                Text(
-                    text = "Select a Workout",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.2.sp,
-                )
-            }
-        }
-    }
-}
-
-private fun saveLabel(selectedCount: Int): String = when (selectedCount) {
-    0 -> "Select a Workout"
-    else -> "Add Exercise"
-}
+private fun saveLabel(selectedCount: Int): String =
+    if (selectedCount == 0) "Select a Workout" else "Add Exercise"
 
 private fun exerciseCountLabel(count: Int): String =
     "$count ${if (count == 1) "exercise" else "exercises"}"

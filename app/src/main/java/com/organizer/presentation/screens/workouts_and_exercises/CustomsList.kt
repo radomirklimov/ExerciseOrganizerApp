@@ -152,16 +152,10 @@ fun CustomsList(
                 if (!isEmpty) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(),
-//                            .padding(16.dp),
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .blur(48.dp)
-                                .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
-                        )
                         CreateButton(
                             text = "Create New Workout",
                             onClick = onCreateWorkoutClick
@@ -172,10 +166,17 @@ fun CustomsList(
 
             CustomsTab.EXERCISES -> {
                 if (!isEmpty) {
-                    CreateButton(
-                        text = "Create New Exercise",
-                        onClick = onCreateExerciseClick
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CreateButton(
+                            text = "Create New Exercise",
+                            onClick = onCreateExerciseClick
+                        )
+                    }
                 }
             }
         }

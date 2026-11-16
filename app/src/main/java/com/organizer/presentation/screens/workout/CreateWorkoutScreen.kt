@@ -30,6 +30,7 @@ import com.organizer.presentation.screens.general.SaveButton
 @Composable
 fun CreateWorkoutScreen(
     onBackClick: () -> Unit = {},
+    pendingExerciseId: Long? = null,
     viewModel: OrganizerViewModel,
 ) {
     var workoutName by remember { mutableStateOf("") }
@@ -119,8 +120,14 @@ fun CreateWorkoutScreen(
                     return@SaveButton
                 }
 
-                viewModel.createWorkout(trimmedName, notes.trim())
-                onBackClick()
+                viewModel.createWorkout(trimmedName, notes.trim()) { newWorkoutId ->
+                    // Opened from an exercise: include that exercise straight
+                    // away so "Create New Workout" never loses the context.
+                    pendingExerciseId?.let { exerciseId ->
+                        viewModel.addExerciseToWorkout(newWorkoutId, exerciseId)
+                    }
+                    onBackClick()
+                }
             }
         )
     }

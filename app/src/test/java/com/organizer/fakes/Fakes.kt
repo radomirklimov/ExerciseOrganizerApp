@@ -226,6 +226,9 @@ class FakeExerciseCategoryDao : ExerciseCategoryDao {
             .sortedWith(compareBy<ExerciseCategoryEntity> { it.sortOrder }.thenBy { it.exerciseCategoryId })
             .map { it.exerciseId }
 
+    override fun observeCategoriesForExercise(exerciseId: Long): Flow<List<CategoryEntity>> =
+        throw UnsupportedOperationException("join tested via the real database")
+
     override suspend fun delete(exerciseCategory: ExerciseCategoryEntity) {
         data.update { it.filter { e -> e.exerciseCategoryId != exerciseCategory.exerciseCategoryId } }
     }

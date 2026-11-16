@@ -15,10 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
 import com.organizer.presentation.screens.add_card.AddCardScreen
@@ -187,7 +189,12 @@ fun AppNavigation(showOnboarding: Boolean) {
 
                 ExerciseCard(
                     exerciseId = exerciseId,
-                    onCreateWorkoutClick = { navController.navigate(Routes.CreateWorkout.route) },
+                    onCreateWorkoutClick = { id ->
+                        navController.navigate(Routes.CreateWorkout.createRoute(id))
+                    },
+                    onOpenWorkoutsClick = {
+                        navController.navigate(Routes.Workouts.route)
+                    },
                     onBackClick = {
                         popBackScreen()
                     },
@@ -202,7 +209,9 @@ fun AppNavigation(showOnboarding: Boolean) {
                             Routes.Workout.createRoute(workout.workoutId)
                         )
                     },
-                    onCreateWorkoutClick = { navController.navigate(Routes.CreateWorkout.route) },
+                    onCreateWorkoutClick = {
+                        navController.navigate(Routes.CreateWorkout.createRoute())
+                    },
                     onTemplateClick = { templateId ->
                         navController.navigate(
                             Routes.StarterTemplate.createRoute(templateId)
@@ -266,11 +275,22 @@ fun AppNavigation(showOnboarding: Boolean) {
                 )
             }
 
-            composable(Routes.CreateWorkout.route) {
+            composable(
+                route = Routes.CreateWorkout.route,
+                arguments = listOf(navArgument("exerciseId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }),
+            ) { backStackEntry ->
+                val pendingExerciseId = backStackEntry.arguments
+                    ?.getLong("exerciseId")
+                    ?.takeIf { it > 0L }
+
                 CreateWorkoutScreen(
                     onBackClick = {
                         popBackScreen()
                     },
+                    pendingExerciseId = pendingExerciseId,
                     viewModel = organizerViewModel,
                 )
             }

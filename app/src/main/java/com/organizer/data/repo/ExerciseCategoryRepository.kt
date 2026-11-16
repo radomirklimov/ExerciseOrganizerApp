@@ -1,8 +1,10 @@
 package com.organizer.data.repo
 
 import com.organizer.data.local.dao.ExerciseCategoryDao
+import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.remote.repo.ExerciseCategoryRemoteDataSource
 import jakarta.inject.Inject
+import kotlinx.coroutines.flow.Flow
 
 class ExerciseCategoryRepository @Inject constructor(
     private val remoteDataSource: ExerciseCategoryRemoteDataSource,
@@ -10,6 +12,10 @@ class ExerciseCategoryRepository @Inject constructor(
 ) {
     suspend fun getExercisesByCategory(categoryId: Long): List<Long> {
         return exerciseCategoryDao.getExerciseIdsByCategoryId(categoryId)
+    }
+
+    fun observeCategoriesForExercise(exerciseId: Long): Flow<List<CategoryEntity>> {
+        return exerciseCategoryDao.observeCategoriesForExercise(exerciseId)
     }
 
     suspend fun refreshExerciseCategory() {

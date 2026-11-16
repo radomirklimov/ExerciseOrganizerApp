@@ -7,6 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -145,7 +148,16 @@ fun AppNavigation(showOnboarding: Boolean) {
                 Routes.Onboarding.route
             else
                 Routes.Sports.route,
-            modifier = Modifier.padding(padding)
+            modifier = Modifier.padding(padding),
+            // Navigation's default cross-fade lasts 700 ms and fades through
+            // the empty screen background, which is what reads as a white
+            // flash before the destination has loaded its data. A short
+            // cross-fade keeps both screens visible while it runs, so the
+            // change feels immediate but still smooth.
+            enterTransition = { fadeIn(animationSpec = tween(200)) },
+            exitTransition = { fadeOut(animationSpec = tween(200)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
+            popExitTransition = { fadeOut(animationSpec = tween(200)) },
         ) {
             composable(Routes.Onboarding.route) {
                 val context = LocalContext.current
@@ -199,59 +211,47 @@ fun AppNavigation(showOnboarding: Boolean) {
                 val categoryId = backStackEntry.arguments
                     ?.getLong("categoryId") ?: 0L
 
-                // All category screens share a single destination, so after a
-                // back step the previous category's content can stay composed
-                // behind the one on top of it and still receive taps, opening
-                // a child of the category the user already left. Rendering
-                // only the entry Navigation considers current keeps stale
-                // lists from being interactive.
-                val currentEntry = navController
-                    .currentBackStackEntryAsState()
-                    .value
-
                 // Give every category its own composition state. Otherwise the
                 // previously opened category's rows stay on screen for a
                 // moment while the new category's data loads, and tapping them
                 // opens the wrong category.
                 key(categoryId) {
-                    if (currentEntry?.id == backStackEntry.id) {
-                        CategoryContentScreen(
-                            categoryId = categoryId,
-                            onCategoryClick = { category ->
-                                // Only follow rows of the category that is
-                                // actually on screen right now. A tap can be
-                                // delivered by a list that is still composed
-                                // from the category the user already went
-                                // back from; following it would open one of
-                                // that category's children instead.
-                                val activeCategoryId = navController
-                                    .currentBackStackEntry
-                                    ?.takeIf { it.destination.route == Routes.Subcategory.route }
-                                    ?.arguments
-                                    ?.getLong("categoryId")
-                                if (activeCategoryId != null &&
-                                    category.parentCategoryId == activeCategoryId
-                                ) {
-                                    openCategory(category.categoryId)
-                                }
-                            },
-                            onCategoryAncestorClick = { category ->
+                    CategoryContentScreen(
+                        categoryId = categoryId,
+                        onCategoryClick = { category ->
+                            // Only follow rows of the category that is
+                            // actually on screen right now. A tap can be
+                            // delivered by a list from the category the user
+                            // already went back from; following that row would
+                            // open one of the previous category's children
+                            // instead.
+                            val activeCategoryId = navController
+                                .currentBackStackEntry
+                                ?.takeIf { it.destination.route == Routes.Subcategory.route }
+                                ?.arguments
+                                ?.getLong("categoryId")
+                            if (activeCategoryId != null &&
+                                category.parentCategoryId == activeCategoryId
+                            ) {
                                 openCategory(category.categoryId)
-                            },
-                            onExerciseClick = { exercise ->
-                                navController.navigate(
-                                    Routes.ExerciseCard.createRoute(exercise.exerciseId)
-                                )
-                            },
-                            onBackClick = {
-                                popBackScreen()
-                            },
-                            onAddCustomExerciseClick = {
-                                navController.navigate(Routes.AddCard.route)
-                            },
-                            viewModel = organizerViewModel
-                        )
-                    }
+                            }
+                        },
+                        onCategoryAncestorClick = { category ->
+                            openCategory(category.categoryId)
+                        },
+                        onExerciseClick = { exercise ->
+                            navController.navigate(
+                                Routes.ExerciseCard.createRoute(exercise.exerciseId)
+                            )
+                        },
+                        onBackClick = {
+                            popBackScreen()
+                        },
+                        onAddCustomExerciseClick = {
+                            navController.navigate(Routes.AddCard.route)
+                        },
+                        viewModel = organizerViewModel
+                    )
                 }
             }
 

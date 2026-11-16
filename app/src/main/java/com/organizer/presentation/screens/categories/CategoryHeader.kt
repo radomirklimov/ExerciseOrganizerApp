@@ -38,7 +38,7 @@ import com.organizer.presentation.OrganizerViewModel
 fun CategoryHeader(
     categoryPath: MutableList<CategoryEntity>,
     onBackClick: () -> Unit,
-    onCategoryClick: (CategoryEntity) -> Unit,
+    onAncestorClick: (CategoryEntity) -> Unit,
     viewModel: OrganizerViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -113,7 +113,7 @@ fun CategoryHeader(
                         modifier = (if (isCurrent) {
                             Modifier
                         } else {
-                            Modifier.clickable { onCategoryClick(category) }
+                            Modifier.clickable { onAncestorClick(category) }
                         })
                             .align(Alignment.CenterVertically)
                             .background(blockColor, RoundedCornerShape(50))

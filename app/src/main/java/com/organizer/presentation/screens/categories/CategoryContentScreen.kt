@@ -28,6 +28,7 @@ import com.organizer.presentation.screens.sports.LoadingErrorView
 fun CategoryContentScreen(
     categoryId: Long,
     onCategoryClick: (CategoryEntity) -> Unit,
+    onCategoryAncestorClick: (CategoryEntity) -> Unit,
     onExerciseClick: (ExerciseEntity) -> Unit,
     onBackClick: () -> Unit,
     onAddCustomExerciseClick: () -> Unit,
@@ -38,6 +39,10 @@ fun CategoryContentScreen(
     val exercises by viewModel.observeExercisesByCategory(categoryId).collectAsState(initial = emptyList())
     val isLoading by viewModel.isSyncing.collectAsState()
     val errorMessage = viewModel.errorMessage
+
+    // The category directly above this one in the hierarchy. Null for a
+    // top-level sport, where "up" means leaving the category browser.
+    val parentCategory = categoryPath.dropLast(1).lastOrNull()
 
     // Keep the same background color on every screen.
     val backgroundColor = Color(0xFFFEFBFE)
@@ -59,10 +64,14 @@ fun CategoryContentScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             CategoryHeader(
-                categoryPath.toMutableList(),
-                onBackClick,
-                onCategoryClick,
-                viewModel
+                categoryPath = categoryPath.toMutableList(),
+                onBackClick = {
+                    // Back always moves one level up the hierarchy instead of
+                    // returning to whatever screen is below on the back stack.
+                    parentCategory?.let(onCategoryAncestorClick) ?: onBackClick()
+                },
+                onAncestorClick = onCategoryAncestorClick,
+                viewModel = viewModel,
             )
         }
 

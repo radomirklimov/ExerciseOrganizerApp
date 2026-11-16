@@ -85,6 +85,32 @@ fun AppNavigation(showOnboarding: Boolean) {
         }
     }
 
+    // Returns to an ancestor category by popping every category screen above
+    // it. This keeps the back stack in sync with the hierarchy, so the back
+    // arrow never returns to a deeper category the user just left.
+    fun navigateUpToCategory(categoryId: Long) {
+        while (true) {
+            val entry = navController.currentBackStackEntry ?: break
+            val isCategoryScreen = entry.destination.route == Routes.Subcategory.route
+            val currentCategoryId = entry.arguments
+                ?.getString("categoryId")
+                ?.toLongOrNull()
+
+            if (isCategoryScreen && currentCategoryId == categoryId) {
+                return
+            }
+            if (!isCategoryScreen || !navController.popBackStack()) {
+                break
+            }
+        }
+
+        // The ancestor is not on the back stack (for example after a state
+        // restore), so open it directly.
+        navController.navigate(Routes.Subcategory.createRoute(categoryId)) {
+            launchSingleTop = true
+        }
+    }
+
     Scaffold(
         containerColor = Color(0xFFFEFBFE),
         bottomBar = {
@@ -166,6 +192,9 @@ fun AppNavigation(showOnboarding: Boolean) {
                         if (!navController.popBackStack(route, false)) {
                             navController.navigate(route)
                         }
+                    },
+                    onCategoryAncestorClick = { category ->
+                        navigateUpToCategory(category.categoryId)
                     },
                     onExerciseClick = { exercise ->
                         navController.navigate(

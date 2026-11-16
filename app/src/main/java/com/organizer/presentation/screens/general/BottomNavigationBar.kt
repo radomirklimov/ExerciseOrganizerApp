@@ -74,7 +74,7 @@ fun BottomNavigationBar(
         CustomNavigationItem(
             selected = currentRoute == Routes.AddCard.route,
             icon = Icons.Outlined.Add,
-            label = "Add Card",
+            label = "Custom",
             onClick = onAddCardClick,
         )
     }

@@ -34,7 +34,7 @@ fun SaveButton(
             )
         } else {
             Text(
-                text = "Create",
+                text = "Create Exercise",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )

@@ -82,7 +82,7 @@ fun AddCardScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Create Your Exercise",
+                text = "Create New Exercise",
                 fontSize = 26.sp
             )
 

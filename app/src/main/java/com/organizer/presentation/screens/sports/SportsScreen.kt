@@ -27,17 +27,20 @@ fun SportsScreen(
     onExerciseClick: (ExerciseEntity) -> Unit,
     viewModel: OrganizerViewModel,
 ) {
-    val searchResults by viewModel.searchResultsUiState.collectAsState()
+    val searchResultsState by viewModel.searchResultsUiState.collectAsState()
+    val searchResults = searchResultsState.orEmpty()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val errorMessage = viewModel.errorMessage
     val isLoading by viewModel.isSyncing.collectAsState()
 
     // Visible sport icons download first; the rest of the library media keeps
     // downloading in the background.
-    LaunchedEffect(searchResults, searchQuery) {
+    LaunchedEffect(searchResultsState, searchQuery) {
         if (searchQuery.isBlank()) {
             viewModel.prioritizeSportsIcons(
-                searchResults.filterIsInstance<SearchResult.Sport>().map { it.sport }
+                searchResultsState.orEmpty()
+                    .filterIsInstance<SearchResult.Sport>()
+                    .map { it.sport }
             )
         }
     }
@@ -59,7 +62,18 @@ fun SportsScreen(
             }
         )
 
-        if (searchResults.isEmpty() && searchQuery.isBlank()) {
+        if (searchResultsState == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                LoadingErrorView(
+                    isLoading = true,
+                    errorMessage = null,
+                    onRetry = {}
+                )
+            }
+        } else if (searchResults.isEmpty() && searchQuery.isBlank()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

@@ -139,7 +139,7 @@ class OrganizerViewModel @Inject constructor(
         }
     }
 
-    val searchResultsUiState: StateFlow<List<SearchResult>> =
+    val searchResultsUiState: StateFlow<List<SearchResult>?> =
         combine(
             categoryRepo.observeSports(),
             exerciseRepo.observeAllExercises(),
@@ -158,7 +158,7 @@ class OrganizerViewModel @Inject constructor(
                     .map { SearchResult.Exercise(it) }
             }
         }.stateIn(
-            viewModelScope, Sharing, emptyList()
+            viewModelScope, Sharing, null
         )
 
     fun getCategoryPath(categoryId: Long): Flow<List<CategoryEntity>> =
@@ -175,7 +175,7 @@ class OrganizerViewModel @Inject constructor(
      * Every exercise with its category summary, backing the exercise picker on
      * the Create Workout screen.
      */
-    val exerciseCatalogUiState: StateFlow<List<ExerciseCatalogEntry>> =
+    val exerciseCatalogUiState: StateFlow<List<ExerciseCatalogEntry>?> =
         combine(
             exerciseRepo.observeAllExercises(),
             exerciseCategoryRepo.observeAllLinks(),
@@ -198,12 +198,12 @@ class OrganizerViewModel @Inject constructor(
                     categoryLabel = joinCategoryNames(names),
                 )
             }
-        }.stateIn(viewModelScope, Sharing, emptyList())
+        }.stateIn(viewModelScope, Sharing, null)
 
     /** A recent, mixed selection of exercises used across the user's workouts. */
-    val suggestedExercisesUiState: StateFlow<List<ExerciseEntity>> =
+    val suggestedExercisesUiState: StateFlow<List<ExerciseEntity>?> =
         workoutExerciseRepo.observeSuggestedExercises(SUGGESTION_LIMIT)
-            .stateIn(viewModelScope, Sharing, emptyList())
+            .stateIn(viewModelScope, Sharing, null)
 
     /** Short category summary shown under the exercise name, e.g. "Chest & Arms". */
     fun observeExerciseCategoryLabel(exerciseId: Long): Flow<String?> = combine(
@@ -244,9 +244,9 @@ class OrganizerViewModel @Inject constructor(
     fun observeWorkout(id: Long): Flow<WorkoutEntity?> =
         workoutRepo.observeWorkoutById(id)
 
-    val customExercisesUiState: StateFlow<List<ExerciseEntity>> =
+    val customExercisesUiState: StateFlow<List<ExerciseEntity>?> =
         exerciseRepo.observeCustomExercises()
-            .stateIn(viewModelScope, Sharing, emptyList())
+            .stateIn(viewModelScope, Sharing, null)
 
     // Favorite exercises: ids are used by every exercise card to render its
     // heart, the full list backs the Exercises page "Favorites" tab.
@@ -255,9 +255,9 @@ class OrganizerViewModel @Inject constructor(
             .map { it.toSet() }
             .stateIn(viewModelScope, Sharing, emptySet())
 
-    val favoriteExercisesUiState: StateFlow<List<ExerciseEntity>> =
+    val favoriteExercisesUiState: StateFlow<List<ExerciseEntity>?> =
         favoriteExerciseRepo.observeFavoriteExercises()
-            .stateIn(viewModelScope, Sharing, emptyList())
+            .stateIn(viewModelScope, Sharing, null)
 
     fun toggleFavoriteExercise(exerciseId: Long) = viewModelScope.launch {
         try {
@@ -275,19 +275,19 @@ class OrganizerViewModel @Inject constructor(
         selectedWorkoutId.value = id
     }
 
-    val workoutsUiState: StateFlow<List<WorkoutEntity>> =
+    val workoutsUiState: StateFlow<List<WorkoutEntity>?> =
         workoutRepo.observeWorkouts()
-            .stateIn(viewModelScope, Sharing, emptyList())
+            .stateIn(viewModelScope, Sharing, null)
 
     /** Workouts with their exercise counts, used by the Add-to-workout sheet. */
-    val workoutsWithCountsUiState: StateFlow<List<WorkoutWithExerciseCount>> =
+    val workoutsWithCountsUiState: StateFlow<List<WorkoutWithExerciseCount>?> =
         workoutRepo.observeWorkoutsWithExerciseCount()
-            .stateIn(viewModelScope, Sharing, emptyList())
+            .stateIn(viewModelScope, Sharing, null)
 
     // Starter workout templates (server content, never mixed into workouts).
-    val starterTemplatesUiState: StateFlow<List<StarterTemplateEntity>> =
+    val starterTemplatesUiState: StateFlow<List<StarterTemplateEntity>?> =
         starterTemplateRepo.observeTemplates()
-            .stateIn(viewModelScope, Sharing, emptyList())
+            .stateIn(viewModelScope, Sharing, null)
 
     fun observeStarterTemplate(templateId: Long): Flow<StarterTemplateEntity?> =
         starterTemplateRepo.observeTemplate(templateId)

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.presentation.screens.general.LoadingState
 
 private val Primary = Color(0xFF4F378A)
 private val PrimaryContainer = Color(0xFFE9DDFF)
@@ -53,7 +54,8 @@ fun StarterTemplatesScreen(
     onBackClick: () -> Unit,
     viewModel: OrganizerViewModel,
 ) {
-    val templates by viewModel.starterTemplatesUiState.collectAsState()
+    val templatesState by viewModel.starterTemplatesUiState.collectAsState()
+    val templates = templatesState.orEmpty()
 
     Column(
         modifier = Modifier
@@ -94,7 +96,9 @@ fun StarterTemplatesScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (templates.isEmpty()) {
+        if (templatesState == null) {
+            LoadingState()
+        } else if (templates.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,

@@ -39,6 +39,7 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
+import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.presentation.screens.workout.WorkoutListItem
 
 @Composable
@@ -53,10 +54,24 @@ fun CustomsList(
     onViewAllTemplatesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
-    val workouts by viewModel.workoutsUiState.collectAsState()
-    val starterTemplates by viewModel.starterTemplatesUiState.collectAsState()
-    val customExercises by viewModel.customExercisesUiState.collectAsState()
+    val workoutsState by viewModel.workoutsUiState.collectAsState()
+    val starterTemplatesState by viewModel.starterTemplatesUiState.collectAsState()
+    val customExercisesState by viewModel.customExercisesUiState.collectAsState()
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
+
+    val workouts = workoutsState.orEmpty()
+    val starterTemplates = starterTemplatesState.orEmpty()
+    val customExercises = customExercisesState.orEmpty()
+
+    // Between opening this screen and the first database emission the lists
+    // are empty. Show a neutral loader instead of the "nothing here yet"
+    // state, which would otherwise flash before the stored data appears.
+    val isLoading = when (tab) {
+        CustomsTab.WORKOUTS ->
+            workoutsState == null ||
+                (workouts.isEmpty() && starterTemplatesState == null)
+        CustomsTab.EXERCISES -> customExercisesState == null
+    }
 
     val isEmpty = when (tab) {
         CustomsTab.WORKOUTS -> workouts.isEmpty()
@@ -67,80 +82,84 @@ fun CustomsList(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(top = if (isEmpty) 40.dp else 20.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        if (isLoading) {
+            LoadingState(modifier = Modifier.weight(1f))
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(top = if (isEmpty) 40.dp else 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
 
-            when (tab) {
-                CustomsTab.WORKOUTS -> {
-                    if (workouts.isEmpty()) {
-                        item {
-                            EmptyWorkoutsState(
-                                templates = starterTemplates,
-                                onCreateWorkoutClick = onCreateWorkoutClick,
-                                onTemplateClick = onTemplateClick,
-                                onViewAllTemplatesClick = onViewAllTemplatesClick,
-                                viewModel = viewModel,
-                            )
-                        }
-                    } else {
-                        if (starterTemplates.isNotEmpty()) {
+                when (tab) {
+                    CustomsTab.WORKOUTS -> {
+                        if (workouts.isEmpty()) {
                             item {
-                                StarterTemplatesSection(
+                                EmptyWorkoutsState(
                                     templates = starterTemplates,
+                                    onCreateWorkoutClick = onCreateWorkoutClick,
                                     onTemplateClick = onTemplateClick,
-                                    onViewAllClick = onViewAllTemplatesClick,
-                                 viewModel = viewModel,
+                                    onViewAllTemplatesClick = onViewAllTemplatesClick,
+                                    viewModel = viewModel,
+                                )
+                            }
+                        } else {
+                            if (starterTemplates.isNotEmpty()) {
+                                item {
+                                    StarterTemplatesSection(
+                                        templates = starterTemplates,
+                                        onTemplateClick = onTemplateClick,
+                                        onViewAllClick = onViewAllTemplatesClick,
+                                        viewModel = viewModel,
+                                    )
+                                }
+                            }
+                            items(
+                                items = workouts,
+                                key = { it.workoutId }
+                            ) { workout ->
+                                WorkoutListItem(
+                                    title = workout.name,
+                                    onClick = { onWorkoutClick(workout) }
                                 )
                             }
                         }
-                        items(
-                            items = workouts,
-                            key = { it.workoutId }
-                        ) { workout ->
-                            WorkoutListItem(
-                                title = workout.name,
-                                onClick = { onWorkoutClick(workout) }
-                            )
-                        }
                     }
-                }
 
-                CustomsTab.EXERCISES -> {
-                    if (customExercises.isEmpty()) {
-                        item {
-                            EmptyExercisesState(
-                                onCreateExerciseClick = onCreateExerciseClick,
-                                onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
-                            )
-                        }
-                    } else {
-                        items(
-                            items = customExercises,
-                            key = { it.exerciseId }
-                        ) { exercise ->
-                            ExerciseListItem(
-                                exercise = exercise,
-                                deletionInfo = Pair("Delete Exercise?", "This exercise will be permanently deleted."),
-                                expanded = expandedExerciseId == exercise.exerciseId,
-                                onClick = {
-                                    expandedExerciseId =
-                                        if (expandedExerciseId == exercise.exerciseId)
-                                            null
-                                        else
-                                            exercise.exerciseId
-                                },
-                                onOpenClick = { onOpenExerciseClick(exercise) },
-                                onDeleteClick = {
-                                    viewModel.deleteCustomExercise(exercise.exerciseId)
-                                },
-                                expandedButtonsSpacing = 8.dp,
-                                viewModel = viewModel
-                            )
+                    CustomsTab.EXERCISES -> {
+                        if (customExercises.isEmpty()) {
+                            item {
+                                EmptyExercisesState(
+                                    onCreateExerciseClick = onCreateExerciseClick,
+                                    onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
+                                )
+                            }
+                        } else {
+                            items(
+                                items = customExercises,
+                                key = { it.exerciseId }
+                            ) { exercise ->
+                                ExerciseListItem(
+                                    exercise = exercise,
+                                    deletionInfo = Pair("Delete Exercise?", "This exercise will be permanently deleted."),
+                                    expanded = expandedExerciseId == exercise.exerciseId,
+                                    onClick = {
+                                        expandedExerciseId =
+                                            if (expandedExerciseId == exercise.exerciseId)
+                                                null
+                                            else
+                                                exercise.exerciseId
+                                    },
+                                    onOpenClick = { onOpenExerciseClick(exercise) },
+                                    onDeleteClick = {
+                                        viewModel.deleteCustomExercise(exercise.exerciseId)
+                                    },
+                                    expandedButtonsSpacing = 8.dp,
+                                    viewModel = viewModel
+                                )
+                            }
                         }
                     }
                 }

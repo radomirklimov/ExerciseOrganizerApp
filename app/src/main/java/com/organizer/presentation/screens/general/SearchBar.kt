@@ -48,7 +48,14 @@ fun SearchBar(
             unfocusedContainerColor = Color.White,
         ),
         leadingIcon = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // The scope pill makes this row wider than the slot's 48dp minimum,
+            // so the icon needs its own inset to keep the field's left padding.
+            Row(
+                modifier = Modifier.padding(
+                    start = if (scopeLabel != null) 16.dp else 0.dp,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Icon(
                     imageVector = Icons.Outlined.Search,
                     contentDescription = null

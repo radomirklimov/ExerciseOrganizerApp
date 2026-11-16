@@ -200,9 +200,9 @@ class OrganizerViewModel @Inject constructor(
             }
         }.stateIn(viewModelScope, Sharing, emptyList())
 
-    /** Exercises already used in other workouts, most-used first. */
+    /** A recent, mixed selection of exercises used across the user's workouts. */
     val suggestedExercisesUiState: StateFlow<List<ExerciseEntity>> =
-        workoutExerciseRepo.observeFrequentlyUsedExercises(SUGGESTION_LIMIT)
+        workoutExerciseRepo.observeSuggestedExercises(SUGGESTION_LIMIT)
             .stateIn(viewModelScope, Sharing, emptyList())
 
     /** Short category summary shown under the exercise name, e.g. "Chest & Arms". */

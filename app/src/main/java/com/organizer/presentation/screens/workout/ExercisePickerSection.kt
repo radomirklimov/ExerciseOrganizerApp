@@ -144,7 +144,7 @@ internal fun ExercisePickerSection(
 
         Text(
             text = if (query.isBlank()) {
-                "Frequently Used in Other Workouts"
+                "Recently Used in Other Workouts"
             } else {
                 "Search Results"
             },

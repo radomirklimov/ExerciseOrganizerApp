@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.SuggestedExerciseRow
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -37,6 +38,17 @@ interface WorkoutExerciseDao {
 
     @Query("SELECT * FROM workout_exercise WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
     fun getWorkoutExercise(workoutId: Long, exerciseId: Long): Flow<WorkoutExerciseEntity?>
+
+    /**
+     * Every exercise the user already added to a workout, tagged with the
+     * workout it came from. Both standard and custom exercises are included.
+     * The mixing and recency ordering happen in the repository.
+     */
+    @Query(
+        """SELECT e.*, we.workoutId AS sourceWorkoutId FROM exercise e
+        INNER JOIN workout_exercise we ON e.exerciseId = we.exerciseId"""
+    )
+    fun observeSuggestedExerciseRows(): Flow<List<SuggestedExerciseRow>>
 
     @Delete
     suspend fun delete(workoutExercise: WorkoutExerciseEntity)

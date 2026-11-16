@@ -26,6 +26,7 @@ import com.organizer.data.repo.WorkoutExerciseRepository
 import com.organizer.data.repo.WorkoutRepository
 import com.organizer.data.repo.exerciseCategoryNames
 import com.organizer.data.repo.joinCategoryNames
+import com.organizer.presentation.model.ExerciseCatalogEntry
 import com.organizer.presentation.model.SearchResult
 import com.organizer.presentation.screens.workouts_and_exercises.CustomsTab
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -169,6 +170,40 @@ class OrganizerViewModel @Inject constructor(
 
     fun observeExercise(id: Long): Flow<ExerciseEntity?> =
         exerciseRepo.observeExercise(id)
+
+    /**
+     * Every exercise with its category summary, backing the exercise picker on
+     * the Create Workout screen.
+     */
+    val exerciseCatalogUiState: StateFlow<List<ExerciseCatalogEntry>> =
+        combine(
+            exerciseRepo.observeAllExercises(),
+            exerciseCategoryRepo.observeAllLinks(),
+            categoryRepo.observeSports(),
+            categoryRepo.observeCategories(),
+        ) { exercises, links, sports, categories ->
+            val allCategories = sports + categories
+            val categoriesById = allCategories.associateBy { it.categoryId }
+            val linksByExercise = links.groupBy { it.exerciseId }
+
+            exercises.map { exercise ->
+                val names = exerciseCategoryNames(
+                    linkedCategories = linksByExercise[exercise.exerciseId]
+                        .orEmpty()
+                        .mapNotNull { categoriesById[it.categoryId] },
+                    allCategories = allCategories,
+                )
+                ExerciseCatalogEntry(
+                    exercise = exercise,
+                    categoryLabel = joinCategoryNames(names),
+                )
+            }
+        }.stateIn(viewModelScope, Sharing, emptyList())
+
+    /** A recent, mixed selection of exercises used across the user's workouts. */
+    val suggestedExercisesUiState: StateFlow<List<ExerciseEntity>> =
+        workoutExerciseRepo.observeSuggestedExercises(SUGGESTION_LIMIT)
+            .stateIn(viewModelScope, Sharing, emptyList())
 
     /** Short category summary shown under the exercise name, e.g. "Chest & Arms". */
     fun observeExerciseCategoryLabel(exerciseId: Long): Flow<String?> = combine(
@@ -360,9 +395,14 @@ class OrganizerViewModel @Inject constructor(
     fun createWorkout(
         name: String,
         notes: String = "",
+        exerciseIds: List<Long> = emptyList(),
         onCreated: (Long) -> Unit = {},
     ) = viewModelScope.launch {
         val workoutId = workoutRepo.createWorkout(name, notes)
+        // Add exercises in one coroutine so orderIndex values stay sequential.
+        exerciseIds.distinct().forEach { exerciseId ->
+            workoutExerciseRepo.addExerciseToWorkout(workoutId, exerciseId)
+        }
         onCreated(workoutId)
     }
 
@@ -402,5 +442,8 @@ class OrganizerViewModel @Inject constructor(
 
     companion object {
         val Sharing = SharingStarted.WhileSubscribed(5000)
+
+        /** How many workout suggestions the Create Workout screen shows. */
+        private const val SUGGESTION_LIMIT = 10
     }
 }

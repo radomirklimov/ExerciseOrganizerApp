@@ -210,6 +210,8 @@ class FakeExerciseCategoryDao : ExerciseCategoryDao {
 
     override suspend fun getAllOnce(): List<ExerciseCategoryEntity> = data.value
 
+    override fun getAll(): Flow<List<ExerciseCategoryEntity>> = data
+
     override suspend fun insertAll(exerciseCategories: List<ExerciseCategoryEntity>) {
         data.update { current ->
             val ids = exerciseCategories.map { it.exerciseCategoryId }.toSet()

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
 
@@ -117,11 +119,25 @@ fun SaveExercisePopup(
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnClickOutside = false,
+            // Let the sheet's scrim draw behind the status bar so there is no
+            // white strip at the very top of the screen.
+            decorFitsSystemWindows = false,
         ),
     ) {
         // The sheet draws its own scrim, so drop the default dialog dimming.
         val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
-        SideEffect { dialogWindow?.setDimAmount(0f) }
+        SideEffect {
+            dialogWindow?.let { window ->
+                window.setDimAmount(0f)
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                window.addFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
+                )
+                WindowCompat.getInsetsController(window, window.decorView)
+                    .isAppearanceLightStatusBars = false
+            }
+        }
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val maxSheetHeight = maxHeight * 0.85f
@@ -158,7 +174,11 @@ fun SaveExercisePopup(
                     color = Color.White,
                     shadowElevation = 24.dp,
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                    ) {
                         DragHandle()
 
                         SheetHeader(onClose = onDismiss)

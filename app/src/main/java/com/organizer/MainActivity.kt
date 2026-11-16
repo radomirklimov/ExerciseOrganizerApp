@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -85,30 +87,33 @@ fun AppNavigation(showOnboarding: Boolean) {
         }
     }
 
-    // Returns to an ancestor category by popping every category screen above
-    // it. This keeps the back stack in sync with the hierarchy, so the back
-    // arrow never returns to a deeper category the user just left.
-    fun navigateUpToCategory(categoryId: Long) {
-        while (true) {
-            val entry = navController.currentBackStackEntry ?: break
-            val isCategoryScreen = entry.destination.route == Routes.Subcategory.route
-            val currentCategoryId = entry.arguments
-                ?.getString("categoryId")
-                ?.toLongOrNull()
+    fun isCategoryEntry(entry: NavBackStackEntry?, categoryId: Long): Boolean {
+        if (entry?.destination?.route != Routes.Subcategory.route) return false
+        return entry.arguments?.getLong("categoryId") == categoryId
+    }
 
-            if (isCategoryScreen && currentCategoryId == categoryId) {
-                return
-            }
-            if (!isCategoryScreen || !navController.popBackStack()) {
-                break
-            }
+    // Shows the requested category screen.
+    //
+    // If that category is already on the back stack (the user just went back
+    // from it, or jumped to an ancestor via the breadcrumb), the screens above
+    // it are popped and it becomes the current screen again. That keeps the
+    // back stack in sync with the category hierarchy instead of piling up
+    // duplicate "subcategory/{categoryId}" entries.
+    //
+    // When the category is not on the back stack at all, it is pushed forward.
+    fun openCategory(categoryId: Long) {
+        val isOnBackStack = navController.currentBackStack.value.any { entry ->
+            isCategoryEntry(entry, categoryId)
         }
 
-        // The ancestor is not on the back stack (for example after a state
-        // restore), so open it directly.
-        navController.navigate(Routes.Subcategory.createRoute(categoryId)) {
-            launchSingleTop = true
+        if (isOnBackStack) {
+            while (!isCategoryEntry(navController.currentBackStackEntry, categoryId)) {
+                if (!navController.popBackStack()) break
+            }
+            if (isCategoryEntry(navController.currentBackStackEntry, categoryId)) return
         }
+
+        navController.navigate(Routes.Subcategory.createRoute(categoryId))
     }
 
     Scaffold(
@@ -180,35 +185,74 @@ fun AppNavigation(showOnboarding: Boolean) {
                 )
             }
 
-            composable(Routes.Subcategory.route) { backStackEntry ->
+            composable(
+                route = Routes.Subcategory.route,
+                // Declaring the argument type makes back stack matching aware
+                // of the actual category id. Without it every
+                // "subcategory/{categoryId}" entry looks identical to
+                // Navigation, so re-opening a category could resolve to a
+                // different category screen.
+                arguments = listOf(navArgument("categoryId") {
+                    type = NavType.LongType
+                }),
+            ) { backStackEntry ->
                 val categoryId = backStackEntry.arguments
-                    ?.getString("categoryId")
-                    ?.toLongOrNull() ?: 0L
+                    ?.getLong("categoryId") ?: 0L
 
-                CategoryContentScreen(
-                    categoryId = categoryId,
-                    onCategoryClick = { category ->
-                        val route = Routes.Subcategory.createRoute(category.categoryId)
-                        if (!navController.popBackStack(route, false)) {
-                            navController.navigate(route)
-                        }
-                    },
-                    onCategoryAncestorClick = { category ->
-                        navigateUpToCategory(category.categoryId)
-                    },
-                    onExerciseClick = { exercise ->
-                        navController.navigate(
-                            Routes.ExerciseCard.createRoute(exercise.exerciseId)
+                // All category screens share a single destination, so after a
+                // back step the previous category's content can stay composed
+                // behind the one on top of it and still receive taps, opening
+                // a child of the category the user already left. Rendering
+                // only the entry Navigation considers current keeps stale
+                // lists from being interactive.
+                val currentEntry = navController
+                    .currentBackStackEntryAsState()
+                    .value
+
+                // Give every category its own composition state. Otherwise the
+                // previously opened category's rows stay on screen for a
+                // moment while the new category's data loads, and tapping them
+                // opens the wrong category.
+                key(categoryId) {
+                    if (currentEntry?.id == backStackEntry.id) {
+                        CategoryContentScreen(
+                            categoryId = categoryId,
+                            onCategoryClick = { category ->
+                                // Only follow rows of the category that is
+                                // actually on screen right now. A tap can be
+                                // delivered by a list that is still composed
+                                // from the category the user already went
+                                // back from; following it would open one of
+                                // that category's children instead.
+                                val activeCategoryId = navController
+                                    .currentBackStackEntry
+                                    ?.takeIf { it.destination.route == Routes.Subcategory.route }
+                                    ?.arguments
+                                    ?.getLong("categoryId")
+                                if (activeCategoryId != null &&
+                                    category.parentCategoryId == activeCategoryId
+                                ) {
+                                    openCategory(category.categoryId)
+                                }
+                            },
+                            onCategoryAncestorClick = { category ->
+                                openCategory(category.categoryId)
+                            },
+                            onExerciseClick = { exercise ->
+                                navController.navigate(
+                                    Routes.ExerciseCard.createRoute(exercise.exerciseId)
+                                )
+                            },
+                            onBackClick = {
+                                popBackScreen()
+                            },
+                            onAddCustomExerciseClick = {
+                                navController.navigate(Routes.AddCard.route)
+                            },
+                            viewModel = organizerViewModel
                         )
-                    },
-                    onBackClick = {
-                        popBackScreen()
-                    },
-                    onAddCustomExerciseClick = {
-                        navController.navigate(Routes.AddCard.route)
-                    },
-                    viewModel = organizerViewModel
-                )
+                    }
+                }
             }
 
             composable(Routes.ExerciseCard.route) { backStackEntry ->

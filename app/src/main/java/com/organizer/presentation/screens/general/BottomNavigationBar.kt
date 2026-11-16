@@ -48,35 +48,43 @@ fun BottomNavigationBar(
             .fillMaxWidth()
             .height(118.dp),
     ) {
-        CustomNavigationItem(
-            selected = currentRoute == Routes.Sports.route,
-            icon = Icons.Outlined.Home,
-            label = "Home",
-            onClick = onHomeClick,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CustomNavigationItem(
+                selected = currentRoute == Routes.Sports.route,
+                icon = Icons.Outlined.Home,
+                label = "Home",
+                onClick = onHomeClick,
+            )
 
-        CustomNavigationItem(
-            selected = currentRoute == Routes.Workouts.route ||
-                currentRoute == Routes.StarterTemplates.route ||
-                currentRoute == Routes.StarterTemplate.route,
-            icon = Icons.Outlined.FitnessCenter,
-            label = "Workouts",
-            onClick = onWorkoutsClick,
-        )
+            CustomNavigationItem(
+                selected = currentRoute == Routes.Workouts.route ||
+                    currentRoute == Routes.StarterTemplates.route ||
+                    currentRoute == Routes.StarterTemplate.route,
+                icon = Icons.Outlined.FitnessCenter,
+                label = "Workouts",
+                onClick = onWorkoutsClick,
+            )
 
-        CustomNavigationItem(
-            selected = currentRoute == Routes.Exercises.route,
-            icon = Icons.Outlined.List,
-            label = "Exercises",
-            onClick = onExercisesClick,
-        )
+            CustomNavigationItem(
+                selected = currentRoute == Routes.Exercises.route,
+                icon = Icons.Outlined.List,
+                label = "Exercises",
+                onClick = onExercisesClick,
+            )
 
-        CustomNavigationItem(
-            selected = currentRoute == Routes.AddCard.route,
-            icon = Icons.Outlined.Add,
-            label = "Custom",
-            onClick = onAddCardClick,
-        )
+            CustomNavigationItem(
+                selected = currentRoute == Routes.AddCard.route,
+                icon = Icons.Outlined.Add,
+                label = "Custom",
+                onClick = onAddCardClick,
+            )
+        }
     }
 }
 
@@ -109,7 +117,6 @@ private fun RowScope.CustomNavigationItem(
 
     Column(
         modifier = Modifier
-            .weight(1f)
             .fillMaxHeight()
             .clickable(
                 interactionSource = remember {

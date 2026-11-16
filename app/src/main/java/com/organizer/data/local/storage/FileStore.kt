@@ -19,6 +19,14 @@ interface FileStore {
 
     fun deleteLocalFile(subfolder: String, fileName: String)
 
-    // saves file from uri to device storage and returns its name
-    fun saveUriToStorage(subfolder: String, uri: Uri): String?
+    /**
+     * Saves a file from [uri] to device storage and returns its name.
+     * When [crop] is provided the image is cropped (and scaled down) to the
+     * visible part before it is written.
+     */
+    fun saveUriToStorage(
+        subfolder: String,
+        uri: Uri,
+        crop: NormalizedCrop? = null,
+    ): String?
 }

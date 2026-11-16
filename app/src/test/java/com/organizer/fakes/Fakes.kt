@@ -102,7 +102,11 @@ class FakeFileStore : FileStore {
         files.remove(subfolder to fileName)
     }
 
-    override fun saveUriToStorage(subfolder: String, uri: android.net.Uri): String? =
+    override fun saveUriToStorage(
+        subfolder: String,
+        uri: android.net.Uri,
+        crop: com.organizer.data.local.storage.NormalizedCrop?,
+    ): String? =
         throw UnsupportedOperationException("not used in tests")
 }
 

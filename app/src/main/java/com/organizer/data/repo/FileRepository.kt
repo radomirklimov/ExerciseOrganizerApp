@@ -3,6 +3,7 @@ package com.organizer.data.repo
 import android.net.Uri
 import com.organizer.constants.StorageFolders
 import com.organizer.data.local.storage.FileStore
+import com.organizer.data.local.storage.NormalizedCrop
 import com.organizer.data.media.MediaPriority
 import com.organizer.data.media.MediaDownloadQueue
 import java.io.File
@@ -31,8 +32,8 @@ class FileRepository @Inject constructor(
             .forEach { mediaQueue.enqueue(StorageFolders.IMAGES, it, priority) }
     }
 
-    fun saveCustomImage(uri: Uri): String? {
-        return fileStorage.saveUriToStorage(StorageFolders.CUSTOM_IMAGE, uri)
+    fun saveCustomImage(uri: Uri, crop: NormalizedCrop?): String? {
+        return fileStorage.saveUriToStorage(StorageFolders.CUSTOM_IMAGE, uri, crop)
     }
 
     fun getIcon(name: String): File? {

@@ -13,6 +13,7 @@ import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
+import com.organizer.data.local.storage.NormalizedCrop
 import com.organizer.data.media.MediaPriority
 import com.organizer.data.repo.CategoryRepository
 import com.organizer.data.repo.ExerciseCategoryRepository
@@ -29,6 +30,7 @@ import com.organizer.presentation.model.SearchResult
 import com.organizer.presentation.screens.workouts_and_exercises.CustomsTab
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
@@ -335,8 +338,22 @@ class OrganizerViewModel @Inject constructor(
         )
     }
 
-    fun saveCustomImage(uri: Uri): String? {
-        return fileRepo.saveCustomImage(uri)
+    /**
+     * Crops [uri] to [crop] and stores it as a custom exercise image. Runs off
+     * the main thread because decoding can be expensive; [onSaved] receives
+     * the stored file name or null when the image could not be saved.
+     */
+    fun saveCustomImage(
+        uri: Uri,
+        crop: NormalizedCrop,
+        onSaved: (String?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val imageName = withContext(Dispatchers.IO) {
+                fileRepo.saveCustomImage(uri, crop)
+            }
+            onSaved(imageName)
+        }
     }
 
     // Commands

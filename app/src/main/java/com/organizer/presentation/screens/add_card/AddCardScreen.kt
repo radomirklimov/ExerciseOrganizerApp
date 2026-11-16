@@ -47,6 +47,7 @@ fun AddCardScreen(
     var exerciseType by remember { mutableStateOf("REPS_WEIGHT") }
     val instructions = remember { mutableStateListOf<String>() }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val imageCropState = remember { ImageCropState() }
     var isSaving by remember { mutableStateOf(false) }
     var showImageError by remember { mutableStateOf(false) }
     var showDuplicateNameError by remember { mutableStateOf(false) }
@@ -141,8 +142,10 @@ fun AddCardScreen(
         // Exercise Image
         AddImageField(
             imageUri = imageUri,
+            cropState = imageCropState,
             onImageSelected = { uri ->
                 imageUri = uri
+                imageCropState.reset()
             }
         )
 
@@ -152,30 +155,33 @@ fun AddCardScreen(
         SaveButton(
             enabled = canSave && !isSaving,
             onClick = {
-                isSaving = true
-
                 if (customExercises.any {
                         it.name.equals(trimmedName, ignoreCase = true)
                     }
                 ) {
                     showDuplicateNameError = true
-                    isSaving = false
                     return@SaveButton
                 }
 
-                val imageName = viewModel.saveCustomImage(imageUri!!)
-                if (imageName == null) {
-                    isSaving = false
-                    showImageError = true
-                    return@SaveButton
+                isSaving = true
+                viewModel.saveCustomImage(
+                    uri = imageUri!!,
+                    crop = imageCropState.cropRect(),
+                ) { imageName ->
+                    if (imageName == null) {
+                        isSaving = false
+                        showImageError = true
+                    } else {
+                        viewModel.createCustomExercise(
+                            name = trimmedName,
+                            instructions = instructions.map { it.trim() }
+                                .filter { it.isNotBlank() },
+                            imageName = imageName,
+                            exerciseType = exerciseType,
+                        )
+                        onSaveClick()
+                    }
                 }
-                viewModel.createCustomExercise(
-                    name = trimmedName,
-                    instructions = instructions.map { it.trim() }.filter { it.isNotBlank() },
-                    imageName = imageName,
-                    exerciseType = exerciseType,
-                )
-                onSaveClick()
             }
         )
 

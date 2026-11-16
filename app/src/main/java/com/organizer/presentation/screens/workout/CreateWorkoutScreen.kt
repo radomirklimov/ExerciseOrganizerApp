@@ -112,10 +112,14 @@ fun CreateWorkoutScreen(
                 placeholder = {
                     Text("Name Of Workout")
                 },
-                supportingText = {
-                    if (showDuplicateNameError) {
+                // Only reserve the supporting-text area while an error is shown,
+                // otherwise the field keeps ~20dp of empty bottom padding.
+                supportingText = if (showDuplicateNameError) {
+                    {
                         Text("A workout with this name already exists. Please choose a different name.")
                     }
+                } else {
+                    null
                 },
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -133,7 +137,7 @@ fun CreateWorkoutScreen(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(104.dp),
                 minLines = 3
             )
 

@@ -126,7 +126,7 @@ internal fun ExercisePickerSection(
 
         Text(
             text = "SEARCH SCOPE",
-            fontSize = 11.sp,
+            fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp,
             color = TextSecondary,
@@ -148,7 +148,7 @@ internal fun ExercisePickerSection(
             } else {
                 "Search Results"
             },
-            fontSize = 11.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp,
             color = TextSecondary,

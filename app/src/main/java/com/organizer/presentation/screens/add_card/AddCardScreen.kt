@@ -3,6 +3,7 @@ package com.organizer.presentation.screens.add_card
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -101,10 +102,14 @@ fun AddCardScreen(
             placeholder = {
                 Text("Name Of Exercise")
             },
-            supportingText = {
-                if (showDuplicateNameError) {
+            // Only reserve the supporting-text area while an error is shown,
+            // otherwise the field keeps extra empty bottom padding.
+            supportingText = if (showDuplicateNameError) {
+                {
                     Text("An exercise with this name already exists. Please choose a different name.")
                 }
+            } else {
+                null
             },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -122,10 +127,21 @@ fun AddCardScreen(
                 "REPS_WEIGHT" to "Reps + Weight",
                 "DURATION" to "Duration",
             ).forEach { (value, label) ->
+                val buttonModifier = Modifier.height(36.dp)
+                val buttonPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+
                 if (exerciseType == value) {
-                    Button(onClick = { exerciseType = value }) { Text(label) }
+                    Button(
+                        onClick = { exerciseType = value },
+                        modifier = buttonModifier,
+                        contentPadding = buttonPadding,
+                    ) { Text(label) }
                 } else {
-                    OutlinedButton(onClick = { exerciseType = value }) { Text(label) }
+                    OutlinedButton(
+                        onClick = { exerciseType = value },
+                        modifier = buttonModifier,
+                        contentPadding = buttonPadding,
+                    ) { Text(label) }
                 }
             }
         }

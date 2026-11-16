@@ -15,6 +15,9 @@ interface ExerciseCategoryDao {
     @Query("SELECT * FROM exercise_category")
     suspend fun getAllOnce(): List<ExerciseCategoryEntity>
 
+    @Query("SELECT * FROM exercise_category")
+    fun getAll(): Flow<List<ExerciseCategoryEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(exerciseCategories: List<ExerciseCategoryEntity>)
 

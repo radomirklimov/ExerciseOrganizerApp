@@ -2,6 +2,7 @@ package com.organizer.data.repo
 
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.db.entities.CategoryEntity
+import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.remote.repo.ExerciseCategoryRemoteDataSource
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +18,9 @@ class ExerciseCategoryRepository @Inject constructor(
     fun observeCategoriesForExercise(exerciseId: Long): Flow<List<CategoryEntity>> {
         return exerciseCategoryDao.observeCategoriesForExercise(exerciseId)
     }
+
+    fun observeAllLinks(): Flow<List<ExerciseCategoryEntity>> =
+        exerciseCategoryDao.getAll()
 
     suspend fun refreshExerciseCategory() {
         val remote = remoteDataSource.getAll()

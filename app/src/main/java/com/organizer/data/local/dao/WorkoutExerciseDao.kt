@@ -38,6 +38,19 @@ interface WorkoutExerciseDao {
     @Query("SELECT * FROM workout_exercise WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
     fun getWorkoutExercise(workoutId: Long, exerciseId: Long): Flow<WorkoutExerciseEntity?>
 
+    /**
+     * Exercises the user already added to workouts, most-used first. Used as
+     * suggestions when building a new workout.
+     */
+    @Query(
+        """SELECT e.* FROM exercise e
+        INNER JOIN workout_exercise we ON e.exerciseId = we.exerciseId
+        GROUP BY e.exerciseId
+        ORDER BY COUNT(we.workoutId) DESC, e.name ASC
+        LIMIT :limit"""
+    )
+    fun observeFrequentlyUsedExercises(limit: Int): Flow<List<ExerciseEntity>>
+
     @Delete
     suspend fun delete(workoutExercise: WorkoutExerciseEntity)
 }

@@ -28,7 +28,6 @@ import com.organizer.data.repo.exerciseCategoryNames
 import com.organizer.data.repo.joinCategoryNames
 import com.organizer.data.repo.usedCategories
 import com.organizer.presentation.model.ExerciseCatalogEntry
-import com.organizer.presentation.model.SearchResult
 import com.organizer.presentation.screens.workouts_and_exercises.CustomsTab
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
@@ -116,51 +115,10 @@ class OrganizerViewModel @Inject constructor(
     fun observeSubcategories(categoryId: Long): Flow<List<CategoryEntity>> =
         categoryRepo.observeSubcategories(categoryId)
 
-    private fun matches(text: String, query: String): Boolean {
-        val words = query
-            .trim()
-            .lowercase()
-            .split(Regex("\\s+"))
-
-        return words.all { word ->
-            text.lowercase().contains(word)
-        }
-    }
-
-    private fun score(text: String, query: String): Int {
-        val t = text.lowercase()
-        val q = query.lowercase()
-
-        return when {
-            t == q -> 0
-            t.startsWith(q) -> 1
-            t.split(" ").contains(q) -> 2
-            t.contains(q) -> 3
-            else -> 4
-        }
-    }
-
-    val searchResultsUiState: StateFlow<List<SearchResult>?> =
-        combine(
-            categoryRepo.observeSports(),
-            exerciseRepo.observeAllExercises(),
-            searchQuery
-        ) { sports, exercises, query ->
-            if (query.isBlank()) {
-                // Keep the home browse showing sports when nothing is typed.
-                sports.map { SearchResult.Sport(it) }
-            } else {
-                // Search returns exercises only. User-created custom exercises
-                // are excluded from the search results.
-                exercises
-                    .filter { !it.isCustom }
-                    .filter { matches(it.name, query) }
-                    .sortedBy { score(it.name, query) }
-                    .map { SearchResult.Exercise(it) }
-            }
-        }.stateIn(
-            viewModelScope, Sharing, null
-        )
+    /** Sport roots shown on the home page while the search field is empty. */
+    val sportsUiState: StateFlow<List<CategoryEntity>?> =
+        categoryRepo.observeSports()
+            .stateIn(viewModelScope, Sharing, null)
 
     fun getCategoryPath(categoryId: Long): Flow<List<CategoryEntity>> =
         categoryRepo.getCategoryPath(categoryId)

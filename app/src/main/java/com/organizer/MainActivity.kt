@@ -183,11 +183,6 @@ fun AppNavigation(showOnboarding: Boolean) {
                             Routes.Subcategory.createRoute(category.categoryId)
                         )
                     },
-                    onCategoryClick = { category ->
-                        navController.navigate(
-                            Routes.Subcategory.createRoute(category.categoryId)
-                        )
-                    },
                     onExerciseClick = { exercise ->
                         navController.navigate(
                             Routes.ExerciseCard.createRoute(exercise.exerciseId)

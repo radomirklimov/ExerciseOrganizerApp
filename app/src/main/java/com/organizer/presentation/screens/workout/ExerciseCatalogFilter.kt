@@ -22,7 +22,7 @@ internal fun filterExerciseEntries(
     entries: List<ExerciseCatalogEntry>,
     query: String,
     filter: ExerciseFilter,
-    favoriteIds: Set<Long>,
+    favoriteIds: Set<Long> = emptySet(),
 ): List<ExerciseCatalogEntry> {
     val trimmed = query.trim()
     if (trimmed.isEmpty()) return entries

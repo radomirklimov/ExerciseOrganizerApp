@@ -132,18 +132,38 @@ fun ScheduleScreen(
 
     val entries = entriesState.orEmpty()
     val workouts = workoutsState.orEmpty()
-    val scheduledDays = remember(entries) {
-        entries.map { it.entry.dayOfWeek }.toSet()
-    }
     val week = remember(weekOffset, selectedDay) {
         buildWeek(weekOffset, selectedDay)
     }
-    val dayEntries = remember(entries, selectedDay) {
-        entries.filter { it.entry.dayOfWeek == selectedDay }
+    val selectedDateKey = week.days.first { it.isoDay == selectedDay }.dateKey
+    // Recurring entries mark their weekday in every week; one-time entries
+    // only mark the week that contains their date.
+    val scheduledDays = remember(entries, week) {
+        week.days
+            .filter { day ->
+                entries.any { item ->
+                    val entry = item.entry
+                    if (entry.scheduledDateKey != null) {
+                        entry.scheduledDateKey == day.dateKey
+                    } else {
+                        entry.dayOfWeek == day.isoDay
+                    }
+                }
+            }
+            .map { it.isoDay }
+            .toSet()
     }
-    val dayCount = remember(entries) {
-        entries.map { it.entry.dayOfWeek }.distinct().size
+    val dayEntries = remember(entries, selectedDay, selectedDateKey) {
+        entries.filter { item ->
+            val entry = item.entry
+            if (entry.scheduledDateKey != null) {
+                entry.scheduledDateKey == selectedDateKey
+            } else {
+                entry.dayOfWeek == selectedDay
+            }
+        }
     }
+    val dayCount = scheduledDays.size
     val selectedDayIsToday = week.days
         .firstOrNull { it.isoDay == selectedDay }
         ?.isToday == true
@@ -212,20 +232,12 @@ fun ScheduleScreen(
                 ) { item ->
                     ScheduledWorkoutCard(
                         item = item,
-                        notificationsEnabled = notificationsEnabled,
                         onStartWorkout = { onOpenWorkout(item.entry.workoutId) },
                         onEdit = { openSheet(item) },
                         onRemove = { pendingRemoval = item },
-                        onToggleReminder = { enabled ->
-                            viewModel.setReminderEnabled(item.entry.scheduleId, enabled)
-                        },
-                        onReminderMinutesChange = { minutes ->
-                            viewModel.setReminderMinutesBefore(item.entry.scheduleId, minutes)
-                        },
                         onNoteChange = { note ->
                             viewModel.updateReminderNote(item.entry.scheduleId, note)
                         },
-                        onRequestNotifications = ::requestNotifications,
                     )
                 }
             }
@@ -245,6 +257,7 @@ fun ScheduleScreen(
     if (sheetOpen) {
         ScheduleWorkoutSheet(
             dayOfWeek = sheetEntry?.entry?.dayOfWeek ?: selectedDay,
+            targetDateKey = sheetEntry?.entry?.scheduledDateKey ?: selectedDateKey,
             entry = sheetEntry,
             workouts = workouts,
             notificationsEnabled = notificationsEnabled,
@@ -252,11 +265,12 @@ fun ScheduleScreen(
                 sheetOpen = false
                 sheetEntry = null
             },
-            onSave = { workoutId, startMinutes, reminderEnabled, minutesBefore, note ->
+            onSave = { workoutId, scheduledDateKey, startMinutes, reminderEnabled, minutesBefore, note ->
                 viewModel.saveEntry(
                     scheduleId = sheetEntry?.entry?.scheduleId,
                     workoutId = workoutId,
                     dayOfWeek = sheetEntry?.entry?.dayOfWeek ?: selectedDay,
+                    scheduledDateKey = scheduledDateKey,
                     startMinutes = startMinutes,
                     reminderEnabled = reminderEnabled,
                     reminderMinutesBefore = minutesBefore,
@@ -266,13 +280,6 @@ fun ScheduleScreen(
                 sheetEntry = null
                 if (reminderEnabled && !notificationsEnabled) {
                     requestNotifications()
-                }
-            },
-            onRemove = sheetEntry?.let { item ->
-                {
-                    pendingRemoval = item
-                    sheetOpen = false
-                    sheetEntry = null
                 }
             },
             onCreateWorkout = {

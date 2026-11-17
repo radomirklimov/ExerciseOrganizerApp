@@ -77,6 +77,7 @@ import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
+import com.organizer.presentation.screens.general.DeletionInfo
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -259,9 +260,10 @@ fun WorkoutContentScreen(
                             dragHandle = dragHandle,
                             exercise = exercise,
                             displayExerciseType = effectiveExerciseType(exercise, sets),
-                            deletionInfo = Pair(
-                                "Delete Exercise?",
-                                "This exercise will be deleted from the workout."
+                            deletionInfo = DeletionInfo(
+                                title = "Remove Exercise?",
+                                location = workoutName.ifBlank { "this workout" },
+                                isPermanent = false,
                             ),
                             expanded = expandedExerciseId == exercise.exerciseId,
                             onClick = {
@@ -445,7 +447,9 @@ fun WorkoutContentScreen(
         if (showDeleteDialog) {
             DeleteConfirmationDialog(
                 title = "Delete Workout?",
-                message = "This workout will be permanently deleted.",
+                itemName = workoutName.ifBlank { "this workout" },
+                location = "your workouts",
+                isPermanent = true,
                 onConfirm = {
                     viewModel.deleteWorkout(workoutId)
                     showDeleteDialog = false

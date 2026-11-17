@@ -9,6 +9,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -58,6 +59,7 @@ import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
+import com.organizer.presentation.screens.general.DeletionInfo
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -67,7 +69,7 @@ fun ExerciseListItem(
     dragHandle: @Composable (() -> Unit)? = null,
     exercise: ExerciseEntity,
     displayExerciseType: String = exercise.exerciseType,
-    deletionInfo: Pair<String, String>?,
+    deletionInfo: DeletionInfo?,
     expanded: Boolean,
     onClick: () -> Unit,
     onOpenClick: () -> Unit,
@@ -208,6 +210,10 @@ fun ExerciseListItem(
             } else {
                 Spacer(modifier = Modifier.height(expandedButtonsSpacing))
             }
+            // The action row can hold two or three equally sized buttons. Keep
+            // their padding and single-line labels identical so longer labels
+            // such as "Remove" fit in the same width as "Open" and "Track".
+            val actionContentPadding = PaddingValues(horizontal = 6.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -224,7 +230,8 @@ fun ExerciseListItem(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    contentPadding = actionContentPadding,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Info,
@@ -232,7 +239,7 @@ fun ExerciseListItem(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Open")
+                    Text("Open", maxLines = 1, softWrap = false)
                 }
 
                 if (onTrackClick != null) {
@@ -246,7 +253,8 @@ fun ExerciseListItem(
                             containerColor = Color(0xFF7B61A8),
                             contentColor = Color.White
                         ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                        contentPadding = actionContentPadding,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.PlayArrow,
@@ -254,11 +262,14 @@ fun ExerciseListItem(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Track")
+                        Text("Track", maxLines = 1, softWrap = false)
                     }
                 }
 
-                if (showDelete) {
+                // Without deletion info there is nothing we could promise to
+                // delete, so the action stays hidden (browsing lists).
+                if (showDelete && deletionInfo != null) {
+                    val isPermanent = deletionInfo.isPermanent
                     Button(
                         onClick = { showDeleteDialog = true },
                         modifier = Modifier
@@ -269,7 +280,8 @@ fun ExerciseListItem(
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer
                         ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                        contentPadding = actionContentPadding,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
@@ -277,13 +289,19 @@ fun ExerciseListItem(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Delete")
+                        Text(
+                            text = if (isPermanent) "Delete" else "Remove",
+                            maxLines = 1,
+                            softWrap = false,
+                        )
                     }
 
                     if (showDeleteDialog) {
                         DeleteConfirmationDialog(
-                            title = deletionInfo?.first ?: "no message provided",
-                            message = deletionInfo?.second ?: "no message provided",
+                            title = deletionInfo.title,
+                            itemName = exercise.name,
+                            location = deletionInfo.location,
+                            isPermanent = isPermanent,
                             onConfirm = {
                                 onDeleteClick()
                                 showDeleteDialog = false

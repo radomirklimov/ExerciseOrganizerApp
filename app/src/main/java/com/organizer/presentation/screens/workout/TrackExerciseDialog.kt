@@ -426,7 +426,9 @@ fun TrackExerciseDialog(
     setToDelete?.let { set ->
         DeleteConfirmationDialog(
             title = "Delete Set?",
-            message = "Set ${set.setNumber} will be permanently deleted.",
+            itemName = "Set ${set.setNumber}",
+            location = exercise.name,
+            isPermanent = true,
             onConfirm = {
                 viewModel.deleteExerciseSet(set.progressId)
                 if (editingSetId == set.progressId) {

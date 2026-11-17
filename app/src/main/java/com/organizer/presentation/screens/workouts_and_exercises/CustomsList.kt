@@ -39,6 +39,7 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
+import com.organizer.presentation.screens.general.DeletionInfo
 import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.presentation.screens.workout.WorkoutListItem
 
@@ -143,7 +144,11 @@ fun CustomsList(
                             ) { exercise ->
                                 ExerciseListItem(
                                     exercise = exercise,
-                                    deletionInfo = Pair("Delete Exercise?", "This exercise will be permanently deleted."),
+                                    deletionInfo = DeletionInfo(
+                                        title = "Delete Exercise?",
+                                        location = "your custom exercises",
+                                        isPermanent = true,
+                                    ),
                                     expanded = expandedExerciseId == exercise.exerciseId,
                                     onClick = {
                                         expandedExerciseId =

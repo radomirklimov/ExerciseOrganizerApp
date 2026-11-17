@@ -1,6 +1,6 @@
 package com.organizer.presentation.screens.exercises
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,11 +32,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +44,7 @@ import com.organizer.presentation.OrganizerViewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.organizer.ui.theme.darkerShade
 
 @Composable
 fun ExerciseCard(
@@ -183,26 +184,22 @@ fun ExerciseCard(
     }
 
     if (exercise != null) {
+        // Floats above the scrolling exercise content: the card stays visible
+        // around the button instead of it sitting on a frosted container.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .matchParentSize()
-                    .blur(48.dp)
-                    .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
-            )
             Button(
                 onClick = { showSavePopup = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(25.dp)
+                shape = RoundedCornerShape(25.dp),
+                border = BorderStroke(2.dp, darkerShade(MaterialTheme.colorScheme.primary))
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,

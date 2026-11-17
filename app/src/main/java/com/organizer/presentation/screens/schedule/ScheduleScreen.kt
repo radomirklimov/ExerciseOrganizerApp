@@ -11,8 +11,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,8 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -44,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,6 +57,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.organizer.presentation.model.ScheduledWorkoutItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import com.organizer.presentation.screens.general.LoadingState
+import com.organizer.ui.theme.darkerShade
 
 @Composable
 fun ScheduleScreen(
@@ -158,7 +157,7 @@ fun ScheduleScreen(
         sheetOpen = true
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(ScheduleBackground),
@@ -169,7 +168,10 @@ fun ScheduleScreen(
                 start = 20.dp,
                 end = 20.dp,
                 top = 16.dp,
-                bottom = 20.dp,
+                // Leaves room for the pinned button so the final card can
+                // scroll clear of it. While scrolling, the schedule content
+                // passes underneath the button.
+                bottom = 96.dp,
             ),
         ) {
             item {
@@ -194,7 +196,6 @@ fun ScheduleScreen(
                     dateLabel = week.selectedDateLabel,
                     isToday = selectedDayIsToday,
                     workoutCount = dayEntries.size,
-                    onAddWorkout = { openSheet(null) },
                 )
                 Spacer(Modifier.height(12.dp))
             }
@@ -226,15 +227,19 @@ fun ScheduleScreen(
                         },
                         onRequestNotifications = ::requestNotifications,
                     )
-                    Spacer(Modifier.height(12.dp))
                 }
             }
-
-            item {
-                Spacer(Modifier.height(4.dp))
-                AddToScheduleButton(onClick = { openSheet(null) })
-            }
         }
+
+        // Floats above the scrolling list: the schedule content passes
+        // underneath, so the cards remain visible around the button instead
+        // of it sitting on its own strip of page background.
+        AddToScheduleButton(
+            onClick = { openSheet(null) },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+        )
     }
 
     if (sheetOpen) {
@@ -338,69 +343,40 @@ private fun SelectedDayHeader(
     dateLabel: String,
     isToday: Boolean,
     workoutCount: Int,
-    onAddWorkout: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = dateLabel,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ScheduleInk,
-                )
-                if (isToday) {
-                    Text(
-                        text = "Today",
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(ScheduleTodayGreenBg)
-                            .padding(horizontal = 7.dp, vertical = 2.dp),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ScheduleTodayGreen,
-                    )
-                }
-            }
-
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = when (workoutCount) {
-                    0 -> "Rest day — no workouts scheduled"
-                    1 -> "1 workout scheduled for this day"
-                    else -> "$workoutCount workouts scheduled for this day"
-                },
-                modifier = Modifier.padding(top = 1.dp),
-                fontSize = 11.sp,
-                color = ScheduleInkSecondary,
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(ScheduleBrand50)
-                .clickable(onClick = onAddWorkout)
-                .padding(horizontal = 10.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = null,
-                tint = ScheduleBrand,
-                modifier = Modifier.size(14.dp),
-            )
-            Spacer(Modifier.width(3.dp))
-            Text(
-                text = "Add Workout",
-                fontSize = 11.sp,
+                text = dateLabel,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = ScheduleBrand,
+                color = ScheduleInk,
             )
+            if (isToday) {
+                Text(
+                    text = "Today",
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(ScheduleTodayGreenBg)
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ScheduleTodayGreen,
+                )
+            }
         }
+
+        Text(
+            text = when (workoutCount) {
+                0 -> "Rest day — no workouts scheduled"
+                1 -> "1 workout scheduled for this day"
+                else -> "$workoutCount workouts scheduled for this day"
+            },
+            modifier = Modifier.padding(top = 1.dp),
+            fontSize = 11.sp,
+            color = ScheduleInkSecondary,
+        )
     }
 }
 
@@ -432,33 +408,28 @@ private fun EmptyDayCard() {
 }
 
 @Composable
-private fun AddToScheduleButton(onClick: () -> Unit) {
+private fun AddToScheduleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Button(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(52.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = ScheduleBrand,
-            contentColor = Color.White,
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 6.dp,
-            pressedElevation = 2.dp,
-        ),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+            .height(56.dp),
+        shape = RoundedCornerShape(25.dp),
+        border = BorderStroke(2.dp, darkerShade(MaterialTheme.colorScheme.primary)),
     ) {
         Icon(
             imageVector = Icons.Filled.Add,
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             text = "Add Workout to Schedule",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
         )
     }
 }

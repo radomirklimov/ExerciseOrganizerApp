@@ -11,7 +11,9 @@ internal val ScheduleBrand100 = Color(0xFFEDE9FE)
 internal val ScheduleInk = Color(0xFF141B2B)
 internal val ScheduleInkSecondary = Color(0xFF64748B)
 internal val ScheduleInkMuted = Color(0xFF94A3B8)
-internal val ScheduleBackground = Color(0xFFFBFAFF)
+// Matches the app-wide screen background used by Home, Workouts, Exercises
+// and the workout builder.
+internal val ScheduleBackground = Color(0xFFFEFBFE)
 internal val ScheduleSurface = Color.White
 internal val ScheduleCardBorder = Color(0xFFF0EAFB)
 internal val ScheduleFieldBackground = Color(0xFFF8FAFC)

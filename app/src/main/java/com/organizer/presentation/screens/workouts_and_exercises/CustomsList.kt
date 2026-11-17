@@ -1,6 +1,7 @@
 package com.organizer.presentation.screens.workouts_and_exercises
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +44,11 @@ import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeletionInfo
 import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.presentation.screens.workout.WorkoutListItem
+import com.organizer.ui.theme.darkerShade
+
+// Same edge on every floating bottom action button, coloured with the screen
+// background so it reads as a clean cut-out on all screens.
+private val ButtonBorderWidth = 2.dp
 
 @Composable
 fun CustomsList(
@@ -80,18 +87,22 @@ fun CustomsList(
         CustomsTab.EXERCISES -> customExercises.isEmpty()
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
         if (isLoading) {
-            LoadingState(modifier = Modifier.weight(1f))
+            LoadingState()
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(top = if (isEmpty) 40.dp else 20.dp, bottom = 20.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    top = if (isEmpty) 40.dp else 20.dp,
+                    // Leaves room for the floating button so the last row can
+                    // scroll clear of it. While scrolling, the list content
+                    // passes underneath the button.
+                    bottom = if (isEmpty) 20.dp else 96.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
@@ -175,36 +186,32 @@ fun CustomsList(
             }
         }
 
+        // Floats above the list so the rows stay visible around the button
+        // instead of it sitting on its own strip of background.
         when (tab) {
             CustomsTab.WORKOUTS -> {
                 if (!isEmpty) {
-                    Box(
+                    CreateButton(
+                        text = "Create New Workout",
+                        onClick = onCreateWorkoutClick,
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
                             .padding(bottom = 16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CreateButton(
-                            text = "Create New Workout",
-                            onClick = onCreateWorkoutClick
-                        )
-                    }
+                        border = BorderStroke(ButtonBorderWidth, darkerShade(MaterialTheme.colorScheme.primary)),
+                    )
                 }
             }
 
             CustomsTab.EXERCISES -> {
                 if (!isEmpty) {
-                    Box(
+                    CreateButton(
+                        text = "Create New Exercise",
+                        onClick = onCreateExerciseClick,
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
                             .padding(bottom = 16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CreateButton(
-                            text = "Create New Exercise",
-                            onClick = onCreateExerciseClick
-                        )
-                    }
+                        border = BorderStroke(ButtonBorderWidth, darkerShade(MaterialTheme.colorScheme.primary)),
+                    )
                 }
             }
         }
@@ -236,14 +243,19 @@ private fun EmptyStateWithButton(
 @Composable
 private fun CreateButton(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    border: BorderStroke? = null,
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(56.dp),
         shape = RoundedCornerShape(25.dp),
+        colors = colors,
+        border = border,
     ) {
         Icon(
             imageVector = Icons.Filled.Add,

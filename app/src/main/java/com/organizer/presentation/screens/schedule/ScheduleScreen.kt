@@ -314,13 +314,6 @@ private fun ScheduleHeader(dayCount: Int) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Schedule",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp,
-                color = ScheduleInk,
-            )
-            Text(
                 text = "Weekly Routine & Reminders",
                 modifier = Modifier.padding(top = 1.dp),
                 fontSize = 12.sp,

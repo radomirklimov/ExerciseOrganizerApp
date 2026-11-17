@@ -60,6 +60,40 @@ object ReminderTimeCalculator {
         )
     }
 
+    /**
+     * Alarm time for an entry that happens only on [dateKey] (`yyyyMMdd`).
+     *
+     * Returns null when the reminder moment has already passed, so a missed
+     * one-time workout never fires later.
+     */
+    fun occurrenceOnDate(
+        nowMillis: Long,
+        dateKey: Int,
+        startMinutes: Int,
+        minutesBefore: Int,
+        timeZone: TimeZone = TimeZone.getDefault(),
+    ): Occurrence? {
+        val year = dateKey / 10_000
+        val month = (dateKey / 100) % 100 - 1
+        val dayOfMonth = dateKey % 100
+
+        val start = Calendar.getInstance(timeZone).apply {
+            clear()
+            set(year, month, dayOfMonth, startMinutes / 60, startMinutes % 60, 0)
+        }
+
+        val reminder = (start.clone() as Calendar).apply {
+            add(Calendar.MINUTE, -minutesBefore)
+        }
+
+        if (reminder.timeInMillis <= nowMillis) return null
+
+        return Occurrence(
+            triggerAtMillis = reminder.timeInMillis,
+            workoutStartMillis = start.timeInMillis,
+        )
+    }
+
     private fun daysUntil(targetIsoDay: Int, currentCalendarDay: Int): Int {
         val delta = targetIsoDay - toIsoDay(currentCalendarDay)
         return if (delta < 0) delta + 7 else delta

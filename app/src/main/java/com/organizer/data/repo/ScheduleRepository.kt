@@ -27,6 +27,7 @@ class ScheduleRepository @Inject constructor(
     suspend fun addEntry(
         workoutId: Long,
         dayOfWeek: Int,
+        scheduledDateKey: Int?,
         startMinutes: Int,
         reminderEnabled: Boolean,
         reminderMinutesBefore: Int,
@@ -35,6 +36,7 @@ class ScheduleRepository @Inject constructor(
         ScheduledWorkoutEntity(
             workoutId = workoutId,
             dayOfWeek = dayOfWeek,
+            scheduledDateKey = scheduledDateKey,
             startMinutes = startMinutes,
             reminderEnabled = reminderEnabled,
             reminderMinutesBefore = reminderMinutesBefore,

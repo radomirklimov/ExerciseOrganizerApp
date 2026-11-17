@@ -3,10 +3,10 @@ package com.organizer.presentation.screens.schedule
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,16 +14,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -32,8 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -59,14 +59,10 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun ScheduledWorkoutCard(
     item: ScheduledWorkoutItem,
-    notificationsEnabled: Boolean,
     onStartWorkout: () -> Unit,
     onEdit: () -> Unit,
     onRemove: () -> Unit,
-    onToggleReminder: (Boolean) -> Unit,
-    onReminderMinutesChange: (Int) -> Unit,
     onNoteChange: (String) -> Unit,
-    onRequestNotifications: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var noteText by remember(item.entry.scheduleId) {
@@ -107,7 +103,10 @@ internal fun ScheduledWorkoutCard(
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            // Keeps a gap between consecutive cards in the schedule list.
+            .padding(bottom = 12.dp),
         shape = RoundedCornerShape(24.dp),
         color = ScheduleSurface,
         border = BorderStroke(1.dp, ScheduleCardBorder),
@@ -202,7 +201,11 @@ internal fun ScheduledWorkoutCard(
                                 )
                                 Spacer(Modifier.width(3.dp))
                                 Text(
-                                    text = "Every ${isoDayShortName(item.entry.dayOfWeek)}",
+                                    text = if (item.entry.scheduledDateKey == null) {
+                                        "Every ${isoDayShortName(item.entry.dayOfWeek)}"
+                                    } else {
+                                        "This ${isoDayShortName(item.entry.dayOfWeek)} Only"
+                                    },
                                     fontSize = 10.sp,
                                     color = ScheduleInkMuted,
                                 )
@@ -269,137 +272,6 @@ internal fun ScheduledWorkoutCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onStartWorkout)
-                        .padding(top = 10.dp, bottom = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Start Workout Now",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ScheduleBrand,
-                    )
-                    Spacer(Modifier.width(3.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = ScheduleBrand,
-                        modifier = Modifier.size(15.dp),
-                    )
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(top = 10.dp),
-                    color = ScheduleDivider,
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(ScheduleBrand50),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = null,
-                            tint = ScheduleBrand,
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(10.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Workout Reminder",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ScheduleInk,
-                        )
-                        Text(
-                            text = if (notificationsEnabled) {
-                                "Get an alert before workout begins"
-                            } else {
-                                "Notifications are off — tap to allow"
-                            },
-                            modifier = if (notificationsEnabled) {
-                                Modifier
-                            } else {
-                                Modifier.clickable(onClick = onRequestNotifications)
-                            },
-                            fontSize = 10.sp,
-                            color = if (notificationsEnabled) {
-                                ScheduleInkMuted
-                            } else {
-                                ScheduleBrand
-                            },
-                        )
-                    }
-
-                    Switch(
-                        checked = item.entry.reminderEnabled,
-                        onCheckedChange = { enabled ->
-                            onToggleReminder(enabled)
-                            if (enabled && !notificationsEnabled) {
-                                onRequestNotifications()
-                            }
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = ScheduleSurface,
-                            checkedTrackColor = ScheduleBrand,
-                            checkedBorderColor = ScheduleBrand,
-                            uncheckedThumbColor = ScheduleSurface,
-                            uncheckedTrackColor = Color(0xFFCBD5E1),
-                            uncheckedBorderColor = Color.Transparent,
-                        ),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp, bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Notification Timing",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (item.entry.reminderEnabled) {
-                            Color(0xFF334155)
-                        } else {
-                            ScheduleInkMuted
-                        },
-                    )
-                    Text(
-                        text = reminderTimingLabel(item.entry.reminderMinutesBefore),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (item.entry.reminderEnabled) {
-                            ScheduleBrand
-                        } else {
-                            ScheduleInkMuted
-                        },
-                    )
-                }
-
-                ReminderTimingPills(
-                    selectedMinutes = item.entry.reminderMinutesBefore,
-                    enabled = item.entry.reminderEnabled,
-                    onSelect = onReminderMinutesChange,
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
                         .padding(top = 12.dp, bottom = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -451,6 +323,39 @@ internal fun ScheduledWorkoutCard(
                         cursorColor = ScheduleBrand,
                     ),
                 )
+
+                Button(
+                    onClick = onStartWorkout,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ScheduleStartWorkoutGreen,
+                        contentColor = ScheduleSurface,
+                    ),
+                    contentPadding = PaddingValues(horizontal = 18.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .border(1.5.dp, ScheduleSurface, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Start Workout",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }

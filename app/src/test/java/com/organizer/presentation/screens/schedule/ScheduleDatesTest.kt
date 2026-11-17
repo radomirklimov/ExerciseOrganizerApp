@@ -25,6 +25,10 @@ class ScheduleDatesTest {
         )
 
         assertEquals(listOf(16, 17, 18, 19, 20, 21, 22), week.days.map { it.dayOfMonth })
+        assertEquals(
+            listOf(20261116, 20261117, 20261118, 20261119, 20261120, 20261121, 20261122),
+            week.days.map { it.dateKey },
+        )
         assertEquals("November 2026", week.monthLabel)
         assertEquals("Monday, 16 Nov", week.selectedDateLabel)
         assertTrue(week.days.first().isToday)

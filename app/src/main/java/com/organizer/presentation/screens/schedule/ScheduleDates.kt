@@ -10,6 +10,8 @@ internal data class ScheduleWeekDay(
     val letter: String,
     val dayOfMonth: Int,
     val isToday: Boolean,
+    /** Calendar date as `yyyyMMdd`; identifies one-time schedule entries. */
+    val dateKey: Int,
 )
 
 internal data class ScheduleWeek(
@@ -55,11 +57,25 @@ internal fun isoDayShortName(isoDay: Int): String = DayShortNames[isoDay - 1]
 internal fun formatMinutes(minutes: Int): String =
     String.format(Locale.getDefault(), "%02d:%02d", minutes / 60, minutes % 60)
 
+/** Compact local date (`yyyyMMdd`) used to target one-time schedule entries. */
+internal fun calendarDateKey(calendar: Calendar): Int =
+    calendar.get(Calendar.YEAR) * 10_000 +
+        (calendar.get(Calendar.MONTH) + 1) * 100 +
+        calendar.get(Calendar.DAY_OF_MONTH)
+
+/** Short label for a compact date key, e.g. `16 Nov`. */
+internal fun formatDateKeyShort(dateKey: Int): String {
+    val month = (dateKey / 100) % 100 - 1
+    val dayOfMonth = dateKey % 100
+    return "$dayOfMonth ${MonthShortNames[month]}"
+}
+
 /**
  * Builds the seven dates shown for [weekOffset] (0 = the current week).
  *
  * The schedule itself is weekly, so changing the week only changes the dates
- * under the strip; the same recurring entries stay visible.
+ * under the strip; recurring entries stay visible every week, while one-time
+ * entries only appear in the week that contains their date.
  */
 internal fun buildWeek(
     weekOffset: Int,
@@ -96,6 +112,7 @@ internal fun buildWeek(
             letter = DayLetters[isoDay - 1],
             dayOfMonth = day.get(Calendar.DAY_OF_MONTH),
             isToday = day.timeInMillis == todayStart.timeInMillis,
+            dateKey = calendarDateKey(day),
         )
     }
 

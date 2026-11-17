@@ -40,8 +40,9 @@ class ScheduleViewModel @Inject constructor(
     /** 0 = current week; negative/positive values browse neighbouring weeks. */
     val weekOffset = MutableStateFlow(0)
 
-    // Reminder writes are tiny but must not interleave: a toggle and a timing
-    // change happening together would otherwise overwrite each other.
+    // Entry writes are tiny but must not interleave: an edit saved from the
+    // sheet and a note update from the card would otherwise overwrite each
+    // other with stale snapshots.
     private val entryMutex = Mutex()
 
     val workoutsUiState: StateFlow<List<WorkoutWithExerciseCount>?> =
@@ -110,6 +111,7 @@ class ScheduleViewModel @Inject constructor(
         scheduleId: Long?,
         workoutId: Long,
         dayOfWeek: Int,
+        scheduledDateKey: Int?,
         startMinutes: Int,
         reminderEnabled: Boolean,
         reminderMinutesBefore: Int,
@@ -120,6 +122,7 @@ class ScheduleViewModel @Inject constructor(
                 val newId = scheduleRepo.addEntry(
                     workoutId = workoutId,
                     dayOfWeek = dayOfWeek,
+                    scheduledDateKey = scheduledDateKey,
                     startMinutes = startMinutes,
                     reminderEnabled = reminderEnabled,
                     reminderMinutesBefore = reminderMinutesBefore,
@@ -130,6 +133,7 @@ class ScheduleViewModel @Inject constructor(
                         scheduleId = newId,
                         workoutId = workoutId,
                         dayOfWeek = dayOfWeek,
+                        scheduledDateKey = scheduledDateKey,
                         startMinutes = startMinutes,
                         reminderEnabled = reminderEnabled,
                         reminderMinutesBefore = reminderMinutesBefore,
@@ -141,6 +145,7 @@ class ScheduleViewModel @Inject constructor(
                     scheduleId = scheduleId,
                     workoutId = workoutId,
                     dayOfWeek = dayOfWeek,
+                    scheduledDateKey = scheduledDateKey,
                     startMinutes = startMinutes,
                     reminderEnabled = reminderEnabled,
                     reminderMinutesBefore = reminderMinutesBefore,
@@ -151,12 +156,6 @@ class ScheduleViewModel @Inject constructor(
             }
         }
     }
-
-    fun setReminderEnabled(scheduleId: Long, enabled: Boolean) =
-        updateEntry(scheduleId) { it.copy(reminderEnabled = enabled) }
-
-    fun setReminderMinutesBefore(scheduleId: Long, minutes: Int) =
-        updateEntry(scheduleId) { it.copy(reminderMinutesBefore = minutes) }
 
     fun updateReminderNote(scheduleId: Long, note: String) = viewModelScope.launch {
         // The receiver reads the note from the database when the alarm fires,
@@ -173,27 +172,11 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Applies a small change to the newest stored row instead of a snapshot
-     * captured by the UI. Toggling the reminder and picking a lead time quickly
-     * must not undo each other.
-     */
-    private fun updateEntry(
-        scheduleId: Long,
-        transform: (ScheduledWorkoutEntity) -> ScheduledWorkoutEntity,
-    ) = viewModelScope.launch {
-        entryMutex.withLock {
-            val current = scheduleRepo.getEntry(scheduleId) ?: return@withLock
-            val updated = transform(current)
-            scheduleRepo.updateEntry(updated)
-            reminderScheduler.schedule(updated)
-        }
-    }
-
     private fun buildEntry(
         scheduleId: Long,
         workoutId: Long,
         dayOfWeek: Int,
+        scheduledDateKey: Int?,
         startMinutes: Int,
         reminderEnabled: Boolean,
         reminderMinutesBefore: Int,
@@ -202,6 +185,7 @@ class ScheduleViewModel @Inject constructor(
         scheduleId = scheduleId,
         workoutId = workoutId,
         dayOfWeek = dayOfWeek,
+        scheduledDateKey = scheduledDateKey,
         startMinutes = startMinutes,
         reminderEnabled = reminderEnabled,
         reminderMinutesBefore = reminderMinutesBefore,

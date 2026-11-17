@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -69,18 +70,19 @@ private const val DEFAULT_START_MINUTES = 18 * 60
 @Composable
 internal fun ScheduleWorkoutSheet(
     dayOfWeek: Int,
+    targetDateKey: Int,
     entry: ScheduledWorkoutItem?,
     workouts: List<WorkoutWithExerciseCount>,
     notificationsEnabled: Boolean,
     onDismiss: () -> Unit,
     onSave: (
         workoutId: Long,
+        scheduledDateKey: Int?,
         startMinutes: Int,
         reminderEnabled: Boolean,
         reminderMinutesBefore: Int,
         reminderNote: String,
     ) -> Unit,
-    onRemove: (() -> Unit)?,
     onCreateWorkout: () -> Unit,
     onRequestNotifications: () -> Unit,
 ) {
@@ -102,8 +104,12 @@ internal fun ScheduleWorkoutSheet(
     var reminderNote by remember(stateKey) {
         mutableStateOf(storedEntry?.reminderNote.orEmpty())
     }
+    var repeatsWeekly by remember(stateKey) {
+        mutableStateOf(storedEntry?.scheduledDateKey == null)
+    }
 
     var workoutMenuExpanded by remember { mutableStateOf(false) }
+    var repeatsMenuExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(workouts, selectedWorkoutId) {
@@ -249,22 +255,85 @@ internal fun ScheduleWorkoutSheet(
 
                     Column(modifier = Modifier.weight(1f)) {
                         FieldLabel("Repeats")
-                        CompactField(onClick = null) {
-                            Icon(
-                                imageVector = Icons.Outlined.Repeat,
-                                contentDescription = null,
-                                tint = ScheduleBrand,
-                                modifier = Modifier.size(15.dp),
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = "Every ${isoDayName(dayOfWeek)}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ScheduleInk,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+
+                        Box {
+                            CompactField(onClick = { repeatsMenuExpanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Repeat,
+                                    contentDescription = null,
+                                    tint = ScheduleBrand,
+                                    modifier = Modifier.size(15.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = if (repeatsWeekly) {
+                                        "Every ${isoDayName(dayOfWeek)}"
+                                    } else {
+                                        "This ${isoDayName(dayOfWeek)} Only"
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ScheduleInk,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Icon(
+                                    imageVector = Icons.Outlined.ArrowDropDown,
+                                    contentDescription = null,
+                                    tint = ScheduleInkMuted,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = repeatsMenuExpanded,
+                                onDismissRequest = { repeatsMenuExpanded = false },
+                                containerColor = ScheduleSurface,
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "Every ${isoDayName(dayOfWeek)}",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = ScheduleInk,
+                                            )
+                                            Text(
+                                                text = "Repeats weekly",
+                                                fontSize = 10.sp,
+                                                color = ScheduleInkMuted,
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        repeatsWeekly = true
+                                        repeatsMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "This ${isoDayName(dayOfWeek)} Only",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = ScheduleInk,
+                                            )
+                                            Text(
+                                                text = "Only on ${formatDateKeyShort(targetDateKey)}",
+                                                fontSize = 10.sp,
+                                                color = ScheduleInkMuted,
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        repeatsWeekly = false
+                                        repeatsMenuExpanded = false
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -418,6 +487,7 @@ internal fun ScheduleWorkoutSheet(
                         val workoutId = selectedWorkoutId ?: return@Button
                         onSave(
                             workoutId,
+                            if (repeatsWeekly) null else targetDateKey,
                             startMinutes,
                             reminderEnabled,
                             reminderMinutesBefore,
@@ -449,21 +519,6 @@ internal fun ScheduleWorkoutSheet(
                     )
                 }
 
-                if (onRemove != null) {
-                    TextButton(
-                        onClick = onRemove,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                    ) {
-                        Text(
-                            text = "Remove from schedule",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ScheduleDanger,
-                        )
-                    }
-                }
             }
         }
     }
@@ -530,7 +585,7 @@ private fun FieldLabel(
 @Composable
 private fun CompactField(
     onClick: (() -> Unit)?,
-    content: @Composable () -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
     val base = Modifier
         .fillMaxWidth()

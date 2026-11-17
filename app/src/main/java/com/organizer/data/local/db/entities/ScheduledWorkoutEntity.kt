@@ -13,7 +13,8 @@ import androidx.room.PrimaryKey
  * slots through the cascade below without touching any other workout data.
  *
  * [dayOfWeek] uses ISO numbering (1 = Monday ... 7 = Sunday) so the weekly
- * strip shown by the Schedule page can use it directly.
+ * strip shown by the Schedule page can use it directly. [scheduledDateKey]
+ * narrows an entry down to one date instead of repeating every week.
  */
 @Entity(
     tableName = "scheduled_workout",
@@ -32,6 +33,11 @@ data class ScheduledWorkoutEntity(
     val scheduleId: Long = 0L,
     val workoutId: Long,
     val dayOfWeek: Int,
+    /**
+     * Specific date as `yyyyMMdd` when the workout happens only once.
+     * `null` keeps the entry repeating every [dayOfWeek].
+     */
+    val scheduledDateKey: Int? = null,
     /** Workout start time as minutes since midnight (0..1439). */
     val startMinutes: Int,
     val reminderEnabled: Boolean = true,

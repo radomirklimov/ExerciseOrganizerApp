@@ -30,12 +30,27 @@ class WorkoutReminderScheduler @Inject constructor(
             return
         }
 
-        val occurrence = ReminderTimeCalculator.nextOccurrence(
-            nowMillis = System.currentTimeMillis(),
-            isoDayOfWeek = entry.dayOfWeek,
-            startMinutes = entry.startMinutes,
-            minutesBefore = entry.reminderMinutesBefore,
-        )
+        val occurrence = if (entry.scheduledDateKey == null) {
+            ReminderTimeCalculator.nextOccurrence(
+                nowMillis = System.currentTimeMillis(),
+                isoDayOfWeek = entry.dayOfWeek,
+                startMinutes = entry.startMinutes,
+                minutesBefore = entry.reminderMinutesBefore,
+            )
+        } else {
+            // A one-time entry has no next week. Stop once its moment passed.
+            ReminderTimeCalculator.occurrenceOnDate(
+                nowMillis = System.currentTimeMillis(),
+                dateKey = entry.scheduledDateKey,
+                startMinutes = entry.startMinutes,
+                minutesBefore = entry.reminderMinutesBefore,
+            ) ?: run {
+                // Cancel only the alarm: an already-posted reminder should
+                // stay in the notification shade.
+                cancelAlarm(entry.scheduleId)
+                return
+            }
+        }
 
         scheduleAlarm(
             triggerAtMillis = occurrence.triggerAtMillis,
@@ -51,6 +66,12 @@ class WorkoutReminderScheduler @Inject constructor(
     }
 
     fun cancel(scheduleId: Long) {
+        cancelAlarm(scheduleId)
+        // Also drop a reminder that is already showing for this entry.
+        NotificationManagerCompat.from(context).cancel(scheduleId.toInt())
+    }
+
+    private fun cancelAlarm(scheduleId: Long) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         alarmManager?.cancel(
             reminderPendingIntent(
@@ -58,8 +79,6 @@ class WorkoutReminderScheduler @Inject constructor(
                 workoutStartMillis = 0L,
             )
         )
-        // Also drop a reminder that is already showing for this entry.
-        NotificationManagerCompat.from(context).cancel(scheduleId.toInt())
     }
 
     private fun scheduleAlarm(triggerAtMillis: Long, pendingIntent: PendingIntent) {

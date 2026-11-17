@@ -27,7 +27,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 9,
+    version = 10,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -72,6 +72,16 @@ val SCHEDULED_WORKOUT_MIGRATION_8_9 = object : Migration(8, 9) {
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS index_scheduled_workout_workoutId " +
                 "ON scheduled_workout (workoutId)"
+        )
+    }
+}
+
+val SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Existing entries keep repeating weekly; only new "This day only"
+        // entries store a date.
+        db.execSQL(
+            "ALTER TABLE scheduled_workout ADD COLUMN scheduledDateKey INTEGER"
         )
     }
 }

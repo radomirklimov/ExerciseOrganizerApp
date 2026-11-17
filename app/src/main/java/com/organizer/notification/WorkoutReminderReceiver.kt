@@ -61,8 +61,11 @@ class WorkoutReminderReceiver : BroadcastReceiver() {
                     workoutStartMillis = workoutStartMillis,
                 )
 
-                // Keep the weekly recurrence alive.
-                reminderScheduler.schedule(entry)
+                // Keep the weekly recurrence alive. A one-time entry is done
+                // and has no next occurrence.
+                if (entry.scheduledDateKey == null) {
+                    reminderScheduler.schedule(entry)
+                }
             } finally {
                 pendingResult.finish()
             }

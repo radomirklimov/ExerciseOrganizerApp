@@ -75,6 +75,7 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.presentation.screens.general.LoadingState
 
 private val Brand = Color(0xFF6750A4)
 private val BrandDark = Color(0xFF4F378A)
@@ -100,7 +101,8 @@ fun SaveExercisePopup(
     onOpenWorkoutsClick: () -> Unit,
     viewModel: OrganizerViewModel,
 ) {
-    val workouts by viewModel.workoutsWithCountsUiState.collectAsState()
+    val workoutsState by viewModel.workoutsWithCountsUiState.collectAsState()
+    val workouts = workoutsState.orEmpty()
 
     var query by remember { mutableStateOf("") }
     var selectedWorkoutIds by remember { mutableStateOf(setOf<Long>()) }
@@ -183,7 +185,9 @@ fun SaveExercisePopup(
 
                         SheetHeader(onClose = onDismiss)
 
-                        if (workouts.isEmpty()) {
+                        if (workoutsState == null) {
+                            LoadingState(modifier = Modifier.weight(1f))
+                        } else if (workouts.isEmpty()) {
                             EmptyStateBody(
                                 onOpenWorkoutsClick = {
                                     onDismiss()

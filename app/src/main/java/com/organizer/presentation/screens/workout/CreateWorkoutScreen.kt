@@ -49,13 +49,16 @@ fun CreateWorkoutScreen(
     }
 
     val workouts by viewModel.workoutsUiState.collectAsState()
-    val catalog by viewModel.exerciseCatalogUiState.collectAsState()
-    val suggestedExercises by viewModel.suggestedExercisesUiState.collectAsState()
+    val catalogState by viewModel.exerciseCatalogUiState.collectAsState()
+    val suggestedExercisesState by viewModel.suggestedExercisesUiState.collectAsState()
 
-    val catalogById = remember(catalog) {
+    val catalog = catalogState.orEmpty()
+    val suggestedExercises = suggestedExercisesState.orEmpty()
+
+    val catalogById = remember(catalogState) {
         catalog.associateBy { it.exercise.exerciseId }
     }
-    val suggestedEntries = remember(suggestedExercises, catalogById) {
+    val suggestedEntries = remember(suggestedExercisesState, catalogById) {
         suggestedExercises.mapNotNull { catalogById[it.exerciseId] }
     }
 
@@ -163,7 +166,7 @@ fun CreateWorkoutScreen(
             enabled = canSave,
             exerciseCount = selectedExerciseIds.size,
             onCreate = {
-                if (workouts.any {
+                if (workouts.orEmpty().any {
                         it.name.equals(trimmedName, ignoreCase = true)
                     }
                 ) {

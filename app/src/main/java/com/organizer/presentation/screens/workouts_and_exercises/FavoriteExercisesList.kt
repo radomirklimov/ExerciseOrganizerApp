@@ -19,6 +19,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
+import com.organizer.presentation.screens.general.LoadingState
 
 /**
  * "Favorites" tab of the Exercises page: every exercise the user liked,
@@ -30,9 +31,12 @@ fun FavoriteExercisesList(
     onBrowseStandardExercisesClick: () -> Unit,
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
-    val favorites by viewModel.favoriteExercisesUiState.collectAsState()
+    val favoritesState by viewModel.favoriteExercisesUiState.collectAsState()
+    val favorites = favoritesState.orEmpty()
 
-    if (favorites.isEmpty()) {
+    if (favoritesState == null) {
+        LoadingState()
+    } else if (favorites.isEmpty()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()

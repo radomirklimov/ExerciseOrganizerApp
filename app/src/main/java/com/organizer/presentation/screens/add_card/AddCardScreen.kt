@@ -171,7 +171,7 @@ fun AddCardScreen(
         SaveButton(
             enabled = canSave && !isSaving,
             onClick = {
-                if (customExercises.any {
+                if (customExercises.orEmpty().any {
                         it.name.equals(trimmedName, ignoreCase = true)
                     }
                 ) {

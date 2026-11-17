@@ -10,7 +10,7 @@
     <style name="Theme.ExerciseOrganizerApp.Splash"
         parent="Theme.SplashScreen">
 
-        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenBackground">#FEFBFE</item>
 
         <item name="windowSplashScreenAnimatedIcon">@mipmap/exercise_organizer_logo_round</item>
 

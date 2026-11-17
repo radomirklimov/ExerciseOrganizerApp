@@ -23,6 +23,10 @@ class WorkoutExerciseRepository @Inject constructor(
         return dao.getExerciseIdsByWorkout(workoutId)
     }
 
+    fun observeAllWorkoutExercises(): Flow<List<WorkoutExerciseEntity>> {
+        return dao.getAll()
+    }
+
     fun observeSuggestedExercises(limit: Int): Flow<List<ExerciseEntity>> {
         return dao.observeSuggestedExerciseRows().map { rows ->
             mixSuggestedExercises(rows, limit)

@@ -56,6 +56,7 @@ fun CustomsList(
     viewModel: OrganizerViewModel = hiltViewModel(),
 ) {
     val workoutsState by viewModel.workoutsUiState.collectAsState()
+    val workoutCategories by viewModel.workoutCategoryNamesUiState.collectAsState()
     val starterTemplatesState by viewModel.starterTemplatesUiState.collectAsState()
     val customExercisesState by viewModel.customExercisesUiState.collectAsState()
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
@@ -123,6 +124,9 @@ fun CustomsList(
                             ) { workout ->
                                 WorkoutListItem(
                                     title = workout.name,
+                                    categories = workoutCategories
+                                        .orEmpty()[workout.workoutId]
+                                        .orEmpty(),
                                     onClick = { onWorkoutClick(workout) }
                                 )
                             }

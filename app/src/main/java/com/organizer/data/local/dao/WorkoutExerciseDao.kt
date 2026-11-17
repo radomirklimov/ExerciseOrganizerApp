@@ -33,6 +33,10 @@ interface WorkoutExerciseDao {
     @Query("SELECT exerciseId FROM workout_exercise WHERE workoutId = :workoutId ORDER BY orderIndex ASC")
     fun getExerciseIdsByWorkout(workoutId: Long): Flow<List<Long>>
 
+    /** Every (workout, exercise) pair, used to summarize what a workout covers. */
+    @Query("SELECT * FROM workout_exercise")
+    fun getAll(): Flow<List<WorkoutExerciseEntity>>
+
     @Query("""SELECT MAX(orderIndex) FROM workout_exercise WHERE workoutId = :workoutId""")
     suspend fun getMaxOrderIndex(workoutId: Long): Int?
 

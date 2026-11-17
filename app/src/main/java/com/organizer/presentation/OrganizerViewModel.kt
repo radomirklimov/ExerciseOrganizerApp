@@ -26,6 +26,7 @@ import com.organizer.data.repo.WorkoutExerciseRepository
 import com.organizer.data.repo.WorkoutRepository
 import com.organizer.data.repo.exerciseCategoryNames
 import com.organizer.data.repo.joinCategoryNames
+import com.organizer.data.repo.usedCategories
 import com.organizer.presentation.model.ExerciseCatalogEntry
 import com.organizer.presentation.model.SearchResult
 import com.organizer.presentation.screens.workouts_and_exercises.CustomsTab
@@ -278,6 +279,33 @@ class OrganizerViewModel @Inject constructor(
     val workoutsUiState: StateFlow<List<WorkoutEntity>?> =
         workoutRepo.observeWorkouts()
             .stateIn(viewModelScope, Sharing, null)
+
+    /**
+     * Categories covered by each workout, ordered by how many of its exercises
+     * use them. Uses the same category summarising as starter template cards,
+     * so a workout imported from a template shows the same label it had there.
+     */
+    val workoutCategoryNamesUiState: StateFlow<Map<Long, List<String>>?> =
+        combine(
+            workoutExerciseRepo.observeAllWorkoutExercises(),
+            exerciseCategoryRepo.observeAllLinks(),
+            categoryRepo.observeSports(),
+            categoryRepo.observeCategories(),
+        ) { workoutExercises, links, sports, categories ->
+            val categoriesById = (sports + categories).associateBy { it.categoryId }
+            val linksByExercise = links.groupBy { it.exerciseId }
+            workoutExercises
+                .groupBy { it.workoutId }
+                .mapValues { (_, entries) ->
+                    usedCategories(
+                        // Follow the workout's exercise order so equally used
+                        // categories are listed in the order the user sees.
+                        exerciseIds = entries.sortedBy { it.orderIndex }.map { it.exerciseId },
+                        linksByExercise = linksByExercise,
+                        categories = categoriesById,
+                    )
+                }
+        }.stateIn(viewModelScope, Sharing, null)
 
     /** Workouts with their exercise counts, used by the Add-to-workout sheet. */
     val workoutsWithCountsUiState: StateFlow<List<WorkoutWithExerciseCount>?> =

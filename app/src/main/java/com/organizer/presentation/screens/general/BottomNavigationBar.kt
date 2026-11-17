@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
@@ -39,6 +40,7 @@ fun BottomNavigationBar(
     onHomeClick: () -> Unit,
     onWorkoutsClick: () -> Unit,
     onExercisesClick: () -> Unit,
+    onScheduleClick: () -> Unit,
     onAddCardClick: () -> Unit,
 ) {
     NavigationBar(
@@ -76,6 +78,13 @@ fun BottomNavigationBar(
                 icon = Icons.Outlined.List,
                 label = "Exercises",
                 onClick = onExercisesClick,
+            )
+
+            CustomNavigationItem(
+                selected = currentRoute == Routes.Schedule.route,
+                icon = Icons.Outlined.CalendarMonth,
+                label = "Schedule",
+                onClick = onScheduleClick,
             )
 
             CustomNavigationItem(

@@ -30,6 +30,7 @@ import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
 import com.organizer.presentation.screens.add_card.AddCardScreen
 import com.organizer.presentation.screens.sports.SportsScreen
+import com.organizer.presentation.screens.schedule.ScheduleScreen
 import com.organizer.presentation.screens.categories.CategoryContentScreen
 import com.organizer.presentation.screens.exercises.ExerciseCard
 import com.organizer.presentation.screens.workout.CreateWorkoutScreen
@@ -72,7 +73,9 @@ fun AppNavigation(showOnboarding: Boolean) {
     val context = LocalContext.current
     LaunchedEffect(currentRoute) {
         val activity = context as? Activity ?: return@LaunchedEffect
-        val statusBarColor = if (currentRoute == Routes.Sports.route) {
+        val statusBarColor = if (currentRoute == Routes.Sports.route ||
+            currentRoute == Routes.Schedule.route
+        ) {
             android.graphics.Color.parseColor("#FEFBFE")
         } else {
             android.graphics.Color.parseColor("#F8F5F5")
@@ -133,6 +136,9 @@ fun AppNavigation(showOnboarding: Boolean) {
                     },
                     onExercisesClick = {
                         navController.navigate(Routes.Exercises.route)
+                    },
+                    onScheduleClick = {
+                        navController.navigate(Routes.Schedule.route)
                     },
                     onAddCardClick = {
                         navController.navigate(Routes.AddCard.route)
@@ -340,6 +346,17 @@ fun AppNavigation(showOnboarding: Boolean) {
                     },
                     onCreateExerciseClick = { navController.navigate(Routes.AddCard.route) },
                     onBrowseStandardExercisesClick = { navController.navigate(Routes.Sports.route) },
+                )
+            }
+
+            composable(Routes.Schedule.route) {
+                ScheduleScreen(
+                    onOpenWorkout = { workoutId ->
+                        navController.navigate(Routes.Workout.createRoute(workoutId))
+                    },
+                    onCreateWorkout = {
+                        navController.navigate(Routes.CreateWorkout.createRoute())
+                    },
                 )
             }
 

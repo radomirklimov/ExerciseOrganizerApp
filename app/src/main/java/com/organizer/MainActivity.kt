@@ -362,8 +362,10 @@ fun AppNavigation(showOnboarding: Boolean) {
                     onOpenWorkout = { workoutId ->
                         navController.navigate(Routes.WorkoutExecution.createRoute(workoutId))
                     },
-                    onCreateWorkout = {
-                        navController.navigate(Routes.CreateWorkout.createRoute())
+                    // No workouts exist yet, so sending the user to the
+                    // creation form would skip the list they need to browse.
+                    onOpenWorkouts = {
+                        navController.navigate(Routes.Workouts.route)
                     },
                 )
             }

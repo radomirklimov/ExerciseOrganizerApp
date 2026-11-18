@@ -87,7 +87,7 @@ internal fun ScheduleWorkoutSheet(
         reminderMinutesBefore: Int,
         reminderNote: String,
     ) -> Unit,
-    onCreateWorkout: () -> Unit,
+    onOpenWorkouts: () -> Unit,
     onRequestNotifications: () -> Unit,
 ) {
     val storedEntry = entry?.entry
@@ -193,7 +193,7 @@ internal fun ScheduleWorkoutSheet(
             Spacer(Modifier.height(6.dp))
 
             if (workouts.isEmpty()) {
-                NoWorkoutsHint(onCreateWorkout = onCreateWorkout)
+                NoWorkoutsHint(onOpenWorkouts = onOpenWorkouts)
             } else {
                 FieldLabel("Choose Workout")
 
@@ -590,7 +590,7 @@ internal fun ScheduleWorkoutSheet(
 }
 
 @Composable
-private fun NoWorkoutsHint(onCreateWorkout: () -> Unit) {
+private fun NoWorkoutsHint(onOpenWorkouts: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -611,7 +611,7 @@ private fun NoWorkoutsHint(onCreateWorkout: () -> Unit) {
             fontSize = 14.sp,
             color = ScheduleInkSecondary,
         )
-        TextButton(onClick = onCreateWorkout) {
+        TextButton(onClick = onOpenWorkouts) {
             Text(
                 text = "Create Workout",
                 fontSize = 15.sp,

@@ -4,12 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +41,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,12 +66,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -91,8 +86,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlin.time.Duration.Companion.seconds
 
 private const val DURATION_TYPE = TYPE_DURATION
-private const val DEFAULT_DURATION_SECONDS = 45
-private const val DEFAULT_REST_SECONDS = 90
 
 @Composable
 fun WorkoutExecutionScreen(
@@ -192,12 +185,6 @@ fun WorkoutExecutionScreen(
         }
     }
 
-    // Rest timer state. Checking a set starts it; skipping/pausing is local.
-    var restRemaining by rememberSaveable { mutableIntStateOf(DEFAULT_REST_SECONDS) }
-    var restTotal by rememberSaveable { mutableIntStateOf(DEFAULT_REST_SECONDS) }
-    var restRunning by rememberSaveable { mutableStateOf(false) }
-    var restAutoEnabled by rememberSaveable { mutableStateOf(true) }
-
     // Checked sets live only in the UI: nothing is saved to the database.
     // Kept per exercise so rotation does not lose the ticks.
     var checkedSets by rememberSaveable(stateSaver = CheckedSetsSaver) {
@@ -217,71 +204,34 @@ fun WorkoutExecutionScreen(
                 currentChecked - setNumber
             }
             )
-        if (checked && restAutoEnabled) {
-            restTotal = DEFAULT_REST_SECONDS
-            restRemaining = DEFAULT_REST_SECONDS
-            restRunning = true
+    }
+
+    // Stopwatch for duration exercises. It is not a countdown: the user
+    // starts it, pauses/resumes it and stops it when the exercise is over.
+    var stopwatchSeconds by rememberSaveable { mutableIntStateOf(0) }
+    var stopwatchStarted by rememberSaveable { mutableStateOf(false) }
+    var stopwatchRunning by rememberSaveable { mutableStateOf(false) }
+    var stopwatchStopped by rememberSaveable { mutableStateOf(false) }
+    // Which exercise the stopwatch belongs to, so moving to the next exercise
+    // resets it while rotation keeps the running measurement.
+    var stopwatchExercise by rememberSaveable { mutableStateOf(0L) }
+
+    LaunchedEffect(currentExerciseId) {
+        val exerciseId = currentExerciseId ?: 0L
+        if (stopwatchExercise != exerciseId) {
+            stopwatchExercise = exerciseId
+            stopwatchSeconds = 0
+            stopwatchStarted = false
+            stopwatchRunning = false
+            stopwatchStopped = false
         }
     }
 
-    // First unchecked target: it is the highlighted row and sets the exercise
-    // timer's duration.
-    val nextPlannedSet = plannedSets
-        .sortedBy { it.setNumber }
-        .firstOrNull { it.setNumber !in checkedNumbers }
-    val plannedTargetDuration = nextPlannedSet?.durationSeconds?.takeIf { it > 0 }
-
-    // Duration timer for the current exercise.
-    var timerSeconds by rememberSaveable { mutableIntStateOf(0) }
-    var timerTotal by rememberSaveable { mutableIntStateOf(DEFAULT_DURATION_SECONDS) }
-    var timerRunning by rememberSaveable { mutableStateOf(false) }
-    var timerDone by rememberSaveable { mutableStateOf(false) }
-    // Guards the one-time timer setup for the current exercise, so it survives
-    // recomposition/rotation and keeps counting after a set is checked.
-    var timerInitializedExercise by rememberSaveable { mutableStateOf(0L) }
-
-    LaunchedEffect(currentExerciseId, currentType, plannedSetsState) {
-        if (currentType != DURATION_TYPE) {
-            // Keep an already-started timer of this exercise: while sets reload
-            // the effective type can briefly fall back to the stored type.
-            if (timerInitializedExercise != currentExerciseId) {
-                timerRunning = false
-            }
-            return@LaunchedEffect
-        }
-        // Wait for the plan so the countdown uses the target duration.
-        if (plannedSetsState == null) return@LaunchedEffect
-        if (timerInitializedExercise == currentExerciseId) return@LaunchedEffect
-
-        timerInitializedExercise = currentExerciseId ?: 0L
-        val target = plannedTargetDuration ?: DEFAULT_DURATION_SECONDS
-        timerDone = false
-        timerTotal = target
-        timerSeconds = target
-        timerRunning = true
-    }
-
-    LaunchedEffect(timerRunning) {
-        while (timerRunning) {
+    LaunchedEffect(stopwatchRunning) {
+        while (stopwatchRunning) {
             delay(1.seconds)
-            if (timerSeconds > 0) timerSeconds--
-            if (timerSeconds <= 0) {
-                timerRunning = false
-                timerDone = true
-            }
+            stopwatchSeconds++
         }
-    }
-
-    LaunchedEffect(restRunning) {
-        while (restRunning) {
-            delay(1.seconds)
-            if (restRemaining > 0) restRemaining--
-            if (restRemaining <= 0) restRunning = false
-        }
-    }
-
-    LaunchedEffect(finished) {
-        if (finished) restRunning = false
     }
 
     LaunchedEffect(exercises) {
@@ -302,7 +252,6 @@ fun WorkoutExecutionScreen(
     }
 
     var showExitDialog by rememberSaveable { mutableStateOf(false) }
-    var showPlanDialog by rememberSaveable { mutableStateOf(false) }
 
     val hasActiveWorkout = total > 0 && current != null && !finished && !unavailable
 
@@ -358,65 +307,28 @@ fun WorkoutExecutionScreen(
                             SetsCard(
                                 sets = executionSets,
                                 checkedNumbers = checkedNumbers,
-                                onEditPlan = { showPlanDialog = true },
                                 onToggleSet = { setNumber, checked ->
                                     toggleSet(setNumber, checked)
                                 },
                             )
 
-                            if (restRunning || checkedNumbers.isNotEmpty()) {
-                                RestTimerCard(
-                                    seconds = restRemaining,
-                                    total = restTotal,
-                                    running = restRunning,
-                                    autoEnabled = restAutoEnabled,
-                                    onAdd15 = {
-                                        restRemaining += 15
-                                        restTotal += 15
-                                    },
-                                    onToggle = {
-                                        if (restRemaining <= 0) {
-                                            restRemaining = restTotal
-                                            restRunning = true
-                                        } else {
-                                            restRunning = !restRunning
-                                        }
-                                    },
-                                    onSkip = {
-                                        restRunning = false
-                                        restRemaining = 0
-                                    },
-                                    onToggleAuto = { restAutoEnabled = !restAutoEnabled },
-                                )
-                            }
-
                             if (currentType == DURATION_TYPE) {
-                                ExerciseTimerCard(
-                                    seconds = timerSeconds,
-                                    total = timerTotal,
-                                    running = timerRunning,
-                                    done = timerDone,
-                                    onAdd15 = {
-                                        timerSeconds += 15
-                                        timerTotal += 15
-                                        if (timerDone) {
-                                            timerDone = false
-                                            timerRunning = true
-                                        }
+                                ExerciseStopwatchCard(
+                                    seconds = stopwatchSeconds,
+                                    started = stopwatchStarted,
+                                    running = stopwatchRunning,
+                                    stopped = stopwatchStopped,
+                                    onStart = {
+                                        stopwatchSeconds = 0
+                                        stopwatchStarted = true
+                                        stopwatchStopped = false
+                                        stopwatchRunning = true
                                     },
-                                    onToggle = {
-                                        if (timerDone || timerSeconds <= 0) {
-                                            timerDone = false
-                                            timerSeconds = timerTotal
-                                            timerRunning = true
-                                        } else {
-                                            timerRunning = !timerRunning
-                                        }
-                                    },
-                                    onSkip = {
-                                        timerRunning = false
-                                        timerDone = true
-                                        timerSeconds = 0
+                                    onPause = { stopwatchRunning = false },
+                                    onResume = { stopwatchRunning = true },
+                                    onStop = {
+                                        stopwatchRunning = false
+                                        stopwatchStopped = true
                                     },
                                 )
                             }
@@ -459,19 +371,6 @@ fun WorkoutExecutionScreen(
                 onBackClick()
             },
             onDismiss = { showExitDialog = false },
-        )
-    }
-
-    if (showPlanDialog && current != null) {
-        PlannedSetsDialog(
-            workoutId = workoutId,
-            exercise = current,
-            // The routine owns the target type; the session type can drift when
-            // the user logs a set in another mode.
-            exerciseType = current.exerciseType,
-            plannedSets = plannedSets,
-            viewModel = viewModel,
-            onDismiss = { showPlanDialog = false },
         )
     }
 }
@@ -781,7 +680,6 @@ private data class ExecutionSet(
 private fun SetsCard(
     sets: List<ExecutionSet>,
     checkedNumbers: Set<Int>,
-    onEditPlan: () -> Unit,
     onToggleSet: (setNumber: Int, checked: Boolean) -> Unit,
 ) {
     val doneCount = sets.count { it.number in checkedNumbers }
@@ -796,7 +694,9 @@ private fun SetsCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -823,20 +723,11 @@ private fun SetsCard(
                         color = ExecutionInkSecondary,
                     )
                 }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onEditPlan) {
-                    Text(
-                        text = "Plan",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ExecutionBrand,
-                    )
-                }
             }
 
             if (sets.isEmpty()) {
                 Text(
-                    text = "This exercise has no sets yet. Use Plan to add them.",
+                    text = "No sets defined for this exercise.",
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
@@ -890,13 +781,15 @@ private fun ExecutionSetRow(
 
     Surface(
         onClick = { onCheckedChange(!checked) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
         shape = shape,
         color = background,
         border = BorderStroke(if (isCurrent) 2.dp else 1.dp, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(start = 10.dp, end = 8.dp),
+            modifier = Modifier.padding(start = 10.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -947,21 +840,22 @@ private fun ExecutionSetRow(
 }
 
 @Composable
-private fun ExerciseTimerCard(
+private fun ExerciseStopwatchCard(
     seconds: Int,
-    total: Int,
+    started: Boolean,
     running: Boolean,
-    done: Boolean,
-    onAdd15: () -> Unit,
-    onToggle: () -> Unit,
-    onSkip: () -> Unit,
+    stopped: Boolean,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
 ) {
-    val progress = if (total > 0) (total - seconds).toFloat() / total.toFloat() else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(300),
-        label = "timerProgress",
-    )
+    val status = when {
+        !started -> "Ready"
+        running -> "Running"
+        stopped -> "Stopped"
+        else -> "Paused"
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -988,7 +882,7 @@ private fun ExerciseTimerCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "EXERCISE TIMER",
+                        text = "STOPWATCH",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp,
@@ -997,112 +891,117 @@ private fun ExerciseTimerCard(
                 }
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = ExecutionBrand50,
+                    color = if (stopped) ExecutionGreenLight else ExecutionBrand50,
                 ) {
                     Text(
-                        text = when {
-                            done -> "Complete"
-                            running -> "Running"
-                            else -> "Paused"
-                        },
+                        text = status,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = ExecutionBrandDark,
+                        color = if (stopped) ExecutionGreenDark else ExecutionBrandDark,
                     )
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(144.dp)) {
-                Canvas(modifier = Modifier.size(144.dp)) {
-                    val stroke = 8.dp.toPx()
-                    val diameter = size.minDimension - stroke
-                    val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
-                    drawArc(
-                        color = ExecutionSurfaceStrong,
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                    drawArc(
-                        color = if (done) ExecutionGreen else ExecutionBrand,
-                        startAngle = -90f,
-                        sweepAngle = animatedProgress * 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = formatSeconds(seconds),
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 30.sp,
-                        color = if (done) ExecutionGreen else ExecutionInk,
-                    )
-                    Text(
-                        text = if (total > 0) "TARGET ${formatSeconds(total)}" else "SECONDS",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp,
-                        color = ExecutionInkMuted,
-                    )
-                }
-            }
+            Text(
+                text = formatSeconds(seconds),
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Black,
+                fontSize = 44.sp,
+                color = if (stopped) ExecutionGreen else ExecutionInk,
+            )
+            Text(
+                text = "ELAPSED",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp,
+                color = ExecutionInkMuted,
+            )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SecondaryTimerButton(
-                    label = "+15s",
-                    onClick = onAdd15,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(
-                    onClick = onToggle,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ExecutionBrand,
-                        contentColor = Color.White,
-                    ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                ) {
-                    Icon(
-                        imageVector = if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = when {
-                            done -> "Start"
-                            running -> "Pause"
-                            else -> "Resume"
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+                when {
+                    running -> {
+                        PrimaryTimerButton(
+                            label = "Pause",
+                            icon = Icons.Filled.Pause,
+                            onClick = onPause,
+                            modifier = Modifier.weight(1f),
+                        )
+                        SecondaryTimerButton(
+                            label = "Stop",
+                            icon = Icons.Filled.Stop,
+                            onClick = onStop,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+
+                    started && !stopped -> {
+                        PrimaryTimerButton(
+                            label = "Resume",
+                            icon = Icons.Filled.PlayArrow,
+                            onClick = onResume,
+                            modifier = Modifier.weight(1f),
+                        )
+                        SecondaryTimerButton(
+                            label = "Stop",
+                            icon = Icons.Filled.Stop,
+                            onClick = onStop,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+
+                    // Ready, or stopped after a measurement: Start always
+                    // begins a fresh stopwatch from zero.
+                    else -> {
+                        PrimaryTimerButton(
+                            label = "Start",
+                            icon = Icons.Filled.PlayArrow,
+                            onClick = onStart,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
-                SecondaryTimerButton(
-                    label = "Skip",
-                    onClick = onSkip,
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
+    }
+}
+
+@Composable
+private fun PrimaryTimerButton(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(40.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = ExecutionBrand,
+            contentColor = Color.White,
+        ),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+        )
     }
 }
 
@@ -1111,6 +1010,7 @@ private fun SecondaryTimerButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
 ) {
     Button(
         onClick = onClick,
@@ -1122,173 +1022,20 @@ private fun SecondaryTimerButton(
         ),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+        }
         Text(
             text = label,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
-    }
-}
-
-@Composable
-private fun RestTimerCard(
-    seconds: Int,
-    total: Int,
-    running: Boolean,
-    autoEnabled: Boolean,
-    onAdd15: () -> Unit,
-    onToggle: () -> Unit,
-    onSkip: () -> Unit,
-    onToggleAuto: () -> Unit,
-) {
-    // Ring depletes as the rest elapses, matching the design reference.
-    val progress = if (total > 0) seconds.toFloat() / total.toFloat() else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(300),
-        label = "restProgress",
-    )
-    val finished = seconds <= 0
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = ExecutionSurface,
-        shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, ExecutionCardBorder),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.AccessTime,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = ExecutionBrand,
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "REST BETWEEN SETS",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
-                        color = ExecutionInk,
-                    )
-                }
-                Surface(
-                    onClick = onToggleAuto,
-                    shape = RoundedCornerShape(50),
-                    color = if (autoEnabled) ExecutionBrand50 else ExecutionSurfaceStrong,
-                ) {
-                    Text(
-                        text = if (autoEnabled) "Auto-Rest Active" else "Auto-Rest Off",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (autoEnabled) ExecutionBrandDark else ExecutionInkSecondary,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(144.dp)) {
-                Canvas(modifier = Modifier.size(144.dp)) {
-                    val stroke = 8.dp.toPx()
-                    val diameter = size.minDimension - stroke
-                    val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
-                    drawArc(
-                        color = ExecutionSurfaceStrong,
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                    drawArc(
-                        color = if (finished) ExecutionGreen else ExecutionBrand,
-                        startAngle = -90f,
-                        sweepAngle = animatedProgress * 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = formatSeconds(seconds),
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 30.sp,
-                        color = if (finished) ExecutionGreen else ExecutionInk,
-                    )
-                    Text(
-                        text = "SECONDS",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp,
-                        color = ExecutionInkMuted,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SecondaryTimerButton(
-                    label = "+15s",
-                    onClick = onAdd15,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(
-                    onClick = onToggle,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ExecutionBrand,
-                        contentColor = Color.White,
-                    ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                ) {
-                    Icon(
-                        imageVector = if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = when {
-                            running -> "Pause"
-                            finished -> "Start"
-                            seconds >= total -> "Start"
-                            else -> "Resume"
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                SecondaryTimerButton(
-                    label = "Skip Rest",
-                    onClick = onSkip,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
     }
 }
 
@@ -1345,14 +1092,6 @@ private fun UpNextCard(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = ExecutionInk,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = nextExercise?.let { exerciseTypeLabel(it.exerciseType) }
-                    ?: "Cool down & hydrate",
-                fontSize = 11.sp,
-                color = ExecutionInkSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1646,7 +1385,7 @@ private fun ExitWorkoutDialog(
         },
         text = {
             Text(
-                text = "Your logged sets stay saved, but the current workout progress will be lost.",
+                text = "Your workout progress will be lost if you exit now.",
                 fontSize = 14.sp,
                 color = ExecutionInkSecondary,
             )

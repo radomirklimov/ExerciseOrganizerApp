@@ -11,12 +11,4 @@ class PlannedSetRepository @Inject constructor(
     fun observePlannedSets(workoutId: Long, exerciseId: Long): Flow<List<PlannedSetEntity>> {
         return dao.observePlannedSets(workoutId, exerciseId)
     }
-
-    suspend fun replacePlannedSets(
-        workoutId: Long,
-        exerciseId: Long,
-        sets: List<PlannedSetEntity>,
-    ) {
-        dao.replaceForExercise(workoutId, exerciseId, sets)
-    }
 }

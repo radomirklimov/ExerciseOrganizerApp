@@ -230,14 +230,6 @@ class OrganizerViewModel @Inject constructor(
     ): Flow<List<PlannedSetEntity>> =
         plannedSetRepo.observePlannedSets(workoutId, exerciseId)
 
-    fun replacePlannedSets(
-        workoutId: Long,
-        exerciseId: Long,
-        sets: List<PlannedSetEntity>,
-    ) = viewModelScope.launch {
-        plannedSetRepo.replacePlannedSets(workoutId, exerciseId, sets)
-    }
-
     /**
      * Records how many exercises of a workout were performed. The schedule
      * calendar shows the resulting percentage on today's date; no individual

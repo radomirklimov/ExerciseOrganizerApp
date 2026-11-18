@@ -177,6 +177,29 @@ private data class DurationParts(
     }
 }
 
+/**
+ * One editable row of [SetEditorDialog]: storage rows are mapped to this
+ * shape so the set list, steppers and delete flow are shared.
+ */
+internal data class SetEditorEntry(
+    val id: Long,
+    val setNumber: Int,
+    val reps: Int?,
+    val weight: Double?,
+    val durationSeconds: Int?,
+)
+
+internal fun SetEditorEntry.inferredExerciseType(): String = when {
+    durationSeconds != null -> TYPE_DURATION
+    weight != null -> TYPE_REPS_WEIGHT
+    else -> TYPE_REPS
+}
+
+/**
+ * Records real sets for one exercise during a workout. The UI lives in
+ * [SetEditorDialog]; this wrapper only maps recorded sets to editor rows and
+ * writes the edits to the progress table.
+ */
 @Composable
 fun TrackExerciseDialog(
     workoutId: Long,
@@ -190,16 +213,82 @@ fun TrackExerciseDialog(
     initialWeight: Double? = null,
     initialDurationSeconds: Int? = null,
 ) {
-    val effectiveType = effectiveExerciseType(exercise, sets)
+    SetEditorDialog(
+        stateKey = exercise.exerciseId,
+        title = "Track ${exercise.name}",
+        exerciseName = exercise.name,
+        initialType = effectiveExerciseType(exercise, sets),
+        sets = sets.map { set ->
+            SetEditorEntry(
+                id = set.progressId,
+                setNumber = set.setNumber,
+                reps = set.reps,
+                weight = set.weight,
+                durationSeconds = set.durationSeconds,
+            )
+        },
+        emptyText = "No sets recorded yet.",
+        startAddingSet = startAddingSet,
+        initialReps = initialReps,
+        initialWeight = initialWeight,
+        initialDurationSeconds = initialDurationSeconds,
+        onAddSet = { reps, weight, duration ->
+            viewModel.addExerciseSet(
+                workoutId = workoutId,
+                exerciseId = exercise.exerciseId,
+                setNumber = (sets.maxOfOrNull { it.setNumber } ?: 0) + 1,
+                reps = reps,
+                weight = weight,
+                durationSeconds = duration,
+                sessionId = sessionId,
+            )
+        },
+        onUpdateSet = { id, reps, weight, duration ->
+            viewModel.updateExerciseSet(
+                progressId = id,
+                reps = reps,
+                weight = weight,
+                durationSeconds = duration,
+            )
+        },
+        onDeleteSet = { entry -> viewModel.deleteExerciseSet(entry.id) },
+        onSave = onDismiss,
+        onClose = onDismiss,
+    )
+}
+
+/**
+ * Shared set editor: set list, inline add/edit sheet with drag steppers, type
+ * tabs and the delete confirmation. Callers decide how the edits are stored.
+ */
+@Composable
+internal fun SetEditorDialog(
+    stateKey: Long,
+    title: String,
+    exerciseName: String,
+    initialType: String,
+    sets: List<SetEditorEntry>,
+    emptyText: String,
+    onAddSet: (reps: Int?, weight: Double?, durationSeconds: Int?) -> Unit,
+    onUpdateSet: (id: Long, reps: Int?, weight: Double?, durationSeconds: Int?) -> Unit,
+    onDeleteSet: (SetEditorEntry) -> Unit,
+    onSave: () -> Unit,
+    onClose: () -> Unit,
+    startAddingSet: Boolean = false,
+    initialReps: Int? = null,
+    initialWeight: Double? = null,
+    initialDurationSeconds: Int? = null,
+    deletePermanently: Boolean = true,
+) {
     // The workout's current effective type is the default tracking mode. The
     // user can switch modes for this dialog without changing the exercise.
-    var selectedType by remember(exercise.exerciseId) { mutableStateOf(effectiveType) }
-    var typeTouched by remember(exercise.exerciseId) { mutableStateOf(false) }
-    var repsValue by remember(exercise.exerciseId) { mutableStateOf(initialReps ?: 0) }
-    var weightTenths by remember(exercise.exerciseId) {
+    var selectedType by remember(stateKey) { mutableStateOf(initialType) }
+    var typeTouched by remember(stateKey) { mutableStateOf(false) }
+    var repsValue by remember(stateKey) { mutableStateOf(initialReps ?: 0) }
+    var weightTenths by remember(stateKey) {
         mutableStateOf(((initialWeight ?: 0.0) * 10).roundToInt())
     }
-    var durationParts by remember(exercise.exerciseId) {
+    var durationParts by remember(stateKey) {
         mutableStateOf(
             initialDurationSeconds
                 ?.takeIf { it > 0 }
@@ -207,17 +296,17 @@ fun TrackExerciseDialog(
                 ?: DurationParts()
         )
     }
-    var editingSetId by remember(exercise.exerciseId) { mutableStateOf<Long?>(null) }
-    var isAddingSet by remember(exercise.exerciseId) { mutableStateOf(startAddingSet) }
-    var setToDelete by remember(exercise.exerciseId) { mutableStateOf<ExerciseProgressEntity?>(null) }
+    var editingSetId by remember(stateKey) { mutableStateOf<Long?>(null) }
+    var isAddingSet by remember(stateKey) { mutableStateOf(startAddingSet) }
+    var setToDelete by remember(stateKey) { mutableStateOf<SetEditorEntry?>(null) }
 
-    LaunchedEffect(effectiveType) {
+    LaunchedEffect(initialType) {
         if (!typeTouched) {
-            selectedType = effectiveType
+            selectedType = initialType
         }
     }
 
-    val editingSet = sets.find { it.progressId == editingSetId }
+    val editingSet = sets.find { it.id == editingSetId }
     val nextSetNumber = (sets.maxOfOrNull { it.setNumber } ?: 0) + 1
     val editorVisible = isAddingSet || editingSet != null
     val hasRequiredValues = when (selectedType) {
@@ -242,16 +331,16 @@ fun TrackExerciseDialog(
     fun cancelEditing() {
         resetInputs()
         typeTouched = false
-        selectedType = effectiveType
+        selectedType = initialType
     }
 
-    fun loadSet(set: ExerciseProgressEntity) {
+    fun loadSet(entry: SetEditorEntry) {
         typeTouched = true
-        selectedType = set.inferredExerciseType()
-        repsValue = set.reps ?: 0
-        weightTenths = ((set.weight ?: 0.0) * 10).roundToInt()
-        durationParts = DurationParts.fromSeconds(set.durationSeconds ?: 0)
-        editingSetId = set.progressId
+        selectedType = entry.inferredExerciseType()
+        repsValue = entry.reps ?: 0
+        weightTenths = ((entry.weight ?: 0.0) * 10).roundToInt()
+        durationParts = DurationParts.fromSeconds(entry.durationSeconds ?: 0)
+        editingSetId = entry.id
         isAddingSet = false
     }
 
@@ -265,28 +354,15 @@ fun TrackExerciseDialog(
         }
 
         if (editingSet != null) {
-            viewModel.updateExerciseSet(
-                progressId = editingSet.progressId,
-                reps = reps,
-                weight = weight,
-                durationSeconds = duration,
-            )
+            onUpdateSet(editingSet.id, reps, weight, duration)
         } else {
-            viewModel.addExerciseSet(
-                workoutId = workoutId,
-                exerciseId = exercise.exerciseId,
-                setNumber = nextSetNumber,
-                reps = reps,
-                weight = weight,
-                durationSeconds = duration,
-                sessionId = sessionId,
-            )
+            onAddSet(reps, weight, duration)
         }
         resetInputs()
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         BoxWithConstraints(
@@ -310,14 +386,14 @@ fun TrackExerciseDialog(
                 ),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    TrackingHeader(
-                        exerciseName = exercise.name,
+                    SetEditorHeader(
+                        title = title,
                         selectedType = selectedType,
                         onTypeSelected = {
                             typeTouched = true
                             selectedType = it
                         },
-                        onClose = onDismiss,
+                        onClose = onClose,
                     )
 
                     Column(
@@ -329,7 +405,7 @@ fun TrackExerciseDialog(
                     ) {
                         if (sets.isEmpty() && !editorVisible) {
                             Text(
-                                text = "No sets recorded yet.",
+                                text = emptyText,
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -338,7 +414,7 @@ fun TrackExerciseDialog(
                         }
 
                         sets.forEach { set ->
-                            if (set.progressId == editingSetId) {
+                            if (set.id == editingSetId) {
                                 ActiveSetEditor(
                                     setNumber = set.setNumber,
                                     selectedType = selectedType,
@@ -355,7 +431,7 @@ fun TrackExerciseDialog(
                                 )
                             } else {
                                 RecordedSetCard(
-                                    set = set,
+                                    entry = set,
                                     onEdit = { loadSet(set) },
                                     onDelete = { setToDelete = set },
                                 )
@@ -410,7 +486,7 @@ fun TrackExerciseDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        TextButton(onClick = onDismiss) {
+                        TextButton(onClick = onClose) {
                             Text("Close")
                         }
                         Button(
@@ -418,7 +494,7 @@ fun TrackExerciseDialog(
                                 if (editorVisible) {
                                     saveSet()
                                 }
-                                onDismiss()
+                                onSave()
                             },
                             enabled = !editorVisible || hasRequiredValues,
                             modifier = Modifier.height(48.dp),
@@ -438,15 +514,15 @@ fun TrackExerciseDialog(
         }
     }
 
-    setToDelete?.let { set ->
+    setToDelete?.let { entry ->
         DeleteConfirmationDialog(
             title = "Delete Set?",
-            itemName = "Set ${set.setNumber}",
-            location = exercise.name,
-            isPermanent = true,
+            itemName = "Set ${entry.setNumber}",
+            location = exerciseName,
+            isPermanent = deletePermanently,
             onConfirm = {
-                viewModel.deleteExerciseSet(set.progressId)
-                if (editingSetId == set.progressId) {
+                onDeleteSet(entry)
+                if (editingSetId == entry.id) {
                     cancelEditing()
                 }
                 setToDelete = null
@@ -457,8 +533,8 @@ fun TrackExerciseDialog(
 }
 
 @Composable
-private fun TrackingHeader(
-    exerciseName: String,
+private fun SetEditorHeader(
+    title: String,
     selectedType: String,
     onTypeSelected: (String) -> Unit,
     onClose: () -> Unit,
@@ -474,7 +550,7 @@ private fun TrackingHeader(
                 ExerciseTypePill(selectedType)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Track $exerciseName",
+                    text = title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -483,7 +559,7 @@ private fun TrackingHeader(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close tracking dialog",
+                    contentDescription = "Close set editor",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -574,7 +650,7 @@ private fun ExerciseTypeTabs(
 
 @Composable
 private fun RecordedSetCard(
-    set: ExerciseProgressEntity,
+    entry: SetEditorEntry,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -604,7 +680,7 @@ private fun RecordedSetCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = set.setNumber.toString(),
+                        text = entry.setNumber.toString(),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimaryFixed,
@@ -625,21 +701,21 @@ private fun RecordedSetCard(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                when (set.inferredExerciseType()) {
+                when (entry.inferredExerciseType()) {
                     TYPE_DURATION -> RecordedSetValue(
-                        text = formatDuration(set.durationSeconds ?: 0),
+                        text = formatDuration(entry.durationSeconds ?: 0),
                     )
 
                     TYPE_REPS -> RecordedSetValue(
-                        text = "${set.reps ?: 0} reps",
+                        text = "${entry.reps ?: 0} reps",
                     )
 
                     else -> {
                         RecordedSetValue(
-                            text = "${set.reps ?: 0} reps",
+                            text = "${entry.reps ?: 0} reps",
                         )
                         RecordedSetValue(
-                            text = formatWeight(set.weight),
+                            text = formatWeight(entry.weight),
                         )
                     }
                 }
@@ -651,7 +727,7 @@ private fun RecordedSetCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit set ${set.setNumber}",
+                    contentDescription = "Edit set ${entry.setNumber}",
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.outline,
                 )
@@ -662,7 +738,7 @@ private fun RecordedSetCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete set ${set.setNumber}",
+                    contentDescription = "Delete set ${entry.setNumber}",
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.error,
                 )

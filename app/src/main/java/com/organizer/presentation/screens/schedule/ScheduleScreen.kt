@@ -64,7 +64,7 @@ import com.organizer.ui.theme.darkerShade
 @Composable
 fun ScheduleScreen(
     onOpenWorkout: (Long) -> Unit,
-    onCreateWorkout: () -> Unit,
+    onOpenWorkouts: () -> Unit,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
     val entriesState by viewModel.entriesUiState.collectAsState()
@@ -361,10 +361,10 @@ fun ScheduleScreen(
                     persistEntry(save, reminderEnabled)
                 }
             },
-            onCreateWorkout = {
+            onOpenWorkouts = {
                 sheetOpen = false
                 sheetEntry = null
-                onCreateWorkout()
+                onOpenWorkouts()
             },
             onRequestNotifications = ::requestNotifications,
         )

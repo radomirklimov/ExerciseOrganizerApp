@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -49,7 +48,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
@@ -68,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.presentation.screens.general.CreateWorkoutFirstHint
 import com.organizer.presentation.screens.general.LoadingState
 
 private val Brand = Color(0xFF6750A4)
@@ -139,12 +138,17 @@ fun SaveExercisePopup(
                 if (workoutsState == null) {
                     LoadingState(modifier = Modifier.weight(1f, fill = false))
                 } else if (workouts.isEmpty()) {
-                    EmptyStateBody(
-                        onOpenWorkoutsClick = {
+                    // Same hint as the schedule sheet: the popup keeps its
+                    // header and the rest of the body is this block.
+                    CreateWorkoutFirstHint(
+                        onOpenWorkouts = {
                             onDismiss()
                             onOpenWorkoutsClick()
                         },
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp)
+                            .padding(top = 22.dp, bottom = 24.dp),
+                        description = "You need at least one workout before you can add this exercise to it.",
                     )
                 } else {
                     WorkoutFilterField(
@@ -541,118 +545,6 @@ private fun SaveFooter(
                     letterSpacing = 0.2.sp,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun EmptyStateBody(
-    onOpenWorkoutsClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 22.dp, bottom = 18.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Same illustration treatment as the empty Workouts page: soft lavender
-        // glow, white rounded card and a lavender tile with a deep-purple icon.
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(152.dp)
-                    .blur(48.dp)
-                    .background(Color(0xFFE9DDFF).copy(alpha = 0.5f), CircleShape),
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(128.dp)
-                    .shadow(4.dp, RoundedCornerShape(24.dp))
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .border(
-                        1.dp,
-                        Color(0xFFCBC4D2).copy(alpha = 0.3f),
-                        RoundedCornerShape(24.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(84.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFE9DDFF)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.FitnessCenter,
-                        contentDescription = null,
-                        tint = Color(0xFF4F378A),
-                        modifier = Modifier.size(42.dp),
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        Text(
-            text = "You don't have any workouts yet",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextPrimary,
-            textAlign = TextAlign.Center,
-            letterSpacing = (-0.2).sp,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Create your first workout routine to start organizing your exercises and tracking your training progress.",
-            fontSize = 14.sp,
-            color = TextSecondary,
-            textAlign = TextAlign.Center,
-            lineHeight = 21.sp,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onOpenWorkoutsClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Brand,
-                contentColor = Color.White,
-            ),
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 0.dp,
-            ),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Create Workout Routine",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.2.sp,
-            )
         }
     }
 }

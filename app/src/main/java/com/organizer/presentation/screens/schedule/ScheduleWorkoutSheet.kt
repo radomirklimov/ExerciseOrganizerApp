@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
+import com.organizer.presentation.screens.general.CreateWorkoutFirstHint
 import com.organizer.presentation.model.ScheduledWorkoutItem
 import java.util.Locale
 
@@ -193,7 +194,7 @@ internal fun ScheduleWorkoutSheet(
             Spacer(Modifier.height(6.dp))
 
             if (workouts.isEmpty()) {
-                NoWorkoutsHint(onOpenWorkouts = onOpenWorkouts)
+                CreateWorkoutFirstHint(onOpenWorkouts = onOpenWorkouts)
             } else {
                 FieldLabel("Choose Workout")
 
@@ -586,39 +587,6 @@ internal fun ScheduleWorkoutSheet(
                 showTimePicker = false
             },
         )
-    }
-}
-
-@Composable
-private fun NoWorkoutsHint(onOpenWorkouts: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(ScheduleFieldBackground)
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "Create a workout first",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = ScheduleInk,
-        )
-        Text(
-            text = "You need at least one workout before you can put it on your schedule.",
-            modifier = Modifier.padding(top = 6.dp),
-            fontSize = 14.sp,
-            color = ScheduleInkSecondary,
-        )
-        TextButton(onClick = onOpenWorkouts) {
-            Text(
-                text = "Create Workout",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = ScheduleBrand,
-            )
-        }
     }
 }
 

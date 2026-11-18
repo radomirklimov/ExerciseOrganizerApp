@@ -31,18 +31,18 @@ object ReminderTextFormatter {
         val cleanNote = note.trim()
 
         val longText = buildString {
-            append("Time: ").append(time)
+            append(time)
             if (cleanNote.isNotEmpty()) {
-                append('\n').append("Note: ").append(cleanNote)
+                append('\n').append(cleanNote)
             }
         }
 
         return ReminderText(
             time = time,
             shortText = if (cleanNote.isEmpty()) {
-                "Time: $time"
+                time
             } else {
-                "Time: $time · $cleanNote"
+                "$time · $cleanNote"
             },
             longText = longText,
         )

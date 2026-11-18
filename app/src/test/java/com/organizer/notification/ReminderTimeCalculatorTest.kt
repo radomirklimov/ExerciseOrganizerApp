@@ -126,13 +126,17 @@ class ReminderTimeCalculatorTest {
 
         assertEquals("18:00", text.time)
         assertEquals(
-            "Time: 18:00 · Don't forget to bring my lifting belt!",
+            "18:00 · Don't forget to bring my lifting belt!",
             text.shortText,
+        )
+        assertEquals(
+            "18:00\nDon't forget to bring my lifting belt!",
+            text.longText,
         )
         assertFalse(text.longText.contains("Date:"))
         assertFalse(text.longText.contains("Workout:"))
-        assertTrue(text.longText.contains("Time: 18:00"))
-        assertTrue(text.longText.contains("Note: Don't forget to bring my lifting belt!"))
+        assertFalse(text.longText.contains("Time:"))
+        assertFalse(text.longText.contains("Note:"))
     }
 
     @Test
@@ -145,7 +149,8 @@ class ReminderTimeCalculatorTest {
         )
 
         assertFalse(text.longText.contains("Note:"))
-        assertEquals("Time: 18:00", text.shortText)
+        assertEquals("18:00", text.shortText)
+        assertEquals("18:00", text.longText)
     }
 
     private fun utcMillis(

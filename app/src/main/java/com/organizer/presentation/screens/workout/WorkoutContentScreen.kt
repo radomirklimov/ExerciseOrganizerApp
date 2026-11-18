@@ -132,10 +132,17 @@ fun WorkoutContentScreen(
     )
 
     val trackedSets by if (!isTemplate && trackedExerciseId != null) {
-        viewModel.observeExerciseSets(workoutId, trackedExerciseId!!).collectAsState(initial = emptyList())
+        val setsFlow = remember(workoutId, trackedExerciseId) {
+            viewModel.observeExerciseSets(workoutId, trackedExerciseId!!)
+        }
+        setsFlow.collectAsState(initial = emptyList())
     } else {
         remember { mutableStateOf(emptyList<ExerciseProgressEntity>()) }
     }
+    // Tracking acts on the latest execution. Set numbers restart every session,
+    // so mixing history in the same editor would repeat "Set 1", "Set 2", ...
+    val trackedSessionId = trackedSets.maxOfOrNull { it.sessionId } ?: 0L
+    val trackedSessionSets = trackedSets.filter { it.sessionId == trackedSessionId }
 
     // Session notes: keep a local buffer so typing does not fight Room re-emissions.
     var notesText by remember { mutableStateOf("") }
@@ -214,8 +221,14 @@ fun WorkoutContentScreen(
                     state = reorderableState,
                     key = exercise.exerciseId
                 ) {
-                    val sets by viewModel.observeExerciseSets(workoutId, exercise.exerciseId)
-                        .collectAsState(initial = emptyList())
+                    val setsFlow = remember(workoutId, exercise.exerciseId) {
+                        viewModel.observeExerciseSets(workoutId, exercise.exerciseId)
+                    }
+                    val allSets by setsFlow.collectAsState(initial = emptyList())
+                    // Expanded list shows the latest execution only, so set
+                    // numbers do not repeat after older sessions.
+                    val latestSessionId = allSets.maxOfOrNull { it.sessionId } ?: 0L
+                    val sets = allSets.filter { it.sessionId == latestSessionId }
 
                     Column {
                         val dragHandle: (@Composable () -> Unit)? = if (isTemplate) {
@@ -484,8 +497,9 @@ fun WorkoutContentScreen(
             TrackExerciseDialog(
                 workoutId = workoutId,
                 exercise = trackedExercise,
-                sets = trackedSets,
+                sets = trackedSessionSets,
                 viewModel = viewModel,
+                sessionId = trackedSessionId,
                 onDismiss = { trackedExerciseId = null },
             )
         }

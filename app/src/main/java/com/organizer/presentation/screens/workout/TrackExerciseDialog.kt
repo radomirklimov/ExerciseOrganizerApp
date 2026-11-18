@@ -81,9 +81,9 @@ import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-private const val TYPE_REPS = "REPS"
-private const val TYPE_REPS_WEIGHT = "REPS_WEIGHT"
-private const val TYPE_DURATION = "DURATION"
+internal const val TYPE_REPS = "REPS"
+internal const val TYPE_REPS_WEIGHT = "REPS_WEIGHT"
+internal const val TYPE_DURATION = "DURATION"
 
 private val exerciseTypes = listOf(TYPE_REPS, TYPE_REPS_WEIGHT, TYPE_DURATION)
 
@@ -184,17 +184,31 @@ fun TrackExerciseDialog(
     sets: List<ExerciseProgressEntity>,
     viewModel: OrganizerViewModel,
     onDismiss: () -> Unit,
+    startAddingSet: Boolean = false,
+    sessionId: Long = 0L,
+    initialReps: Int? = null,
+    initialWeight: Double? = null,
+    initialDurationSeconds: Int? = null,
 ) {
     val effectiveType = effectiveExerciseType(exercise, sets)
     // The workout's current effective type is the default tracking mode. The
     // user can switch modes for this dialog without changing the exercise.
     var selectedType by remember(exercise.exerciseId) { mutableStateOf(effectiveType) }
     var typeTouched by remember(exercise.exerciseId) { mutableStateOf(false) }
-    var repsValue by remember(exercise.exerciseId) { mutableStateOf(0) }
-    var weightTenths by remember(exercise.exerciseId) { mutableStateOf(0) }
-    var durationParts by remember(exercise.exerciseId) { mutableStateOf(DurationParts()) }
+    var repsValue by remember(exercise.exerciseId) { mutableStateOf(initialReps ?: 0) }
+    var weightTenths by remember(exercise.exerciseId) {
+        mutableStateOf(((initialWeight ?: 0.0) * 10).roundToInt())
+    }
+    var durationParts by remember(exercise.exerciseId) {
+        mutableStateOf(
+            initialDurationSeconds
+                ?.takeIf { it > 0 }
+                ?.let { DurationParts.fromSeconds(it) }
+                ?: DurationParts()
+        )
+    }
     var editingSetId by remember(exercise.exerciseId) { mutableStateOf<Long?>(null) }
-    var isAddingSet by remember(exercise.exerciseId) { mutableStateOf(false) }
+    var isAddingSet by remember(exercise.exerciseId) { mutableStateOf(startAddingSet) }
     var setToDelete by remember(exercise.exerciseId) { mutableStateOf<ExerciseProgressEntity?>(null) }
 
     LaunchedEffect(effectiveType) {
@@ -265,6 +279,7 @@ fun TrackExerciseDialog(
                 reps = reps,
                 weight = weight,
                 durationSeconds = duration,
+                sessionId = sessionId,
             )
         }
         resetInputs()

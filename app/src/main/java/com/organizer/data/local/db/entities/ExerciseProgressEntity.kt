@@ -25,6 +25,7 @@ import androidx.room.PrimaryKey
         Index("workoutId"),
         Index("exerciseId"),
         Index("recordedAt"),
+        Index("sessionId"),
     ]
 )
 data class ExerciseProgressEntity(
@@ -37,4 +38,10 @@ data class ExerciseProgressEntity(
     val weight: Double? = null,
     val durationSeconds: Int? = null,
     val recordedAt: Long = System.currentTimeMillis(),
+    /**
+     * One workout execution. Sets are numbered and shown per session so a new
+     * session starts again at "Set 1" instead of continuing last week's list.
+     * `0` marks rows recorded before sessions were introduced.
+     */
+    val sessionId: Long = 0L,
 )

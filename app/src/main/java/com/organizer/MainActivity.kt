@@ -74,12 +74,15 @@ fun AppNavigation(showOnboarding: Boolean) {
     val context = LocalContext.current
     LaunchedEffect(currentRoute) {
         val activity = context as? Activity ?: return@LaunchedEffect
-        val statusBarColor = if (currentRoute == Routes.Sports.route ||
-            currentRoute == Routes.Schedule.route
-        ) {
-            android.graphics.Color.parseColor("#FEFBFE")
-        } else {
-            android.graphics.Color.parseColor("#F8F5F5")
+        val statusBarColor = when (currentRoute) {
+            Routes.Sports.route,
+            Routes.Schedule.route,
+            -> android.graphics.Color.parseColor("#FEFBFE")
+
+            // The execution screen has a white header pinned under the status bar.
+            Routes.WorkoutExecution.route -> android.graphics.Color.parseColor("#FFFFFF")
+
+            else -> android.graphics.Color.parseColor("#F8F5F5")
         }
         activity.window.statusBarColor = statusBarColor
         activity.window.setBackgroundDrawable(ColorDrawable(statusBarColor))
@@ -126,7 +129,11 @@ fun AppNavigation(showOnboarding: Boolean) {
     Scaffold(
         containerColor = Color(0xFFFEFBFE),
         bottomBar = {
-            if (currentRoute != Routes.Onboarding.route) {
+            // The workout player is an immersive flow: it provides its own
+            // fixed action bar and must not show the app navigation.
+            if (currentRoute != Routes.Onboarding.route &&
+                currentRoute != Routes.WorkoutExecution.route
+            ) {
                 BottomNavigationBar(
                     currentRoute = currentRoute,
                     onHomeClick = {
@@ -409,10 +416,14 @@ fun AppNavigation(showOnboarding: Boolean) {
                 )
             }
 
-            composable(Routes.WorkoutExecution.route) { backStackEntry ->
+            composable(
+                route = Routes.WorkoutExecution.route,
+                arguments = listOf(navArgument("workoutId") {
+                    type = NavType.LongType
+                }),
+            ) { backStackEntry ->
                 val workoutId = backStackEntry.arguments
-                    ?.getString("workoutId")
-                    ?.toLongOrNull() ?: 0L
+                    ?.getLong("workoutId") ?: 0L
 
                 WorkoutExecutionScreen(
                     workoutId = workoutId,

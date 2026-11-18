@@ -16,6 +16,28 @@ interface ExerciseProgressDao {
     @Query("SELECT * FROM exercise_progress WHERE workoutId = :workoutId AND exerciseId = :exerciseId ORDER BY setNumber ASC, progressId ASC")
     fun observeSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>>
 
+    @Query(
+        "SELECT * FROM exercise_progress WHERE workoutId = :workoutId " +
+            "AND exerciseId = :exerciseId AND sessionId = :sessionId " +
+            "ORDER BY setNumber ASC, progressId ASC"
+    )
+    fun observeSessionSets(
+        workoutId: Long,
+        exerciseId: Long,
+        sessionId: Long,
+    ): Flow<List<ExerciseProgressEntity>>
+
+    @Query(
+        "SELECT * FROM exercise_progress WHERE workoutId = :workoutId " +
+            "AND exerciseId = :exerciseId AND sessionId = :sessionId " +
+            "ORDER BY setNumber ASC, progressId ASC"
+    )
+    suspend fun getSessionSets(
+        workoutId: Long,
+        exerciseId: Long,
+        sessionId: Long,
+    ): List<ExerciseProgressEntity>
+
     @Query("SELECT COUNT(*) FROM exercise_progress WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
     suspend fun getSetCount(workoutId: Long, exerciseId: Long): Int
 
@@ -38,10 +60,13 @@ interface ExerciseProgressDao {
     suspend fun deleteAndRenumber(progressId: Long) {
         val set = getById(progressId) ?: return
         delete(progressId)
-        getSets(set.workoutId, set.exerciseId).forEachIndexed { index, remaining ->
-            if (remaining.setNumber != index + 1) {
-                updateSetNumber(remaining.progressId, index + 1)
+        // Numbering is per session: deleting a set from an old session must
+        // not renumber the sets of the current one.
+        getSessionSets(set.workoutId, set.exerciseId, set.sessionId)
+            .forEachIndexed { index, remaining ->
+                if (remaining.setNumber != index + 1) {
+                    updateSetNumber(remaining.progressId, index + 1)
+                }
             }
-        }
     }
 }

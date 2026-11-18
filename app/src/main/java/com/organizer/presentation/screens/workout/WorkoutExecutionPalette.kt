@@ -16,6 +16,8 @@ internal val ExecutionGreenDark = Color(0xFF15803D)
 internal val ExecutionGreenLight = Color(0xFFE8F8EE)
 internal val ExecutionGreenBorder = Color(0xFFBBF7D0)
 
+internal val ExecutionRed = Color(0xFFDC2626)
+
 internal val ExecutionBackground = Color(0xFFF8FAFC)
 internal val ExecutionSurface = Color.White
 internal val ExecutionSurfaceMuted = Color(0xFFF8FAFC)

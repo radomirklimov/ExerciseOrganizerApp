@@ -34,15 +34,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -56,20 +58,19 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -111,6 +112,8 @@ fun WorkoutExecutionScreen(
     // Exercises marked "Done" (skipped ones do not count), so the completion
     // summary does not claim the user finished exercises they skipped.
     var completedCount by rememberSaveable { mutableIntStateOf(0) }
+    // The finished percentage is written to the schedule calendar once.
+    var completionRecorded by rememberSaveable { mutableStateOf(false) }
     val finished = total > 0 && currentIndex >= total
     val current: ExerciseEntity? =
         if (finished || total == 0) null else exercises.getOrNull(currentIndex)
@@ -130,19 +133,22 @@ fun WorkoutExecutionScreen(
         if (finished) elapsedRunning = false
     }
 
-    // One id per execution. Progress is numbered and displayed per session, so
-    // a new workout starts at "Set 1" instead of continuing last week's list.
-    var sessionId by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
-
-    // Sets are observed for the current exercise and session only. A stable
-    // flow keeps the card from blinking when the parent recomposes.
-    val currentExerciseId = current?.exerciseId
-    val setsFlow = remember(workoutId, currentExerciseId, sessionId) {
-        currentExerciseId?.let { viewModel.observeSessionSets(workoutId, it, sessionId) }
-            ?: flowOf<List<ExerciseProgressEntity>?>(null)
+    // Only exercise outcomes are tracked: Done counts, Skip does not. The
+    // percentage lands on today's date in the schedule calendar.
+    LaunchedEffect(finished, total, completedCount) {
+        if (finished && !completionRecorded && total > 0) {
+            completionRecorded = true
+            viewModel.recordWorkoutCompletion(
+                workoutId = workoutId,
+                completedExercises = completedCount,
+                totalExercises = total,
+            )
+        }
     }
-    val sessionSetsState by setsFlow.collectAsState(initial = null)
-    val trackedSets = sessionSetsState ?: emptyList()
+
+    // The player is read-only: it shows the sets the workout asks for and
+    // never records results. Progress data is only used as a fallback below.
+    val currentExerciseId = current?.exerciseId
 
     // Targets defined for the routine. `null` means "still loading", which is
     // different from "this exercise has no plan".
@@ -153,15 +159,73 @@ fun WorkoutExecutionScreen(
     val plannedSetsState by plannedSetsFlow.collectAsState(initial = null)
     val plannedSets = plannedSetsState ?: emptyList()
 
-    // The type shown follows the sets recorded during this session, matching
-    // the workout detail screen instead of ignoring newly logged sets.
-    val currentType = current?.let { effectiveExerciseType(it, trackedSets) }
-
-    // First planned set that has not been logged yet: it is the "current" row
-    // and its duration is the target for the exercise timer.
-    val nextPlannedSet = plannedSets.firstOrNull { planned ->
-        trackedSets.none { it.setNumber == planned.setNumber }
+    // Fallback for exercises without a plan: the sets recorded during the
+    // most recent execution of this workout.
+    val historyFlow = remember(workoutId, currentExerciseId) {
+        currentExerciseId?.let { viewModel.observeExerciseSets(workoutId, it) }
+            ?: flowOf(emptyList())
     }
+    val exerciseHistory by historyFlow.collectAsState(initial = emptyList())
+    val latestSessionSets = remember(exerciseHistory) {
+        val latestSession = exerciseHistory.maxOfOrNull { it.sessionId } ?: 0L
+        exerciseHistory.filter { it.sessionId == latestSession }
+    }
+
+    // The type follows the last recorded execution (or the stored type when
+    // there is no history).
+    val currentType = current?.let { effectiveExerciseType(it, latestSessionSets) }
+
+    // Rows of the set block: the routine's targets when they exist, otherwise
+    // what the previous execution of this workout did.
+    val executionSets = remember(plannedSetsState, latestSessionSets) {
+        if (plannedSets.isNotEmpty()) {
+            plannedSets
+                .sortedBy { it.setNumber }
+                .map { ExecutionSet(it.setNumber, plannedSetSummary(it)) }
+        } else {
+            latestSessionSets
+                .sortedBy { it.setNumber }
+                .map { ExecutionSet(it.setNumber, setSummary(it)) }
+        }
+    }
+
+    // Rest timer state. Checking a set starts it; skipping/pausing is local.
+    var restRemaining by rememberSaveable { mutableIntStateOf(DEFAULT_REST_SECONDS) }
+    var restTotal by rememberSaveable { mutableIntStateOf(DEFAULT_REST_SECONDS) }
+    var restRunning by rememberSaveable { mutableStateOf(false) }
+    var restAutoEnabled by rememberSaveable { mutableStateOf(true) }
+
+    // Checked sets live only in the UI: nothing is saved to the database.
+    // Kept per exercise so rotation does not lose the ticks.
+    var checkedSets by rememberSaveable(stateSaver = CheckedSetsSaver) {
+        mutableStateOf(emptyMap<Long, Set<Int>>())
+    }
+    val checkedNumbers = currentExerciseId?.let { checkedSets[it] }.orEmpty()
+    val allSetsChecked =
+        executionSets.isEmpty() || executionSets.all { it.number in checkedNumbers }
+
+    fun toggleSet(setNumber: Int, checked: Boolean) {
+        val exerciseId = currentExerciseId ?: return
+        val currentChecked = checkedSets[exerciseId].orEmpty()
+        checkedSets = checkedSets + (
+            exerciseId to if (checked) {
+                currentChecked + setNumber
+            } else {
+                currentChecked - setNumber
+            }
+            )
+        if (checked && restAutoEnabled) {
+            restTotal = DEFAULT_REST_SECONDS
+            restRemaining = DEFAULT_REST_SECONDS
+            restRunning = true
+        }
+    }
+
+    // First unchecked target: it is the highlighted row and sets the exercise
+    // timer's duration.
+    val nextPlannedSet = plannedSets
+        .sortedBy { it.setNumber }
+        .firstOrNull { it.setNumber !in checkedNumbers }
     val plannedTargetDuration = nextPlannedSet?.durationSeconds?.takeIf { it > 0 }
 
     // Duration timer for the current exercise.
@@ -169,17 +233,14 @@ fun WorkoutExecutionScreen(
     var timerTotal by rememberSaveable { mutableIntStateOf(DEFAULT_DURATION_SECONDS) }
     var timerRunning by rememberSaveable { mutableStateOf(false) }
     var timerDone by rememberSaveable { mutableStateOf(false) }
-    // The exercise and planned set the countdown was last started for. Keeping
-    // both makes the setup idempotent after rotation, while still restarting
-    // with the next set's target once a set is logged. `-1` means "no plan".
+    // Guards the one-time timer setup for the current exercise, so it survives
+    // recomposition/rotation and keeps counting after a set is checked.
     var timerInitializedExercise by rememberSaveable { mutableStateOf(0L) }
-    var timerInitializedSet by rememberSaveable { mutableIntStateOf(-1) }
 
-    LaunchedEffect(currentExerciseId, currentType, plannedSetsState, nextPlannedSet?.setNumber) {
+    LaunchedEffect(currentExerciseId, currentType, plannedSetsState) {
         if (currentType != DURATION_TYPE) {
             // Keep an already-started timer of this exercise: while sets reload
-            // after a configuration change the effective type can briefly fall
-            // back to the stored type.
+            // the effective type can briefly fall back to the stored type.
             if (timerInitializedExercise != currentExerciseId) {
                 timerRunning = false
             }
@@ -187,20 +248,9 @@ fun WorkoutExecutionScreen(
         }
         // Wait for the plan so the countdown uses the target duration.
         if (plannedSetsState == null) return@LaunchedEffect
-        // The whole plan is done: keep the finished timer instead of starting
-        // a default one.
-        if (plannedSets.isNotEmpty() && nextPlannedSet == null) return@LaunchedEffect
-
-        val targetSetNumber = nextPlannedSet?.setNumber ?: -1
-        if (
-            timerInitializedExercise == currentExerciseId &&
-            timerInitializedSet == targetSetNumber
-        ) {
-            return@LaunchedEffect
-        }
+        if (timerInitializedExercise == currentExerciseId) return@LaunchedEffect
 
         timerInitializedExercise = currentExerciseId ?: 0L
-        timerInitializedSet = targetSetNumber
         val target = plannedTargetDuration ?: DEFAULT_DURATION_SECONDS
         timerDone = false
         timerTotal = target
@@ -217,35 +267,6 @@ fun WorkoutExecutionScreen(
                 timerDone = true
             }
         }
-    }
-
-    // Rest timer, started automatically after a set is logged.
-    var restRemaining by rememberSaveable { mutableIntStateOf(DEFAULT_REST_SECONDS) }
-    var restTotal by rememberSaveable { mutableIntStateOf(DEFAULT_REST_SECONDS) }
-    var restRunning by rememberSaveable { mutableStateOf(false) }
-    var restAutoEnabled by rememberSaveable { mutableStateOf(true) }
-    // Amount of sets the timer was last synced with, per exercise. Switching
-    // exercises adopts the new count instead of starting a rest period for
-    // sets that were logged earlier.
-    var restExerciseId by rememberSaveable { mutableStateOf(0L) }
-    var restTriggeredSetCount by rememberSaveable { mutableIntStateOf(-1) }
-
-    LaunchedEffect(currentExerciseId, sessionSetsState) {
-        val sets = sessionSetsState ?: return@LaunchedEffect
-        val exerciseKey = currentExerciseId ?: 0L
-        if (restExerciseId != exerciseKey || restTriggeredSetCount < 0) {
-            // First load (also after rotation): adopt the current amount
-            // instead of firing a rest period for sets logged earlier.
-            restExerciseId = exerciseKey
-            restTriggeredSetCount = sets.size
-            return@LaunchedEffect
-        }
-        if (restAutoEnabled && sets.size > restTriggeredSetCount) {
-            restTotal = DEFAULT_REST_SECONDS
-            restRemaining = DEFAULT_REST_SECONDS
-            restRunning = true
-        }
-        restTriggeredSetCount = sets.size
     }
 
     LaunchedEffect(restRunning) {
@@ -278,24 +299,7 @@ fun WorkoutExecutionScreen(
     }
 
     var showExitDialog by rememberSaveable { mutableStateOf(false) }
-    var showTrackDialog by rememberSaveable { mutableStateOf(false) }
-    // "Log Set N" opens the tracker directly in the new-set editor, while
-    // tapping a logged set opens it on the edit view of that set.
-    var trackDialogStartAdding by rememberSaveable { mutableStateOf(false) }
     var showPlanDialog by rememberSaveable { mutableStateOf(false) }
-    // Target values copied into the new-set editor so logging a planned set
-    // starts from the routine instead of zero.
-    var trackPrefillReps by rememberSaveable { mutableStateOf<Int?>(null) }
-    var trackPrefillWeight by rememberSaveable { mutableStateOf<Double?>(null) }
-    var trackPrefillDuration by rememberSaveable { mutableStateOf<Int?>(null) }
-
-    fun openTrackDialog(startAdding: Boolean, target: PlannedSetEntity?) {
-        trackPrefillReps = target?.reps
-        trackPrefillWeight = target?.weight
-        trackPrefillDuration = target?.durationSeconds
-        trackDialogStartAdding = startAdding
-        showTrackDialog = true
-    }
 
     val hasActiveWorkout = total > 0 && current != null && !finished && !unavailable
 
@@ -349,15 +353,15 @@ fun WorkoutExecutionScreen(
                             )
 
                             SetsCard(
-                                loggedSets = trackedSets,
-                                plannedSets = plannedSets,
-                                nextSetNumber = (trackedSets.maxOfOrNull { it.setNumber } ?: 0) + 1,
+                                sets = executionSets,
+                                checkedNumbers = checkedNumbers,
                                 onEditPlan = { showPlanDialog = true },
-                                onOpenTracker = { openTrackDialog(false, null) },
-                                onLogSet = { target -> openTrackDialog(true, target) },
+                                onToggleSet = { setNumber, checked ->
+                                    toggleSet(setNumber, checked)
+                                },
                             )
 
-                            if (trackedSets.isNotEmpty() || restRunning) {
+                            if (restRunning || checkedNumbers.isNotEmpty()) {
                                 RestTimerCard(
                                     seconds = restRemaining,
                                     total = restTotal,
@@ -426,15 +430,12 @@ fun WorkoutExecutionScreen(
 
             if (!finished && !unavailable && total > 0) {
                 ExecutionActionBar(
+                    doneEnabled = allSetsChecked,
                     onDone = {
                         completedCount++
                         currentIndex++
                     },
                     onSkip = { currentIndex++ },
-                    onFinish = {
-                        elapsedRunning = false
-                        currentIndex = total
-                    },
                 )
             }
         }
@@ -455,28 +456,6 @@ fun WorkoutExecutionScreen(
                 onBackClick()
             },
             onDismiss = { showExitDialog = false },
-        )
-    }
-
-    val trackedExercise = current
-    if (showTrackDialog && trackedExercise != null) {
-        TrackExerciseDialog(
-            workoutId = workoutId,
-            exercise = trackedExercise,
-            sets = trackedSets,
-            viewModel = viewModel,
-            startAddingSet = trackDialogStartAdding,
-            sessionId = sessionId,
-            initialReps = trackPrefillReps,
-            initialWeight = trackPrefillWeight,
-            initialDurationSeconds = trackPrefillDuration,
-            onDismiss = {
-                showTrackDialog = false
-                trackDialogStartAdding = false
-                trackPrefillReps = null
-                trackPrefillWeight = null
-                trackPrefillDuration = null
-            },
         )
     }
 
@@ -719,26 +698,40 @@ private fun TypePill(text: String) {
     }
 }
 
+private val CheckedSetsSaver: Saver<Map<Long, Set<Int>>, List<String>> = Saver(
+    save = { checked ->
+        checked.map { (exerciseId, sets) -> "$exerciseId:${sets.sorted().joinToString(",")}" }
+    },
+    restore = { entries ->
+        entries.mapNotNull { entry ->
+            val separator = entry.indexOf(':')
+            if (separator <= 0) return@mapNotNull null
+            val exerciseId = entry.substring(0, separator).toLongOrNull()
+                ?: return@mapNotNull null
+            val sets = entry.substring(separator + 1)
+                .split(',')
+                .mapNotNull { it.toIntOrNull() }
+                .toSet()
+            exerciseId to sets
+        }.toMap()
+    },
+)
+
+/** One row of the read-only set checklist. */
+private data class ExecutionSet(
+    val number: Int,
+    val summary: String,
+)
+
 @Composable
 private fun SetsCard(
-    loggedSets: List<ExerciseProgressEntity>,
-    plannedSets: List<PlannedSetEntity>,
-    nextSetNumber: Int,
+    sets: List<ExecutionSet>,
+    checkedNumbers: Set<Int>,
     onEditPlan: () -> Unit,
-    onOpenTracker: () -> Unit,
-    onLogSet: (PlannedSetEntity?) -> Unit,
+    onToggleSet: (setNumber: Int, checked: Boolean) -> Unit,
 ) {
-    val hasPlan = plannedSets.isNotEmpty()
-    val doneCount = plannedSets.count { planned ->
-        loggedSets.any { it.setNumber == planned.setNumber }
-    }
-    val currentPlanned = plannedSets.firstOrNull { planned ->
-        loggedSets.none { it.setNumber == planned.setNumber }
-    }
-    // Sets logged beyond the plan stay visible as extra green rows.
-    val extraLoggedSets = loggedSets.filter { logged ->
-        plannedSets.none { it.setNumber == logged.setNumber }
-    }
+    val doneCount = sets.count { it.number in checkedNumbers }
+    val firstUnchecked = sets.firstOrNull { it.number !in checkedNumbers }?.number
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -765,10 +758,10 @@ private fun SetsCard(
                     color = ExecutionSurfaceStrong,
                 ) {
                     Text(
-                        text = if (hasPlan) {
-                            "$doneCount / ${plannedSets.size} done"
+                        text = if (sets.isEmpty()) {
+                            "No sets"
                         } else {
-                            "${loggedSets.size} logged"
+                            "$doneCount / ${sets.size} done"
                         },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         fontSize = 12.sp,
@@ -787,38 +780,26 @@ private fun SetsCard(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (hasPlan) {
-                    plannedSets.forEach { planned ->
-                        val logged = loggedSets.firstOrNull {
-                            it.setNumber == planned.setNumber
-                        }
-                        val isCurrent = currentPlanned?.setNumber == planned.setNumber
-
-                        PlannedSetRow(
-                            planned = planned,
-                            logged = logged,
-                            isCurrent = isCurrent,
-                            onClick = when {
-                                logged != null -> onOpenTracker
-                                isCurrent -> ({ onLogSet(planned) })
-                                else -> null
-                            },
+            if (sets.isEmpty()) {
+                Text(
+                    text = "This exercise has no sets yet. Use Plan to add them.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    textAlign = TextAlign.Center,
+                    fontSize = 12.sp,
+                    color = ExecutionInkMuted,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    sets.forEach { set ->
+                        ExecutionSetRow(
+                            set = set,
+                            checked = set.number in checkedNumbers,
+                            isCurrent = set.number == firstUnchecked,
+                            onCheckedChange = { onToggleSet(set.number, it) },
                         )
                     }
-
-                    extraLoggedSets.forEach { set ->
-                        LoggedSetRow(set = set, onClick = onOpenTracker)
-                    }
-
-                    if (currentPlanned == null) {
-                        AddSetRow(setNumber = nextSetNumber, onClick = { onLogSet(null) })
-                    }
-                } else {
-                    loggedSets.forEach { set ->
-                        LoggedSetRow(set = set, onClick = onOpenTracker)
-                    }
-                    AddSetRow(setNumber = nextSetNumber, onClick = { onLogSet(null) })
                 }
             }
         }
@@ -826,44 +807,42 @@ private fun SetsCard(
 }
 
 /**
- * One row of the routine: green when the set was logged, brand-outlined while
- * it is the next set to do, muted for everything still ahead.
+ * One row of the workout's set list. The checkbox is UI-only: the player shows
+ * what the routine asks for and does not record results.
  */
 @Composable
-private fun PlannedSetRow(
-    planned: PlannedSetEntity,
-    logged: ExerciseProgressEntity?,
+private fun ExecutionSetRow(
+    set: ExecutionSet,
+    checked: Boolean,
     isCurrent: Boolean,
-    onClick: (() -> Unit)?,
+    onCheckedChange: (Boolean) -> Unit,
 ) {
-    val done = logged != null
     val shape = RoundedCornerShape(16.dp)
     val background = when {
-        done -> ExecutionGreenLight.copy(alpha = 0.6f)
+        checked -> ExecutionGreenLight.copy(alpha = 0.6f)
         isCurrent -> ExecutionSurface
         else -> ExecutionSurfaceMuted
     }
     val borderColor = when {
-        done -> ExecutionGreenBorder.copy(alpha = 0.8f)
+        checked -> ExecutionGreenBorder.copy(alpha = 0.8f)
         isCurrent -> ExecutionBrand
         else -> ExecutionFieldBorder
     }
     val numberBackground = when {
-        done -> ExecutionGreenDark
+        checked -> ExecutionGreenDark
         isCurrent -> ExecutionBrand
         else -> ExecutionSurfaceStrong
     }
 
     Surface(
-        onClick = { onClick?.invoke() },
-        enabled = onClick != null,
+        onClick = { onCheckedChange(!checked) },
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
         color = background,
         border = BorderStroke(if (isCurrent) 2.dp else 1.dp, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(start = 10.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -874,10 +853,10 @@ private fun PlannedSetRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = planned.setNumber.toString(),
+                    text = set.number.toString(),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (done || isCurrent) Color.White else ExecutionInkMuted,
+                    color = if (checked || isCurrent) Color.White else ExecutionInkMuted,
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -885,157 +864,29 @@ private fun PlannedSetRow(
                 text = "Set",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (done || isCurrent) ExecutionInk else ExecutionInkMuted,
+                color = if (checked || isCurrent) ExecutionInk else ExecutionInkMuted,
             )
             Spacer(Modifier.width(12.dp))
             Text(
-                text = if (logged != null) setSummary(logged) else plannedSetSummary(planned),
+                text = set.summary,
                 modifier = Modifier.weight(1f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (done || isCurrent) ExecutionInk else ExecutionInkMuted,
+                color = if (checked || isCurrent) ExecutionInk else ExecutionInkMuted,
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(if (done) ExecutionGreen else Color.Transparent)
-                    .border(
-                        width = if (done) 0.dp else 1.5.dp,
-                        color = if (isCurrent) ExecutionBrand else ExecutionFieldBorder,
-                        shape = RoundedCornerShape(9.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (done) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = "Set ${planned.setNumber} logged",
-                        modifier = Modifier.size(18.dp),
-                        tint = Color.White,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoggedSetRow(
-    set: ExerciseProgressEntity,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = ExecutionGreenLight.copy(alpha = 0.6f),
-        border = BorderStroke(1.dp, ExecutionGreenBorder.copy(alpha = 0.8f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(ExecutionGreenDark),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = set.setNumber.toString(),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-            }
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = "Set",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = ExecutionInk,
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = setSummary(set),
-                modifier = Modifier.weight(1f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = ExecutionInk,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(ExecutionGreen),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = "Set ${set.setNumber} logged",
-                    modifier = Modifier.size(18.dp),
-                    tint = Color.White,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddSetRow(
-    setNumber: Int,
-    onClick: () -> Unit,
-) {
-    val borderColor = ExecutionBrand.copy(alpha = 0.4f)
-    val cornerRadius = 16.dp
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(cornerRadius))
-            .background(ExecutionBrand50.copy(alpha = 0.6f))
-            .clickable(onClick = onClick)
-            .drawBehind {
-                val strokeWidth = 2.dp.toPx()
-                drawRoundRect(
-                    color = borderColor,
-                    topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
-                    size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                    cornerRadius = CornerRadius(cornerRadius.toPx()),
-                    style = Stroke(
-                        width = strokeWidth,
-                        pathEffect = PathEffect.dashPathEffect(
-                            intervals = floatArrayOf(12.dp.toPx(), 8.dp.toPx())
-                        ),
-                    ),
-                )
-            }
-            .padding(vertical = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.AddCircle,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = ExecutionBrand,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "Log Set $setNumber",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = ExecutionBrand,
+            Spacer(Modifier.width(6.dp))
+            Checkbox(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.size(32.dp),
+                colors = CheckboxDefaults.colors(
+                    checkedColor = ExecutionGreen,
+                    uncheckedColor = ExecutionFieldBorder,
+                    checkmarkColor = Color.White,
+                ),
             )
         }
     }
@@ -1464,9 +1315,9 @@ private fun UpNextCard(
 
 @Composable
 private fun ExecutionActionBar(
+    doneEnabled: Boolean,
     onDone: () -> Unit,
     onSkip: () -> Unit,
-    onFinish: () -> Unit,
 ) {
     Surface(
         color = ExecutionSurface,
@@ -1479,85 +1330,68 @@ private fun ExecutionActionBar(
                 .padding(top = 12.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(
+            PrimaryActionButton(
+                label = "Done",
+                icon = Icons.Filled.Check,
+                containerColor = ExecutionGreen,
+                enabled = doneEnabled,
                 onClick = onDone,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ExecutionGreen,
-                    contentColor = Color.White,
-                ),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.White,
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "Done",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SecondaryActionButton(
-                    label = "Skip Exercise",
-                    background = ExecutionSurfaceStrong,
-                    contentColor = ExecutionInkSecondary,
-                    onClick = onSkip,
-                    modifier = Modifier.weight(1f),
-                )
-                SecondaryActionButton(
-                    label = "Finish Workout",
-                    background = ExecutionBrand50,
-                    contentColor = ExecutionBrand,
-                    onClick = onFinish,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            )
+            // Same shape, height and icon treatment as Done; only the colour
+            // and the icon differ, so skipping reads as the alternate answer
+            // instead of a lesser action.
+            PrimaryActionButton(
+                label = "Skip Exercise",
+                icon = Icons.Filled.SkipNext,
+                containerColor = ExecutionRed,
+                enabled = true,
+                onClick = onSkip,
+            )
         }
     }
 }
 
 @Composable
-private fun SecondaryActionButton(
+private fun PrimaryActionButton(
     label: String,
-    background: Color,
-    contentColor: Color,
+    icon: ImageVector,
+    containerColor: Color,
+    enabled: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(40.dp),
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         shape = RoundedCornerShape(50),
         colors = ButtonDefaults.buttonColors(
-            containerColor = background,
-            contentColor = contentColor,
+            containerColor = containerColor,
+            contentColor = Color.White,
+            disabledContainerColor = containerColor.copy(alpha = 0.35f),
+            disabledContentColor = Color.White.copy(alpha = 0.7f),
         ),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
     ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = Color.White,
+            )
+        }
+        Spacer(Modifier.width(10.dp))
         Text(
             text = label,
-            fontSize = 12.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            maxLines = 1,
         )
     }
 }

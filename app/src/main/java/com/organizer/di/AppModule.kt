@@ -7,6 +7,7 @@ import com.organizer.constants.AppConfig
 import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
+import com.organizer.data.local.dao.WorkoutCompletionDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
@@ -24,6 +25,7 @@ import com.organizer.data.local.db.SCHEDULED_WORKOUT_MIGRATION_8_9
 import com.organizer.data.local.db.SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10
 import com.organizer.data.local.db.STARTER_TEMPLATES_MIGRATION_5_6
 import com.organizer.data.local.db.STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7
+import com.organizer.data.local.db.WORKOUT_COMPLETION_MIGRATION_11_12
 import com.organizer.data.local.db.WORKOUT_NOTES_MIGRATION_4_5
 import com.organizer.data.remote.ApiService
 import com.organizer.data.local.storage.FileStorage
@@ -82,7 +84,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5, STARTER_TEMPLATES_MIGRATION_5_6, STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7, FAVORITE_EXERCISE_MIGRATION_7_8, SCHEDULED_WORKOUT_MIGRATION_8_9, SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10, PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11).build()
+        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5, STARTER_TEMPLATES_MIGRATION_5_6, STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7, FAVORITE_EXERCISE_MIGRATION_7_8, SCHEDULED_WORKOUT_MIGRATION_8_9, SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10, PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11, WORKOUT_COMPLETION_MIGRATION_11_12).build()
     }
 
     @Provides
@@ -175,5 +177,12 @@ object AppModule {
         database: AppDatabase
     ): ScheduledWorkoutDao {
         return database.scheduledWorkoutDao
+    }
+
+    @Provides
+    fun provideWorkoutCompletionDao(
+        database: AppDatabase
+    ): WorkoutCompletionDao {
+        return database.workoutCompletionDao
     }
 }

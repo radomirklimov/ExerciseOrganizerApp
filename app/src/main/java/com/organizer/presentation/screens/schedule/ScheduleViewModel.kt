@@ -7,6 +7,7 @@ import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.data.repo.CategoryRepository
 import com.organizer.data.repo.ExerciseCategoryRepository
 import com.organizer.data.repo.ScheduleRepository
+import com.organizer.data.repo.WorkoutCompletionRepository
 import com.organizer.data.repo.WorkoutExerciseRepository
 import com.organizer.data.repo.WorkoutRepository
 import com.organizer.data.repo.usedCategories
@@ -32,6 +33,7 @@ class ScheduleViewModel @Inject constructor(
     private val exerciseCategoryRepo: ExerciseCategoryRepository,
     private val categoryRepo: CategoryRepository,
     private val reminderScheduler: WorkoutReminderScheduler,
+    private val workoutCompletionRepo: WorkoutCompletionRepository,
 ) : ViewModel() {
 
     /** Currently selected day in the weekly strip (ISO: Monday = 1). */
@@ -48,6 +50,14 @@ class ScheduleViewModel @Inject constructor(
     val workoutsUiState: StateFlow<List<WorkoutWithExerciseCount>?> =
         workoutRepo.observeWorkoutsWithExerciseCount()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Completion percentage per date key (`yyyyMMdd`), written by the workout
+     * player when an execution ends. The day strip shows it on that date.
+     */
+    val completionPercentByDate: StateFlow<Map<Int, Int>> =
+        workoutCompletionRepo.observeCompletionPercentByDate()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     private val workoutCategories: Flow<Map<Long, List<String>>> = combine(
         workoutExerciseRepo.observeAllWorkoutExercises(),

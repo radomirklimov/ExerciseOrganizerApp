@@ -13,6 +13,7 @@ import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.dao.PlannedSetDao
 import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.StarterTemplateDao
+import com.organizer.data.local.dao.WorkoutCompletionDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.entities.CategoryEntity
@@ -24,12 +25,13 @@ import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
+import com.organizer.data.local.db.entities.WorkoutCompletionEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 11,
+    version = 12,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -41,7 +43,8 @@ import com.organizer.data.mapper.ListConverters
         StarterTemplateEntity::class,
         StarterTemplateExerciseEntity::class,
         ScheduledWorkoutEntity::class,
-        PlannedSetEntity::class
+        PlannedSetEntity::class,
+        WorkoutCompletionEntity::class
     ],
     exportSchema = false
 )
@@ -57,6 +60,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val starterTemplateDao: StarterTemplateDao
     abstract val scheduledWorkoutDao: ScheduledWorkoutDao
     abstract val plannedSetDao: PlannedSetDao
+    abstract val workoutCompletionDao: WorkoutCompletionDao
 }
 
 val PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11 = object : Migration(10, 11) {
@@ -85,6 +89,26 @@ val PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS index_exercise_progress_sessionId " +
                 "ON exercise_progress (sessionId)"
+        )
+    }
+}
+
+val WORKOUT_COMPLETION_MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS workout_completion (
+                dateKey INTEGER NOT NULL,
+                workoutId INTEGER NOT NULL,
+                completedExercises INTEGER NOT NULL,
+                totalExercises INTEGER NOT NULL,
+                completedAt INTEGER NOT NULL,
+                PRIMARY KEY (dateKey, workoutId),
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_workout_completion_workoutId " +
+                "ON workout_completion (workoutId)"
         )
     }
 }

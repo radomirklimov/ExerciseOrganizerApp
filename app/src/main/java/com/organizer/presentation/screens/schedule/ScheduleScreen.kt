@@ -251,9 +251,9 @@ fun ScheduleScreen(
                 end = 24.dp,
                 top = 20.dp,
                 // Leaves room for the pinned button so the final card can
-                // scroll clear of it. While scrolling, the schedule content
-                // passes underneath the button.
-                bottom = 108.dp,
+                // scroll clear of it. 56 dp button + 8 dp bottom gap plus a
+                // small breathing space.
+                bottom = 80.dp,
             ),
         ) {
             item {

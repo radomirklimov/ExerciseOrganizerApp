@@ -38,6 +38,7 @@ import com.organizer.presentation.screens.general.BottomNavigationBar
 import com.organizer.presentation.screens.welcome.OnboardScreen
 import com.organizer.presentation.screens.welcome.OnboardingManager
 import com.organizer.presentation.screens.workout.WorkoutContentScreen
+import com.organizer.presentation.screens.workout.WorkoutExecutionScreen
 import com.organizer.presentation.screens.workout.StarterTemplatePreviewScreen
 import com.organizer.presentation.screens.workouts_and_exercises.CustomWorkoutsAndExercisesScreen
 import com.organizer.presentation.screens.workouts_and_exercises.WorkoutsScreen
@@ -352,7 +353,7 @@ fun AppNavigation(showOnboarding: Boolean) {
             composable(Routes.Schedule.route) {
                 ScheduleScreen(
                     onOpenWorkout = { workoutId ->
-                        navController.navigate(Routes.Workout.createRoute(workoutId))
+                        navController.navigate(Routes.WorkoutExecution.createRoute(workoutId))
                     },
                     onCreateWorkout = {
                         navController.navigate(Routes.CreateWorkout.createRoute())
@@ -403,6 +404,20 @@ fun AppNavigation(showOnboarding: Boolean) {
                     },
                     onCreateCustomExerciseClick = {
                         navController.navigate(Routes.AddCard.route)
+                    },
+                    viewModel = organizerViewModel,
+                )
+            }
+
+            composable(Routes.WorkoutExecution.route) { backStackEntry ->
+                val workoutId = backStackEntry.arguments
+                    ?.getString("workoutId")
+                    ?.toLongOrNull() ?: 0L
+
+                WorkoutExecutionScreen(
+                    workoutId = workoutId,
+                    onBackClick = {
+                        popBackScreen()
                     },
                     viewModel = organizerViewModel,
                 )

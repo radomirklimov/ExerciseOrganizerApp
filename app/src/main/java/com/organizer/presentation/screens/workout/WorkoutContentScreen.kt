@@ -204,6 +204,29 @@ fun WorkoutContentScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        if (isTemplate) {
+            Button(
+                onClick = { onAddToMyWorkouts?.invoke() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(50),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Add to My Workouts",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -417,25 +440,6 @@ fun WorkoutContentScreen(
                             color = Color(0xFF7A7582),
                             lineHeight = 16.sp,
                         )
-                        Button(
-                            onClick = { onAddToMyWorkouts?.invoke() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(50),
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Add to My Workouts",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
                     } else {
                         // Delete workout
                         Box(

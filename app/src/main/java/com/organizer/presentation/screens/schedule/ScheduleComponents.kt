@@ -46,7 +46,7 @@ internal fun ReminderTimingPills(
     ) {
         ReminderMinuteOptions.forEach { minutes ->
             val selected = minutes == selectedMinutes
-            val shape = RoundedCornerShape(10.dp)
+            val shape = RoundedCornerShape(12.dp)
 
             Box(
                 modifier = Modifier
@@ -61,12 +61,12 @@ internal fun ReminderTimingPills(
                         shape = shape,
                     )
                     .clickable(enabled = enabled) { onSelect(minutes) }
-                    .padding(vertical = 6.dp),
+                    .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = reminderTimingChipLabel(minutes),
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = when {
                         !enabled -> ScheduleInkMuted

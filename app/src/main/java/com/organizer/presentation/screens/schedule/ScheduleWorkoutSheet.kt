@@ -126,7 +126,7 @@ internal fun ScheduleWorkoutSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = ScheduleSurface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
         Column(
@@ -134,8 +134,8 @@ internal fun ScheduleWorkoutSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -144,7 +144,7 @@ internal fun ScheduleWorkoutSheet(
                 Text(
                     text = if (entry == null) "Schedule a Workout" else "Edit Schedule",
                     modifier = Modifier.weight(1f),
-                    fontSize = 18.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = ScheduleInk,
                 )
@@ -153,12 +153,12 @@ internal fun ScheduleWorkoutSheet(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Close",
                         tint = ScheduleInkMuted,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
 
             if (workouts.isEmpty()) {
                 NoWorkoutsHint(onCreateWorkout = onCreateWorkout)
@@ -169,17 +169,17 @@ internal fun ScheduleWorkoutSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(ScheduleFieldBackground)
-                            .border(1.dp, ScheduleFieldBorder, RoundedCornerShape(12.dp))
+                            .border(1.dp, ScheduleFieldBorder, RoundedCornerShape(14.dp))
                             .clickable { workoutMenuExpanded = true }
-                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                            .padding(horizontal = 14.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = selectedWorkout?.name ?: "Select a workout",
                             modifier = Modifier.weight(1f),
-                            fontSize = 12.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (selectedWorkout == null) {
                                 ScheduleInkMuted
@@ -193,7 +193,7 @@ internal fun ScheduleWorkoutSheet(
                             imageVector = Icons.Outlined.ArrowDropDown,
                             contentDescription = null,
                             tint = ScheduleInkMuted,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
 
@@ -208,14 +208,14 @@ internal fun ScheduleWorkoutSheet(
                                     Column {
                                         Text(
                                             text = workout.name,
-                                            fontSize = 13.sp,
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = ScheduleInk,
                                         )
                                         Text(
                                             text = "${workout.exerciseCount} " +
                                                 "${if (workout.exerciseCount == 1) "exercise" else "exercises"}",
-                                            fontSize = 10.sp,
+                                            fontSize = 12.sp,
                                             color = ScheduleInkMuted,
                                         )
                                     }
@@ -229,9 +229,9 @@ internal fun ScheduleWorkoutSheet(
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         FieldLabel("Workout Time")
                         CompactField(
@@ -241,12 +241,12 @@ internal fun ScheduleWorkoutSheet(
                                 imageVector = Icons.Outlined.Schedule,
                                 contentDescription = null,
                                 tint = ScheduleBrand,
-                                modifier = Modifier.size(15.dp),
+                                modifier = Modifier.size(18.dp),
                             )
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = formatMinutes(startMinutes),
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ScheduleInk,
                             )
@@ -262,9 +262,9 @@ internal fun ScheduleWorkoutSheet(
                                     imageVector = Icons.Outlined.Repeat,
                                     contentDescription = null,
                                     tint = ScheduleBrand,
-                                    modifier = Modifier.size(15.dp),
+                                    modifier = Modifier.size(18.dp),
                                 )
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = if (repeatsWeekly) {
                                         "Every ${isoDayName(dayOfWeek)}"
@@ -272,7 +272,7 @@ internal fun ScheduleWorkoutSheet(
                                         "This ${isoDayName(dayOfWeek)} Only"
                                     },
                                     modifier = Modifier.weight(1f),
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = ScheduleInk,
                                     maxLines = 1,
@@ -282,7 +282,7 @@ internal fun ScheduleWorkoutSheet(
                                     imageVector = Icons.Outlined.ArrowDropDown,
                                     contentDescription = null,
                                     tint = ScheduleInkMuted,
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
 
@@ -296,13 +296,13 @@ internal fun ScheduleWorkoutSheet(
                                         Column {
                                             Text(
                                                 text = "Every ${isoDayName(dayOfWeek)}",
-                                                fontSize = 13.sp,
+                                                fontSize = 15.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = ScheduleInk,
                                             )
                                             Text(
                                                 text = "Repeats weekly",
-                                                fontSize = 10.sp,
+                                                fontSize = 12.sp,
                                                 color = ScheduleInkMuted,
                                             )
                                         }
@@ -317,13 +317,13 @@ internal fun ScheduleWorkoutSheet(
                                         Column {
                                             Text(
                                                 text = "This ${isoDayName(dayOfWeek)} Only",
-                                                fontSize = 13.sp,
+                                                fontSize = 15.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = ScheduleInk,
                                             )
                                             Text(
                                                 text = "Only on ${formatDateKeyShort(targetDateKey)}",
-                                                fontSize = 10.sp,
+                                                fontSize = 12.sp,
                                                 color = ScheduleInkMuted,
                                             )
                                         }
@@ -338,14 +338,14 @@ internal fun ScheduleWorkoutSheet(
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .background(ScheduleFieldBackground)
-                        .padding(12.dp),
+                        .padding(14.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -353,8 +353,8 @@ internal fun ScheduleWorkoutSheet(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(ScheduleBrand50),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -362,16 +362,16 @@ internal fun ScheduleWorkoutSheet(
                                 imageVector = Icons.Outlined.Notifications,
                                 contentDescription = null,
                                 tint = ScheduleBrand,
-                                modifier = Modifier.size(17.dp),
+                                modifier = Modifier.size(19.dp),
                             )
                         }
 
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(12.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Workout Reminder",
-                                fontSize = 12.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ScheduleInk,
                             )
@@ -386,7 +386,7 @@ internal fun ScheduleWorkoutSheet(
                                 } else {
                                     Modifier.clickable(onClick = onRequestNotifications)
                                 },
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 color = if (notificationsEnabled) {
                                     ScheduleInkMuted
                                 } else {
@@ -417,12 +417,12 @@ internal fun ScheduleWorkoutSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 10.dp, bottom = 6.dp),
+                            .padding(top = 12.dp, bottom = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
                             text = "Notification Timing",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (reminderEnabled) {
                                 androidx.compose.ui.graphics.Color(0xFF334155)
@@ -432,7 +432,7 @@ internal fun ScheduleWorkoutSheet(
                         )
                         Text(
                             text = reminderTimingLabel(reminderMinutesBefore),
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (reminderEnabled) ScheduleBrand else ScheduleInkMuted,
                         )
@@ -444,7 +444,7 @@ internal fun ScheduleWorkoutSheet(
                         onSelect = { reminderMinutesBefore = it },
                     )
 
-                    FieldLabel("Personal Note", modifier = Modifier.padding(top = 12.dp))
+                    FieldLabel("Personal Note", modifier = Modifier.padding(top = 14.dp))
 
                     OutlinedTextField(
                         value = reminderNote,
@@ -453,7 +453,7 @@ internal fun ScheduleWorkoutSheet(
                         placeholder = {
                             Text(
                                 text = "Included in the notification",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 color = ScheduleInkMuted,
                             )
                         },
@@ -462,12 +462,12 @@ internal fun ScheduleWorkoutSheet(
                                 imageVector = Icons.Outlined.Notes,
                                 contentDescription = null,
                                 tint = ScheduleBrand,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(18.dp),
                             )
                         },
                         singleLine = true,
-                        textStyle = TextStyle(fontSize = 12.sp),
-                        shape = RoundedCornerShape(14.dp),
+                        textStyle = TextStyle(fontSize = 14.sp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = ScheduleSurface,
                             unfocusedContainerColor = ScheduleSurface,
@@ -480,7 +480,7 @@ internal fun ScheduleWorkoutSheet(
                     )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
                 Button(
                     onClick = {
@@ -497,8 +497,8 @@ internal fun ScheduleWorkoutSheet(
                     enabled = selectedWorkoutId != null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(16.dp),
+                        .height(58.dp),
+                    shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ScheduleBrand,
                         contentColor = ScheduleSurface,
@@ -509,12 +509,12 @@ internal fun ScheduleWorkoutSheet(
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(17.dp),
+                        modifier = Modifier.size(20.dp),
                     )
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         text = if (entry == null) "Save to Schedule" else "Save Changes",
-                        fontSize = 13.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -540,27 +540,27 @@ private fun NoWorkoutsHint(onCreateWorkout: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(ScheduleFieldBackground)
-            .padding(16.dp),
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = "Create a workout first",
-            fontSize = 14.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = ScheduleInk,
         )
         Text(
             text = "You need at least one workout before you can put it on your schedule.",
-            modifier = Modifier.padding(top = 4.dp),
-            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 6.dp),
+            fontSize = 14.sp,
             color = ScheduleInkSecondary,
         )
         TextButton(onClick = onCreateWorkout) {
             Text(
                 text = "Create Workout",
-                fontSize = 12.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = ScheduleBrand,
             )
@@ -575,8 +575,8 @@ private fun FieldLabel(
 ) {
     Text(
         text = text,
-        modifier = modifier.padding(bottom = 6.dp),
-        fontSize = 11.sp,
+        modifier = modifier.padding(bottom = 8.dp),
+        fontSize = 13.sp,
         fontWeight = FontWeight.Bold,
         color = androidx.compose.ui.graphics.Color(0xFF334155),
     )
@@ -589,13 +589,13 @@ private fun CompactField(
 ) {
     val base = Modifier
         .fillMaxWidth()
-        .clip(RoundedCornerShape(12.dp))
+        .clip(RoundedCornerShape(14.dp))
         .background(ScheduleFieldBackground)
-        .border(1.dp, ScheduleFieldBorder, RoundedCornerShape(12.dp))
+        .border(1.dp, ScheduleFieldBorder, RoundedCornerShape(14.dp))
 
     Row(
         modifier = (if (onClick != null) base.clickable(onClick = onClick) else base)
-            .padding(horizontal = 10.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         content()
@@ -618,19 +618,19 @@ private fun WorkoutTimePickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(30.dp))
                 .background(ScheduleSurface)
-                .padding(horizontal = 16.dp, vertical = 20.dp),
+                .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = "Workout Time",
-                fontSize = 16.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = ScheduleInk,
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
             TimePicker(state = timePickerState)
 

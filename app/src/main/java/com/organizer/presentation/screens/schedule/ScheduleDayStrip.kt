@@ -55,9 +55,9 @@ internal fun ScheduleDayStrip(
             Text(
                 text = "SELECT DAY",
                 modifier = Modifier.weight(1f),
-                fontSize = 10.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp,
+                letterSpacing = 1.4.sp,
                 color = ScheduleInkMuted,
             )
 
@@ -70,7 +70,7 @@ internal fun ScheduleDayStrip(
                 Text(
                     text = week.monthLabel,
                     modifier = Modifier.padding(horizontal = 2.dp),
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = ScheduleBrand,
                 )
@@ -82,7 +82,7 @@ internal fun ScheduleDayStrip(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -109,13 +109,13 @@ private fun WeekArrow(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(24.dp),
+        modifier = Modifier.size(32.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = ScheduleBrand,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -128,7 +128,7 @@ private fun DayPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(18.dp)
     val isRestDay = !hasWorkout
 
     val background = when {
@@ -147,7 +147,7 @@ private fun DayPill(
                 color = ScheduleRestDayBorder,
                 topLeft = Offset(stroke / 2, stroke / 2),
                 size = Size(size.width - stroke, size.height - stroke),
-                cornerRadius = CornerRadius(16.dp.toPx() - stroke / 2),
+                cornerRadius = CornerRadius(18.dp.toPx() - stroke / 2),
                 style = Stroke(
                     width = stroke,
                     pathEffect = PathEffect.dashPathEffect(
@@ -165,12 +165,12 @@ private fun DayPill(
             .background(background)
             .then(borderModifier)
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 11.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = day.letter,
-            fontSize = 10.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             color = when {
                 selected -> ScheduleSurface.copy(alpha = 0.8f)
@@ -182,7 +182,7 @@ private fun DayPill(
         Text(
             text = day.dayOfMonth.toString(),
             modifier = Modifier.padding(top = 1.dp),
-            fontSize = 15.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = when {
                 selected -> ScheduleSurface
@@ -193,8 +193,8 @@ private fun DayPill(
 
         Box(
             modifier = Modifier
-                .padding(top = 5.dp)
-                .size(6.dp)
+                .padding(top = 6.dp)
+                .size(7.dp)
                 .clip(CircleShape)
                 .background(
                     when {

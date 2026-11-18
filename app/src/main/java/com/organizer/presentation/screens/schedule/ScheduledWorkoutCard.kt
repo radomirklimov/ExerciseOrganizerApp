@@ -129,8 +129,8 @@ internal fun ScheduledWorkoutCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 14.dp),
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 18.dp, bottom = 16.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -138,46 +138,36 @@ internal fun ScheduledWorkoutCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(18.dp))
                             .background(ScheduleBrand50)
-                            .border(1.dp, ScheduleBrand100, RoundedCornerShape(16.dp)),
+                            .border(1.dp, ScheduleBrand100, RoundedCornerShape(18.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.FitnessCenter,
                             contentDescription = null,
                             tint = ScheduleBrand,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(26.dp),
                         )
                     }
 
                     Spacer(Modifier.width(12.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(
-                                text = item.workoutName,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = ScheduleInk,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-
-                            ExerciseCountPill(item.exerciseCount)
-                        }
+                        Text(
+                            text = item.workoutName,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ScheduleInk,
+                        )
 
                         val categoryLabel = joinCategoryNames(item.categories)
                         if (!categoryLabel.isNullOrBlank()) {
                             Text(
                                 text = categoryLabel,
-                                modifier = Modifier.padding(top = 2.dp),
-                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 3.dp),
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = ScheduleInkSecondary,
                                 maxLines = 1,
@@ -186,7 +176,7 @@ internal fun ScheduledWorkoutCard(
                         }
 
                         Row(
-                            modifier = Modifier.padding(top = 6.dp),
+                            modifier = Modifier.padding(top = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
@@ -197,16 +187,16 @@ internal fun ScheduledWorkoutCard(
                                     imageVector = Icons.Outlined.Repeat,
                                     contentDescription = null,
                                     tint = ScheduleInkMuted,
-                                    modifier = Modifier.size(12.dp),
+                                    modifier = Modifier.size(14.dp),
                                 )
-                                Spacer(Modifier.width(3.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Text(
                                     text = if (item.entry.scheduledDateKey == null) {
                                         "Every ${isoDayShortName(item.entry.dayOfWeek)}"
                                     } else {
                                         "This ${isoDayShortName(item.entry.dayOfWeek)} Only"
                                     },
-                                    fontSize = 10.sp,
+                                    fontSize = 13.sp,
                                     color = ScheduleInkMuted,
                                 )
                             }
@@ -216,13 +206,13 @@ internal fun ScheduledWorkoutCard(
                     Box {
                         IconButton(
                             onClick = { menuExpanded = true },
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(32.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.MoreVert,
                                 contentDescription = "Schedule options",
                                 tint = ScheduleInkMuted,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(22.dp),
                             )
                         }
 
@@ -232,12 +222,12 @@ internal fun ScheduledWorkoutCard(
                             containerColor = ScheduleSurface,
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Edit schedule", fontSize = 13.sp) },
+                                text = { Text("Edit schedule", fontSize = 15.sp) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Outlined.Edit,
                                         contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
+                                        modifier = Modifier.size(20.dp),
                                     )
                                 },
                                 onClick = {
@@ -246,13 +236,13 @@ internal fun ScheduledWorkoutCard(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Remove", fontSize = 13.sp) },
+                                text = { Text("Remove", fontSize = 15.sp) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Outlined.Delete,
                                         contentDescription = null,
                                         tint = ScheduleDanger,
-                                        modifier = Modifier.size(18.dp),
+                                        modifier = Modifier.size(20.dp),
                                     )
                                 },
                                 onClick = {
@@ -265,25 +255,25 @@ internal fun ScheduledWorkoutCard(
                 }
 
                 HorizontalDivider(
-                    modifier = Modifier.padding(top = 12.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                     color = ScheduleDivider,
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 4.dp),
+                        .padding(top = 14.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = "Personal Note",
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF334155),
                     )
                     Text(
                         text = "Included in alert",
-                        fontSize = 9.sp,
+                        fontSize = 11.sp,
                         color = ScheduleInkMuted,
                     )
                 }
@@ -298,7 +288,7 @@ internal fun ScheduledWorkoutCard(
                     placeholder = {
                         Text(
                             text = "Add a note for this reminder",
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             color = ScheduleInkMuted,
                         )
                     },
@@ -307,12 +297,12 @@ internal fun ScheduledWorkoutCard(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = null,
                             tint = ScheduleBrand,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(18.dp),
                         )
                     },
                     singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
-                    shape = RoundedCornerShape(16.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                    shape = RoundedCornerShape(18.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = ScheduleFieldBackground,
                         unfocusedContainerColor = ScheduleFieldBackground,
@@ -328,31 +318,31 @@ internal fun ScheduledWorkoutCard(
                     onClick = onStartWorkout,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 14.dp)
-                        .height(52.dp),
-                    shape = RoundedCornerShape(25.dp),
+                        .padding(top = 18.dp)
+                        .height(58.dp),
+                    shape = RoundedCornerShape(29.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ScheduleStartWorkoutGreen,
                         contentColor = ScheduleSurface,
                     ),
-                    contentPadding = PaddingValues(horizontal = 18.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(30.dp)
+                            .size(34.dp)
                             .border(1.5.dp, ScheduleSurface, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.PlayArrow,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(10.dp))
                     Text(
                         text = "Start Workout",
-                        fontSize = 15.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -362,41 +352,24 @@ internal fun ScheduledWorkoutCard(
 }
 
 @Composable
-private fun ExerciseCountPill(count: Int) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(Color(0xFFF1F5F9))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
-    ) {
-        Text(
-            text = "$count ${if (count == 1) "exercise" else "exercises"}",
-            fontSize = 9.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF475569),
-        )
-    }
-}
-
-@Composable
 private fun TimePill(startMinutes: Int) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(7.dp))
+            .clip(RoundedCornerShape(9.dp))
             .background(ScheduleBrand50)
-            .padding(horizontal = 6.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Outlined.Schedule,
             contentDescription = null,
             tint = ScheduleBrand,
-            modifier = Modifier.size(12.dp),
+            modifier = Modifier.size(14.dp),
         )
-        Spacer(Modifier.width(3.dp))
+        Spacer(Modifier.width(4.dp))
         Text(
             text = formatMinutes(startMinutes),
-            fontSize = 10.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             color = ScheduleBrand,
         )

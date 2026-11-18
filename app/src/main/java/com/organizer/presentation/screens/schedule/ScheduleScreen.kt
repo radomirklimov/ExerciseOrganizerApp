@@ -185,18 +185,18 @@ fun ScheduleScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 20.dp,
-                end = 20.dp,
-                top = 16.dp,
+                start = 24.dp,
+                end = 24.dp,
+                top = 20.dp,
                 // Leaves room for the pinned button so the final card can
                 // scroll clear of it. While scrolling, the schedule content
                 // passes underneath the button.
-                bottom = 96.dp,
+                bottom = 108.dp,
             ),
         ) {
             item {
                 ScheduleHeader(dayCount = dayCount)
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(20.dp))
             }
 
             item {
@@ -208,7 +208,7 @@ fun ScheduleScreen(
                     onPreviousWeek = viewModel::previousWeek,
                     onNextWeek = viewModel::nextWeek,
                 )
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(20.dp))
             }
 
             item {
@@ -217,13 +217,13 @@ fun ScheduleScreen(
                     isToday = selectedDayIsToday,
                     workoutCount = dayEntries.size,
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
             }
 
             if (dayEntries.isEmpty()) {
                 item {
                     EmptyDayCard()
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(18.dp))
                 }
             } else {
                 items(
@@ -250,7 +250,7 @@ fun ScheduleScreen(
             onClick = { openSheet(null) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+                .padding(start = 24.dp, end = 24.dp, bottom = 20.dp),
         )
     }
 
@@ -314,9 +314,15 @@ private fun ScheduleHeader(dayCount: Int) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Weekly Routine & Reminders",
-                modifier = Modifier.padding(top = 1.dp),
-                fontSize = 12.sp,
+                text = "Schedule",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = ScheduleInk,
+            )
+            Text(
+                text = "Weekly routine & reminders",
+                modifier = Modifier.padding(top = 2.dp),
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = ScheduleInkSecondary,
             )
@@ -324,13 +330,14 @@ private fun ScheduleHeader(dayCount: Int) {
 
         Box(
             modifier = Modifier
+                .padding(top = 7.dp)
                 .clip(RoundedCornerShape(50))
                 .background(ScheduleBrand50)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
         ) {
             Text(
                 text = "$dayCount ${if (dayCount == 1) "day" else "days"} / week",
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = ScheduleBrand,
             )
@@ -348,7 +355,7 @@ private fun SelectedDayHeader(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = dateLabel,
-                fontSize = 18.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = ScheduleInk,
             )
@@ -356,11 +363,11 @@ private fun SelectedDayHeader(
                 Text(
                     text = "Today",
                     modifier = Modifier
-                        .padding(start = 8.dp)
+                        .padding(start = 10.dp)
                         .clip(RoundedCornerShape(50))
                         .background(ScheduleTodayGreenBg)
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
-                    fontSize = 10.sp,
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = ScheduleTodayGreen,
                 )
@@ -373,8 +380,8 @@ private fun SelectedDayHeader(
                 1 -> "1 workout scheduled for this day"
                 else -> "$workoutCount workouts scheduled for this day"
             },
-            modifier = Modifier.padding(top = 1.dp),
-            fontSize = 11.sp,
+            modifier = Modifier.padding(top = 2.dp),
+            fontSize = 14.sp,
             color = ScheduleInkSecondary,
         )
     }
@@ -387,20 +394,20 @@ private fun EmptyDayCard() {
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .background(ScheduleSurface)
-            .padding(horizontal = 20.dp, vertical = 22.dp),
+            .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = "Rest day",
-            fontSize = 15.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = ScheduleInk,
         )
         Text(
             text = "No workouts scheduled for this day. Add one to build your weekly routine.",
-            modifier = Modifier.padding(top = 4.dp),
-            fontSize = 12.sp,
-            lineHeight = 17.sp,
+            modifier = Modifier.padding(top = 6.dp),
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
             color = ScheduleInkSecondary,
             textAlign = TextAlign.Center,
         )

@@ -1450,12 +1450,49 @@ private fun PrimaryActionButton(
     }
 }
 
+// Encouragement follows how much of the workout was actually performed, so a
+// run with a few skipped exercises is not celebrated like a full one.
+private val LowCompletionMessages = listOf(
+    "Getting started is what counts! 👊",
+    "One step at a time! 👣",
+    "You're off to a start! 🚀",
+    "Keep showing up! 💪",
+)
+
+private val MidCompletionMessages = listOf(
+    "You're finding your rhythm! 🎯",
+    "Nice progress! Keep going! 🙌",
+    "You're getting there! 🔥",
+    "Keep pushing forward! 🚀",
+)
+
+private val HighCompletionMessages = listOf(
+    "Outstanding effort! 🏆",
+    "You're crushing it! 🔥",
+    "Look at you go! 💪",
+    "You're on fire! 🔥",
+)
+
+/** Under 20%, 20–50% and over 50%. */
+private fun completionMessages(percent: Int): List<String> = when {
+    percent < 20 -> LowCompletionMessages
+    percent <= 50 -> MidCompletionMessages
+    else -> HighCompletionMessages
+}
+
 @Composable
 private fun CompletionOverlay(
     completed: Int,
     total: Int,
     onBackClick: () -> Unit,
 ) {
+    val percent = if (total > 0) (completed * 100 + total / 2) / total else 0
+    // Stable while the overlay is visible (and across rotation), so the
+    // encouragement does not change on every recomposition.
+    val encouragement = rememberSaveable(completed, total) {
+        completionMessages(percent).random()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1507,9 +1544,9 @@ private fun CompletionOverlay(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = if (completed >= total) {
-                        "Outstanding effort! You finished all $total exercises."
+                        "$encouragement You finished all $total exercises."
                     } else {
-                        "Outstanding effort! You finished $completed of $total exercises."
+                        "$encouragement You finished $completed of $total exercises."
                     },
                     fontSize = 12.sp,
                     lineHeight = 18.sp,

@@ -1,5 +1,7 @@
 package com.organizer.presentation.screens.sports
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,13 +51,22 @@ fun SportsScreen(
     val sports = sportsState.orEmpty()
     val isSearching = searchQuery.isNotBlank()
 
+    // Keep the last query while its results fade into the sports grid. Without
+    // it, clearing the field would briefly render an empty result list and the
+    // home screen would flash instead of transitioning.
+    var fadingQuery by remember { mutableStateOf("") }
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotBlank()) fadingQuery = searchQuery
+    }
+    val displayQuery = if (isSearching) searchQuery else fadingQuery
+
     // Home search matches exactly like the Create Workout search with the
     // Standard scope: exercise names first, then category-name matches.
-    val searchResults = remember(catalogState, searchQuery, isSearching) {
-        if (isSearching && catalogState != null) {
+    val searchResults = remember(catalogState, displayQuery) {
+        if (catalogState != null) {
             filterExerciseEntries(
                 entries = catalogState.orEmpty(),
-                query = searchQuery,
+                query = displayQuery,
                 filter = ExerciseFilter.Standard,
             )
         } else {
@@ -86,87 +99,96 @@ fun SportsScreen(
             }
         )
 
-        val isLoadingContent = if (isSearching) {
-            catalogState == null
-        } else {
-            sportsState == null
-        }
-
-        if (isLoadingContent) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                LoadingErrorView(
-                    isLoading = true,
-                    errorMessage = null,
-                    onRetry = {}
-                )
+        // The home body crossfades between the sports grid and search
+        // results, matching the 200 ms fade the app uses for navigation.
+        Crossfade(
+            targetState = isSearching,
+            animationSpec = tween(durationMillis = 200),
+            modifier = Modifier.fillMaxSize(),
+            label = "homeContent",
+        ) { searching ->
+            val isLoadingContent = if (searching) {
+                catalogState == null
+            } else {
+                sportsState == null
             }
-        } else if (!isSearching && sports.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                LoadingErrorView(
-                    isLoading = isLoading,
-                    errorMessage = errorMessage,
-                    onRetry = { viewModel.syncDb() }
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 20.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (isSearching) {
-                    item {
-                        ExerciseSectionHeading("Search Results")
-                    }
 
-                    if (searchResults.isEmpty()) {
+            if (isLoadingContent) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingErrorView(
+                        isLoading = true,
+                        errorMessage = null,
+                        onRetry = {}
+                    )
+                }
+            } else if (!searching && sports.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingErrorView(
+                        isLoading = isLoading,
+                        errorMessage = errorMessage,
+                        onRetry = { viewModel.syncDb() }
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = 20.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (searching) {
                         item {
-                            ExerciseSearchEmptyMessage(
-                                text = emptyExerciseSearchMessage(
-                                    query = searchQuery,
-                                    filter = ExerciseFilter.Standard,
-                                )
-                            )
-                        }
-                    } else {
-                        val visibleResults =
-                            searchResults.take(MAX_EXERCISE_SEARCH_RESULTS)
-
-                        items(
-                            items = visibleResults,
-                            key = { it.exercise.exerciseId },
-                        ) { entry ->
-                            ExerciseOptionRow(
-                                entry = entry,
-                                onClick = { onExerciseClick(entry.exercise) },
-                                viewModel = viewModel,
-                                selectable = false,
-                            )
+                            ExerciseSectionHeading("Search Results")
                         }
 
-                        if (searchResults.size > MAX_EXERCISE_SEARCH_RESULTS) {
+                        if (searchResults.isEmpty()) {
                             item {
-                                ExerciseSearchLimitHint()
+                                ExerciseSearchEmptyMessage(
+                                    text = emptyExerciseSearchMessage(
+                                        query = displayQuery,
+                                        filter = ExerciseFilter.Standard,
+                                    )
+                                )
+                            }
+                        } else {
+                            val visibleResults =
+                                searchResults.take(MAX_EXERCISE_SEARCH_RESULTS)
+
+                            items(
+                                items = visibleResults,
+                                key = { it.exercise.exerciseId },
+                            ) { entry ->
+                                ExerciseOptionRow(
+                                    entry = entry,
+                                    onClick = { onExerciseClick(entry.exercise) },
+                                    viewModel = viewModel,
+                                    selectable = false,
+                                )
+                            }
+
+                            if (searchResults.size > MAX_EXERCISE_SEARCH_RESULTS) {
+                                item {
+                                    ExerciseSearchLimitHint()
+                                }
                             }
                         }
-                    }
-                } else {
-                    items(
-                        items = sports,
-                        key = { it.categoryId },
-                    ) { sport ->
-                        CategoryListItem(
-                            category = sport,
-                            onClick = { onSportClick(sport) },
-                            viewModel = viewModel,
-                            subtitle = sportSubtitle(sport.name)
-                        )
+                    } else {
+                        items(
+                            items = sports,
+                            key = { it.categoryId },
+                        ) { sport ->
+                            CategoryListItem(
+                                category = sport,
+                                onClick = { onSportClick(sport) },
+                                viewModel = viewModel,
+                                subtitle = sportSubtitle(sport.name)
+                            )
+                        }
                     }
                 }
             }

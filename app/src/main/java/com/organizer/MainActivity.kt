@@ -17,6 +17,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
@@ -126,6 +127,19 @@ fun AppNavigation(showOnboarding: Boolean) {
         navController.navigate(Routes.Subcategory.createRoute(categoryId))
     }
 
+    // A bottom-bar tap leaves the home search behind: coming back to Home
+    // must show the normal sports grid instead of stale search results.
+    val focusManager = LocalFocusManager.current
+    fun openTab(route: String) {
+        // Drop the search field's focus first, otherwise the keyboard would
+        // stay open over the screen the user is navigating to.
+        focusManager.clearFocus()
+        organizerViewModel.searchQuery.value = ""
+        // Tapping the tab that is already open must not stack a duplicate
+        // screen: the visible one just recomposes with the cleared search.
+        navController.navigate(route) { launchSingleTop = true }
+    }
+
     Scaffold(
         containerColor = Color(0xFFFEFBFE),
         bottomBar = {
@@ -136,21 +150,11 @@ fun AppNavigation(showOnboarding: Boolean) {
             ) {
                 BottomNavigationBar(
                     currentRoute = currentRoute,
-                    onHomeClick = {
-                        navController.navigate(Routes.Sports.route)
-                    },
-                    onWorkoutsClick = {
-                        navController.navigate(Routes.Workouts.route)
-                    },
-                    onExercisesClick = {
-                        navController.navigate(Routes.Exercises.route)
-                    },
-                    onScheduleClick = {
-                        navController.navigate(Routes.Schedule.route)
-                    },
-                    onAddCardClick = {
-                        navController.navigate(Routes.AddCard.route)
-                    }
+                    onHomeClick = { openTab(Routes.Sports.route) },
+                    onWorkoutsClick = { openTab(Routes.Workouts.route) },
+                    onExercisesClick = { openTab(Routes.Exercises.route) },
+                    onScheduleClick = { openTab(Routes.Schedule.route) },
+                    onAddCardClick = { openTab(Routes.AddCard.route) },
                 )
             }
         }

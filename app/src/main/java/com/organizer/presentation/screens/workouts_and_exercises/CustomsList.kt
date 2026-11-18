@@ -196,7 +196,7 @@ fun CustomsList(
                         onClick = onCreateWorkoutClick,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp),
+                            .padding(bottom = 8.dp),
                         border = BorderStroke(ButtonBorderWidth, darkerShade(MaterialTheme.colorScheme.primary)),
                     )
                 }
@@ -209,7 +209,7 @@ fun CustomsList(
                         onClick = onCreateExerciseClick,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp),
+                            .padding(bottom = 8.dp),
                         border = BorderStroke(ButtonBorderWidth, darkerShade(MaterialTheme.colorScheme.primary)),
                     )
                 }

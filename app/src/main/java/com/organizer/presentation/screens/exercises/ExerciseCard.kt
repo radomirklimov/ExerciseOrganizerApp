@@ -190,7 +190,7 @@ fun ExerciseCard(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             Button(

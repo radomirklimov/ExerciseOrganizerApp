@@ -257,14 +257,10 @@ fun ScheduleScreen(
             ),
         ) {
             item {
-                ScheduleHeader(dayCount = dayCount)
-                Spacer(Modifier.height(20.dp))
-            }
-
-            item {
                 ScheduleDayStrip(
                     week = week,
                     selectedDay = selectedDay,
+                    dayCount = dayCount,
                     scheduledDays = scheduledDays,
                     onSelectDay = viewModel::selectDay,
                     onPreviousWeek = viewModel::previousWeek,
@@ -312,7 +308,7 @@ fun ScheduleScreen(
             onClick = { openSheet(null) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 24.dp, end = 24.dp, bottom = 20.dp),
+                .padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
         )
     }
 
@@ -383,45 +379,6 @@ fun ScheduleScreen(
             },
             onDismiss = { pendingRemoval = null },
         )
-    }
-}
-
-@Composable
-private fun ScheduleHeader(dayCount: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Schedule",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = ScheduleInk,
-            )
-            Text(
-                text = "Weekly routine & reminders",
-                modifier = Modifier.padding(top = 2.dp),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = ScheduleInkSecondary,
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .padding(top = 7.dp)
-                .clip(RoundedCornerShape(50))
-                .background(ScheduleBrand50)
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-        ) {
-            Text(
-                text = "$dayCount ${if (dayCount == 1) "day" else "days"} / week",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = ScheduleBrand,
-            )
-        }
     }
 }
 

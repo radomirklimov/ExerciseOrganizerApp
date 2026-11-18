@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 internal fun ScheduleDayStrip(
     week: ScheduleWeek,
     selectedDay: Int,
+    dayCount: Int,
     scheduledDays: Set<Int>,
     onSelectDay: (Int) -> Unit,
     onPreviousWeek: () -> Unit,
@@ -52,14 +53,21 @@ internal fun ScheduleDayStrip(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "SELECT DAY",
-                modifier = Modifier.weight(1f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.4.sp,
-                color = ScheduleInkMuted,
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(ScheduleBrand50)
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                ) {
+                    Text(
+                        text = "$dayCount ${if (dayCount == 1) "day" else "days"} / week",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ScheduleBrand,
+                    )
+                }
+            }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 WeekArrow(

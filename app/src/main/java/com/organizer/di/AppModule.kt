@@ -11,12 +11,15 @@ import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.StarterTemplateDao
 import com.organizer.data.local.db.AppDatabase
 import com.organizer.data.local.db.DISPLAY_ORDER_MIGRATION_1_2
 import com.organizer.data.local.db.EXERCISE_TYPE_MIGRATION_2_3
 import com.organizer.data.local.db.EXERCISE_PROGRESS_MIGRATION_3_4
 import com.organizer.data.local.db.FAVORITE_EXERCISE_MIGRATION_7_8
+import com.organizer.data.local.db.SCHEDULED_WORKOUT_MIGRATION_8_9
+import com.organizer.data.local.db.SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10
 import com.organizer.data.local.db.STARTER_TEMPLATES_MIGRATION_5_6
 import com.organizer.data.local.db.STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7
 import com.organizer.data.local.db.WORKOUT_NOTES_MIGRATION_4_5
@@ -77,7 +80,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5, STARTER_TEMPLATES_MIGRATION_5_6, STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7, FAVORITE_EXERCISE_MIGRATION_7_8).build()
+        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5, STARTER_TEMPLATES_MIGRATION_5_6, STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7, FAVORITE_EXERCISE_MIGRATION_7_8, SCHEDULED_WORKOUT_MIGRATION_8_9, SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10).build()
     }
 
     @Provides
@@ -156,5 +159,12 @@ object AppModule {
         database: AppDatabase
     ): FavoriteExerciseDao {
         return database.favoriteExerciseDao
+    }
+
+    @Provides
+    fun provideScheduledWorkoutDao(
+        database: AppDatabase
+    ): ScheduledWorkoutDao {
+        return database.scheduledWorkoutDao
     }
 }

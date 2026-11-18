@@ -34,6 +34,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout WHERE workoutId = :id")
     fun getById(id: Long): Flow<WorkoutEntity?>
 
+    @Query("SELECT * FROM workout WHERE workoutId = :id")
+    suspend fun getByIdOnce(id: Long): WorkoutEntity?
+
     @Query("DELETE FROM workout WHERE workoutId = :id")
     suspend fun delete(id: Long)
 

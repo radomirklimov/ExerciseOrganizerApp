@@ -1,13 +1,8 @@
 package com.organizer.presentation.screens.exercises
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,15 +31,17 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,17 +60,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.WindowCompat
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.general.LoadingState
@@ -93,6 +86,7 @@ private val DisabledText = Color(0xFFA9A4B2)
  * Bottom sheet that lets the user add [exerciseId] to one or more existing
  * workouts, or create a new workout that already contains it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveExercisePopup(
     exerciseId: Long,
@@ -116,169 +110,106 @@ fun SaveExercisePopup(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = false,
-            // Let the sheet's scrim draw behind the status bar so there is no
-            // white strip at the very top of the screen.
-            decorFitsSystemWindows = false,
-        ),
-    ) {
-        // The sheet draws its own scrim, so drop the default dialog dimming.
-        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
-        SideEffect {
-            dialogWindow?.let { window ->
-                window.setDimAmount(0f)
-                window.statusBarColor = android.graphics.Color.TRANSPARENT
-                window.navigationBarColor = android.graphics.Color.TRANSPARENT
-                window.addFlags(
-                    android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
-                )
-                WindowCompat.getInsetsController(window, window.decorView)
-                    .isAppearanceLightStatusBars = false
-            }
-        }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        // The default content insets are consumed dynamically from the sheet's drag offset
+        // (`consumeWindowInsets(top = sheetState.offset)`). That makes the content's max
+        // height change while dragging, which moves the Expanded anchor and makes the sheet
+        // bounce forever after a fast drag. Insets are handled statically below instead.
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // Keep the top of the page visible, like the Schedule sheet.
             val maxSheetHeight = maxHeight * 0.85f
 
-            var sheetVisible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { sheetVisible = true }
-
-            AnimatedVisibility(
-                visible = sheetVisible,
-                enter = fadeIn(tween(durationMillis = 180)),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = maxSheetHeight)
+                    .navigationBarsPadding(),
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onDismiss,
-                        )
-                )
-            }
+                SheetHeader(onClose = onDismiss)
 
-            AnimatedVisibility(
-                visible = sheetVisible,
-                enter = slideInVertically(tween(durationMillis = 260)) { it },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = maxSheetHeight),
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                    color = Color.White,
-                    shadowElevation = 24.dp,
-                ) {
+                if (workoutsState == null) {
+                    LoadingState(modifier = Modifier.weight(1f, fill = false))
+                } else if (workouts.isEmpty()) {
+                    EmptyStateBody(
+                        onOpenWorkoutsClick = {
+                            onDismiss()
+                            onOpenWorkoutsClick()
+                        },
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                } else {
+                    WorkoutFilterField(
+                        query = query,
+                        onQueryChange = { query = it },
+                    )
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
+                            .weight(1f, fill = false)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        DragHandle()
+                        CreateWorkoutCard(
+                            onClick = {
+                                onDismiss()
+                                onCreateWorkoutClick()
+                            },
+                        )
 
-                        SheetHeader(onClose = onDismiss)
-
-                        if (workoutsState == null) {
-                            LoadingState(modifier = Modifier.weight(1f))
-                        } else if (workouts.isEmpty()) {
-                            EmptyStateBody(
-                                onOpenWorkoutsClick = {
-                                    onDismiss()
-                                    onOpenWorkoutsClick()
-                                },
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                        } else {
-                            WorkoutFilterField(
-                                query = query,
-                                onQueryChange = { query = it },
-                            )
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f, fill = false)
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                CreateWorkoutCard(
-                                    onClick = {
-                                        onDismiss()
-                                        onCreateWorkoutClick()
-                                    },
-                                )
-
-                                visibleWorkouts.forEach { workout ->
-                                    WorkoutOptionRow(
-                                        workout = workout,
-                                        selected = workout.workoutId in selectedWorkoutIds,
-                                        onToggle = {
-                                            selectedWorkoutIds =
-                                                if (workout.workoutId in selectedWorkoutIds) {
-                                                    selectedWorkoutIds - workout.workoutId
-                                                } else {
-                                                    selectedWorkoutIds + workout.workoutId
-                                                }
-                                        },
-                                    )
-                                }
-
-                                if (visibleWorkouts.isEmpty()) {
-                                    Text(
-                                        text = "No workouts match \"${query.trim()}\"",
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 24.dp),
-                                        fontSize = 14.sp,
-                                        color = TextSecondary,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                            }
-
-                            SaveFooter(
-                                selectedCount = selectedWorkoutIds.size,
-                                onSave = {
-                                    selectedWorkoutIds.forEach { workoutId ->
-                                        viewModel.addExerciseToWorkout(
-                                            workoutId = workoutId,
-                                            exerciseId = exerciseId,
-                                        )
-                                    }
-                                    onDismiss()
+                        visibleWorkouts.forEach { workout ->
+                            WorkoutOptionRow(
+                                workout = workout,
+                                selected = workout.workoutId in selectedWorkoutIds,
+                                onToggle = {
+                                    selectedWorkoutIds =
+                                        if (workout.workoutId in selectedWorkoutIds) {
+                                            selectedWorkoutIds - workout.workoutId
+                                        } else {
+                                            selectedWorkoutIds + workout.workoutId
+                                        }
                                 },
                             )
                         }
+
+                        if (visibleWorkouts.isEmpty()) {
+                            Text(
+                                text = "No workouts match \"${query.trim()}\"",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
+                                fontSize = 14.sp,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
+
+                    SaveFooter(
+                        selectedCount = selectedWorkoutIds.size,
+                        onSave = {
+                            selectedWorkoutIds.forEach { workoutId ->
+                                viewModel.addExerciseToWorkout(
+                                    workoutId = workoutId,
+                                    exerciseId = exerciseId,
+                                )
+                            }
+                            onDismiss()
+                        },
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DragHandle() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .width(44.dp)
-                .height(5.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFCBC7D3)),
-        )
     }
 }
 

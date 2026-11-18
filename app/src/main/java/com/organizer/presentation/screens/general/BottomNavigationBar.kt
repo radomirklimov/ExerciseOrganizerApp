@@ -74,17 +74,17 @@ fun BottomNavigationBar(
             )
 
             CustomNavigationItem(
-                selected = currentRoute == Routes.Exercises.route,
-                icon = Icons.Outlined.List,
-                label = "Exercises",
-                onClick = onExercisesClick,
-            )
-
-            CustomNavigationItem(
                 selected = currentRoute == Routes.Schedule.route,
                 icon = Icons.Outlined.CalendarMonth,
                 label = "Schedule",
                 onClick = onScheduleClick,
+            )
+
+            CustomNavigationItem(
+                selected = currentRoute == Routes.Exercises.route,
+                icon = Icons.Outlined.List,
+                label = "Exercises",
+                onClick = onExercisesClick,
             )
 
             CustomNavigationItem(

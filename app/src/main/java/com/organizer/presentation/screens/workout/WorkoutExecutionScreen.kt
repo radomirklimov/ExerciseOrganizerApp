@@ -1,6 +1,7 @@
 package com.organizer.presentation.screens.workout
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -36,6 +37,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -608,6 +611,12 @@ private fun ExerciseHeroCard(
     typeLabel: String,
     viewModel: OrganizerViewModel,
 ) {
+    // Step instructions stay tucked away by default so the image and the set
+    // checklist get the space; the key resets the state per exercise.
+    var instructionsExpanded by rememberSaveable(exercise.exerciseId) {
+        mutableStateOf(false)
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -669,14 +678,59 @@ private fun ExerciseHeroCard(
             )
 
             if (exercise.instructions.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                // Same component as the exercise card: step cards with the
-                // horizontal step paging and progress dots. Re-keyed per
-                // exercise so every exercise starts at step 1.
-                key(exercise.exerciseId) {
-                    InstructionPager(instructions = exercise.instructions)
+                Spacer(Modifier.height(8.dp))
+                InstructionToggle(
+                    expanded = instructionsExpanded,
+                    onClick = { instructionsExpanded = !instructionsExpanded },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                AnimatedVisibility(visible = instructionsExpanded) {
+                    // Same component as the exercise card: step cards with the
+                    // horizontal step paging and progress dots. Re-keyed per
+                    // exercise so every exercise starts at step 1.
+                    key(exercise.exerciseId) {
+                        Column {
+                            Spacer(Modifier.height(8.dp))
+                            InstructionPager(instructions = exercise.instructions)
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+/** Small pill that expands the exercise's step instructions in place. */
+@Composable
+private fun InstructionToggle(
+    expanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = ExecutionBrand50,
+        border = BorderStroke(1.dp, ExecutionBrand100),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = ExecutionBrand,
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = if (expanded) "Hide instructions" else "Instructions",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = ExecutionBrand,
+            )
         }
     }
 }

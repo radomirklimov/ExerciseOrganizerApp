@@ -266,7 +266,7 @@ internal fun ScheduledWorkoutCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Personal Note",
+                        text = "Personal Note / Checklist",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF334155),

@@ -55,7 +55,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -113,6 +115,9 @@ internal fun ScheduleWorkoutSheet(
     var reminderNote by remember(stateKey) {
         mutableStateOf(storedEntry?.reminderNote.orEmpty())
     }
+    // Offered as the note placeholder and stored when the user leaves the note
+    // empty, so every new reminder starts with an encouraging line.
+    val defaultNote = remember(stateKey) { MotivationalPhrases.random() }
     var repeatsWeekly by remember(stateKey) {
         mutableStateOf(storedEntry?.scheduledDateKey == null)
     }
@@ -477,7 +482,10 @@ internal fun ScheduleWorkoutSheet(
                         onSelect = { reminderMinutesBefore = it },
                     )
 
-                    FieldLabel("Personal Note", modifier = Modifier.padding(top = 14.dp))
+                    FieldLabel(
+                        "Personal Note / Checklist",
+                        modifier = Modifier.padding(top = 14.dp),
+                    )
 
                     OutlinedTextField(
                         value = reminderNote,
@@ -485,9 +493,11 @@ internal fun ScheduleWorkoutSheet(
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = {
                             Text(
-                                text = "Included in the notification",
+                                text = defaultNote,
                                 fontSize = 14.sp,
                                 color = ScheduleInkMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                         leadingIcon = {
@@ -511,6 +521,17 @@ internal fun ScheduleWorkoutSheet(
                             cursorColor = ScheduleBrand,
                         ),
                     )
+
+                    Text(
+                        text = "Included in the notification",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        fontSize = 11.sp,
+                        fontStyle = FontStyle.Italic,
+                        color = ScheduleInkMuted,
+                        textAlign = TextAlign.Center,
+                    )
                 }
 
                 Spacer(Modifier.height(20.dp))
@@ -524,7 +545,7 @@ internal fun ScheduleWorkoutSheet(
                             startMinutes,
                             reminderEnabled,
                             reminderMinutesBefore,
-                            reminderNote,
+                            reminderNote.ifBlank { defaultNote },
                         )
                     },
                     enabled = selectedWorkoutId != null,

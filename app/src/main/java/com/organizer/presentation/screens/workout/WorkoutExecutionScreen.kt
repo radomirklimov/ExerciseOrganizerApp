@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Pause
@@ -298,6 +299,12 @@ fun WorkoutExecutionScreen(
                                 .padding(top = 12.dp, bottom = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
+                            UpNextCard(
+                                nextExercise = nextExercise,
+                                currentIndex = currentIndex,
+                                total = total,
+                            )
+
                             ExerciseHeroCard(
                                 exercise = current,
                                 typeLabel = exerciseTypeLabel(currentType ?: current.exerciseType),
@@ -333,11 +340,48 @@ fun WorkoutExecutionScreen(
                                 )
                             }
 
-                            UpNextCard(
-                                nextExercise = nextExercise,
-                                currentIndex = currentIndex,
-                                total = total,
-                            )
+                            val workoutNote = workout?.notes.orEmpty()
+                            if (workoutNote.isNotBlank()) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = ExecutionSurface,
+                                    border = BorderStroke(1.dp, ExecutionCardBorder),
+                                    shadowElevation = 1.dp,
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.EditNote,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                                tint = ExecutionBrand,
+                                            )
+                                            Text(
+                                                text = "Workout Note",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ExecutionInkSecondary,
+                                            )
+                                        }
+                                        Text(
+                                            text = workoutNote,
+                                            fontSize = 14.sp,
+                                            color = ExecutionInk,
+                                            lineHeight = 20.sp,
+                                        )
+                                    }
+                                }
+                            }
+
                         }
                     }
                 }

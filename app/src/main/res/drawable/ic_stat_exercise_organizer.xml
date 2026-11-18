@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Simplified monochrome version of the Exercise Organizer badge: the
+         round logo with its check mark. Notification small icons are drawn as
+         a white silhouette, so the full-color logo would collapse into a
+         solid circle. -->
+    <path
+        android:pathData="M12,3.2a8.8,8.8 0 1,0 0,17.6a8.8,8.8 0 1,0 0,-17.6"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M8.2,12.4l2.6,2.6l5,-5.6"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

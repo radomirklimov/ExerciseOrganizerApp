@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
@@ -21,7 +22,9 @@ import com.organizer.data.repo.ExerciseProgressRepository
 import com.organizer.data.repo.ExerciseRepository
 import com.organizer.data.repo.FavoriteExerciseRepository
 import com.organizer.data.repo.FileRepository
+import com.organizer.data.repo.PlannedSetRepository
 import com.organizer.data.repo.StarterTemplateRepository
+import com.organizer.data.repo.WorkoutCompletionRepository
 import com.organizer.data.repo.WorkoutExerciseRepository
 import com.organizer.data.repo.WorkoutRepository
 import com.organizer.data.repo.exerciseCategoryNames
@@ -45,6 +48,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.util.Calendar
 
 @HiltViewModel
 class OrganizerViewModel @Inject constructor(
@@ -56,6 +60,8 @@ class OrganizerViewModel @Inject constructor(
     private val workoutExerciseRepo: WorkoutExerciseRepository,
     private val starterTemplateRepo: StarterTemplateRepository,
     private val favoriteExerciseRepo: FavoriteExerciseRepository,
+    private val plannedSetRepo: PlannedSetRepository,
+    private val workoutCompletionRepo: WorkoutCompletionRepository,
     private val fileRepo: FileRepository,
 ) : ViewModel() {
 
@@ -176,6 +182,14 @@ class OrganizerViewModel @Inject constructor(
     fun observeExerciseSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>> =
         exerciseProgressRepo.observeSets(workoutId, exerciseId)
 
+    /** Sets logged during one execution, used by the workout player. */
+    fun observeSessionSets(
+        workoutId: Long,
+        exerciseId: Long,
+        sessionId: Long,
+    ): Flow<List<ExerciseProgressEntity>> =
+        exerciseProgressRepo.observeSessionSets(workoutId, exerciseId, sessionId)
+
     fun addExerciseSet(
         workoutId: Long,
         exerciseId: Long,
@@ -183,8 +197,17 @@ class OrganizerViewModel @Inject constructor(
         reps: Int? = null,
         weight: Double? = null,
         durationSeconds: Int? = null,
+        sessionId: Long = 0L,
     ) = viewModelScope.launch {
-        exerciseProgressRepo.addSet(workoutId, exerciseId, setNumber, reps, weight, durationSeconds)
+        exerciseProgressRepo.addSet(
+            workoutId,
+            exerciseId,
+            setNumber,
+            reps,
+            weight,
+            durationSeconds,
+            sessionId,
+        )
     }
 
     fun deleteExerciseSet(progressId: Long) = viewModelScope.launch {
@@ -198,6 +221,31 @@ class OrganizerViewModel @Inject constructor(
         durationSeconds: Int? = null,
     ) = viewModelScope.launch {
         exerciseProgressRepo.updateSet(progressId, reps, weight, durationSeconds)
+    }
+
+    // Planned sets (routine targets, independent of logged progress).
+    fun observePlannedSets(
+        workoutId: Long,
+        exerciseId: Long,
+    ): Flow<List<PlannedSetEntity>> =
+        plannedSetRepo.observePlannedSets(workoutId, exerciseId)
+
+    /**
+     * Records how many exercises of a workout were performed. The schedule
+     * calendar shows the resulting percentage on today's date; no individual
+     * results are saved.
+     */
+    fun recordWorkoutCompletion(
+        workoutId: Long,
+        completedExercises: Int,
+        totalExercises: Int,
+    ) = viewModelScope.launch {
+        workoutCompletionRepo.recordCompletion(
+            dateKey = currentDateKey(),
+            workoutId = workoutId,
+            completedExercises = completedExercises,
+            totalExercises = totalExercises,
+        )
     }
 
     fun observeWorkout(id: Long): Flow<WorkoutEntity?> =
@@ -432,4 +480,12 @@ class OrganizerViewModel @Inject constructor(
         /** How many workout suggestions the Create Workout screen shows. */
         private const val SUGGESTION_LIMIT = 10
     }
+}
+
+/** Compact local date (`yyyyMMdd`), matching the schedule's one-time entries. */
+private fun currentDateKey(): Int {
+    val calendar = Calendar.getInstance()
+    return calendar.get(Calendar.YEAR) * 10_000 +
+        (calendar.get(Calendar.MONTH) + 1) * 100 +
+        calendar.get(Calendar.DAY_OF_MONTH)
 }

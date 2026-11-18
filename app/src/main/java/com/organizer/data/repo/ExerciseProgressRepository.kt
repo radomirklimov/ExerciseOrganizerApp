@@ -8,8 +8,18 @@ import javax.inject.Inject
 class ExerciseProgressRepository @Inject constructor(
     private val dao: ExerciseProgressDao,
 ) {
+    /** Every set ever recorded for the exercise, across sessions. */
     fun observeSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>> {
         return dao.observeSets(workoutId, exerciseId)
+    }
+
+    /** Only the sets logged while the given session is running. */
+    fun observeSessionSets(
+        workoutId: Long,
+        exerciseId: Long,
+        sessionId: Long,
+    ): Flow<List<ExerciseProgressEntity>> {
+        return dao.observeSessionSets(workoutId, exerciseId, sessionId)
     }
 
     suspend fun addSet(
@@ -19,6 +29,7 @@ class ExerciseProgressRepository @Inject constructor(
         reps: Int? = null,
         weight: Double? = null,
         durationSeconds: Int? = null,
+        sessionId: Long = 0L,
     ) {
         dao.insert(
             ExerciseProgressEntity(
@@ -28,6 +39,7 @@ class ExerciseProgressRepository @Inject constructor(
                 reps = reps,
                 weight = weight,
                 durationSeconds = durationSeconds,
+                sessionId = sessionId,
             )
         )
     }

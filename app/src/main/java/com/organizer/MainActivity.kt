@@ -38,6 +38,7 @@ import com.organizer.presentation.screens.general.BottomNavigationBar
 import com.organizer.presentation.screens.welcome.OnboardScreen
 import com.organizer.presentation.screens.welcome.OnboardingManager
 import com.organizer.presentation.screens.workout.WorkoutContentScreen
+import com.organizer.presentation.screens.workout.WorkoutExecutionScreen
 import com.organizer.presentation.screens.workout.StarterTemplatePreviewScreen
 import com.organizer.presentation.screens.workouts_and_exercises.CustomWorkoutsAndExercisesScreen
 import com.organizer.presentation.screens.workouts_and_exercises.WorkoutsScreen
@@ -73,12 +74,15 @@ fun AppNavigation(showOnboarding: Boolean) {
     val context = LocalContext.current
     LaunchedEffect(currentRoute) {
         val activity = context as? Activity ?: return@LaunchedEffect
-        val statusBarColor = if (currentRoute == Routes.Sports.route ||
-            currentRoute == Routes.Schedule.route
-        ) {
-            android.graphics.Color.parseColor("#FEFBFE")
-        } else {
-            android.graphics.Color.parseColor("#F8F5F5")
+        val statusBarColor = when (currentRoute) {
+            Routes.Sports.route,
+            Routes.Schedule.route,
+            -> android.graphics.Color.parseColor("#FEFBFE")
+
+            // The execution screen has a white header pinned under the status bar.
+            Routes.WorkoutExecution.route -> android.graphics.Color.parseColor("#FFFFFF")
+
+            else -> android.graphics.Color.parseColor("#F8F5F5")
         }
         activity.window.statusBarColor = statusBarColor
         activity.window.setBackgroundDrawable(ColorDrawable(statusBarColor))
@@ -125,7 +129,11 @@ fun AppNavigation(showOnboarding: Boolean) {
     Scaffold(
         containerColor = Color(0xFFFEFBFE),
         bottomBar = {
-            if (currentRoute != Routes.Onboarding.route) {
+            // The workout player is an immersive flow: it provides its own
+            // fixed action bar and must not show the app navigation.
+            if (currentRoute != Routes.Onboarding.route &&
+                currentRoute != Routes.WorkoutExecution.route
+            ) {
                 BottomNavigationBar(
                     currentRoute = currentRoute,
                     onHomeClick = {
@@ -352,10 +360,12 @@ fun AppNavigation(showOnboarding: Boolean) {
             composable(Routes.Schedule.route) {
                 ScheduleScreen(
                     onOpenWorkout = { workoutId ->
-                        navController.navigate(Routes.Workout.createRoute(workoutId))
+                        navController.navigate(Routes.WorkoutExecution.createRoute(workoutId))
                     },
-                    onCreateWorkout = {
-                        navController.navigate(Routes.CreateWorkout.createRoute())
+                    // No workouts exist yet, so sending the user to the
+                    // creation form would skip the list they need to browse.
+                    onOpenWorkouts = {
+                        navController.navigate(Routes.Workouts.route)
                     },
                 )
             }
@@ -403,6 +413,24 @@ fun AppNavigation(showOnboarding: Boolean) {
                     },
                     onCreateCustomExerciseClick = {
                         navController.navigate(Routes.AddCard.route)
+                    },
+                    viewModel = organizerViewModel,
+                )
+            }
+
+            composable(
+                route = Routes.WorkoutExecution.route,
+                arguments = listOf(navArgument("workoutId") {
+                    type = NavType.LongType
+                }),
+            ) { backStackEntry ->
+                val workoutId = backStackEntry.arguments
+                    ?.getLong("workoutId") ?: 0L
+
+                WorkoutExecutionScreen(
+                    workoutId = workoutId,
+                    onBackClick = {
+                        popBackScreen()
                     },
                     viewModel = organizerViewModel,
                 )

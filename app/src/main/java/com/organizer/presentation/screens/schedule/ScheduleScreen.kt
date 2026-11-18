@@ -64,13 +64,14 @@ import com.organizer.ui.theme.darkerShade
 @Composable
 fun ScheduleScreen(
     onOpenWorkout: (Long) -> Unit,
-    onCreateWorkout: () -> Unit,
+    onOpenWorkouts: () -> Unit,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
     val entriesState by viewModel.entriesUiState.collectAsState()
     val workoutsState by viewModel.workoutsUiState.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
     val weekOffset by viewModel.weekOffset.collectAsState()
+    val completionPercentByDate by viewModel.completionPercentByDate.collectAsState()
 
     val context = LocalContext.current
     var notificationsEnabled by remember {
@@ -262,6 +263,7 @@ fun ScheduleScreen(
                     selectedDay = selectedDay,
                     dayCount = dayCount,
                     scheduledDays = scheduledDays,
+                    completionPercentByDate = completionPercentByDate,
                     onSelectDay = viewModel::selectDay,
                     onPreviousWeek = viewModel::previousWeek,
                     onNextWeek = viewModel::nextWeek,
@@ -274,6 +276,7 @@ fun ScheduleScreen(
                     dateLabel = week.selectedDateLabel,
                     isToday = selectedDayIsToday,
                     workoutCount = dayEntries.size,
+                    completionPercent = completionPercentByDate[selectedDateKey],
                 )
                 Spacer(Modifier.height(14.dp))
             }
@@ -358,10 +361,10 @@ fun ScheduleScreen(
                     persistEntry(save, reminderEnabled)
                 }
             },
-            onCreateWorkout = {
+            onOpenWorkouts = {
                 sheetOpen = false
                 sheetEntry = null
-                onCreateWorkout()
+                onOpenWorkouts()
             },
             onRequestNotifications = ::requestNotifications,
         )
@@ -387,6 +390,7 @@ private fun SelectedDayHeader(
     dateLabel: String,
     isToday: Boolean,
     workoutCount: Int,
+    completionPercent: Int?,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -141,12 +141,15 @@ fun ExerciseImageAnimation(
                     },
                     label = "exercise_image_animation"
                 ) { index ->
-                    // Keyed by tick and index: a finished download recomposes
-                    // the model without reloading the other frames.
+                    // Keyed by URL, tick and index: a finished download
+                    // recomposes the model without reloading the other frames,
+                    // and a different exercise must resolve its own image
+                    // instead of reusing the previously remembered file.
                     val mediaTick by viewModel.mediaVersion.collectAsState()
+                    val imageUrl = imageUrls[index]
                     AsyncImage(
-                        model = remember(mediaTick, index) {
-                            viewModel.getImageFile(imageUrls[index], isCustom)
+                        model = remember(mediaTick, imageUrl, isCustom) {
+                            viewModel.getImageFile(imageUrl, isCustom)
                         },
                         contentDescription = exerciseName,
                         modifier = Modifier.fillMaxWidth(),
@@ -156,12 +159,10 @@ fun ExerciseImageAnimation(
             } else {
                 // Manual navigation uses a normal image(no fade)
                 val mediaTick by viewModel.mediaVersion.collectAsState()
+                val imageUrl = imageUrls[currentIndex]
                 AsyncImage(
-                    model = remember(mediaTick, currentIndex) {
-                        viewModel.getImageFile(
-                            imageUrls[currentIndex],
-                            isCustom
-                        )
+                    model = remember(mediaTick, imageUrl, isCustom) {
+                        viewModel.getImageFile(imageUrl, isCustom)
                     },
                     contentDescription = exerciseName,
                     modifier = Modifier.fillMaxWidth(),

@@ -44,6 +44,7 @@ internal fun ScheduleDayStrip(
     selectedDay: Int,
     dayCount: Int,
     scheduledDays: Set<Int>,
+    completionPercentByDate: Map<Int, Int>,
     onSelectDay: (Int) -> Unit,
     onPreviousWeek: () -> Unit,
     onNextWeek: () -> Unit,
@@ -101,6 +102,7 @@ internal fun ScheduleDayStrip(
                     day = day,
                     selected = day.isoDay == selectedDay,
                     hasWorkout = day.isoDay in scheduledDays,
+                    completionPercent = completionPercentByDate[day.dateKey],
                     onClick = { onSelectDay(day.isoDay) },
                     modifier = Modifier.weight(1f),
                 )
@@ -133,6 +135,7 @@ private fun DayPill(
     day: ScheduleWeekDay,
     selected: Boolean,
     hasWorkout: Boolean,
+    completionPercent: Int?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -199,18 +202,41 @@ private fun DayPill(
             },
         )
 
+        // Completed days show how much of the workout was performed; other
+        // days keep the workout dot. The row is height-stable so all pills
+        // align whether they carry a dot or a percentage.
         Box(
             modifier = Modifier
-                .padding(top = 6.dp)
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(
-                    when {
+                .padding(top = 4.dp)
+                .height(12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (completionPercent != null) {
+                Text(
+                    text = "$completionPercent%",
+                    fontSize = 10.sp,
+                    lineHeight = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
                         selected -> ScheduleSurface
-                        hasWorkout -> ScheduleBrand
-                        else -> androidx.compose.ui.graphics.Color.Transparent
-                    }
-                ),
-        )
+                        completionPercent >= 100 -> ScheduleStartWorkoutGreen
+                        else -> ScheduleBrand
+                    },
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                selected -> ScheduleSurface
+                                hasWorkout -> ScheduleBrand
+                                else -> androidx.compose.ui.graphics.Color.Transparent
+                            }
+                        ),
+                )
+            }
+        }
     }
 }

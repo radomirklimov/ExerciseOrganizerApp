@@ -10,8 +10,10 @@ import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.PlannedSetDao
 import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.StarterTemplateDao
+import com.organizer.data.local.dao.WorkoutCompletionDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.entities.CategoryEntity
@@ -19,15 +21,17 @@ import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
+import com.organizer.data.local.db.entities.WorkoutCompletionEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 10,
+    version = 12,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -38,7 +42,9 @@ import com.organizer.data.mapper.ListConverters
         FavoriteExerciseEntity::class,
         StarterTemplateEntity::class,
         StarterTemplateExerciseEntity::class,
-        ScheduledWorkoutEntity::class
+        ScheduledWorkoutEntity::class,
+        PlannedSetEntity::class,
+        WorkoutCompletionEntity::class
     ],
     exportSchema = false
 )
@@ -53,6 +59,58 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val favoriteExerciseDao: FavoriteExerciseDao
     abstract val starterTemplateDao: StarterTemplateDao
     abstract val scheduledWorkoutDao: ScheduledWorkoutDao
+    abstract val plannedSetDao: PlannedSetDao
+    abstract val workoutCompletionDao: WorkoutCompletionDao
+}
+
+val PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS planned_set (
+                workoutId INTEGER NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                setNumber INTEGER NOT NULL,
+                reps INTEGER,
+                weight REAL,
+                durationSeconds INTEGER,
+                PRIMARY KEY (workoutId, exerciseId, setNumber),
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_set_workoutId ON planned_set (workoutId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_set_exerciseId ON planned_set (exerciseId)")
+
+        // Sets recorded before this version belong to session 0. New
+        // executions get their own id, so they start from "Set 1" again.
+        db.execSQL(
+            "ALTER TABLE exercise_progress ADD COLUMN sessionId INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_exercise_progress_sessionId " +
+                "ON exercise_progress (sessionId)"
+        )
+    }
+}
+
+val WORKOUT_COMPLETION_MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS workout_completion (
+                dateKey INTEGER NOT NULL,
+                workoutId INTEGER NOT NULL,
+                completedExercises INTEGER NOT NULL,
+                totalExercises INTEGER NOT NULL,
+                completedAt INTEGER NOT NULL,
+                PRIMARY KEY (dateKey, workoutId),
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_workout_completion_workoutId " +
+                "ON workout_completion (workoutId)"
+        )
+    }
 }
 
 val SCHEDULED_WORKOUT_MIGRATION_8_9 = object : Migration(8, 9) {

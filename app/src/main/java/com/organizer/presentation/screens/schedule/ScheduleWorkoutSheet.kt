@@ -74,6 +74,8 @@ internal fun ScheduleWorkoutSheet(
     entry: ScheduledWorkoutItem?,
     workouts: List<WorkoutWithExerciseCount>,
     notificationsEnabled: Boolean,
+    notificationsDenied: Boolean,
+    reminderDefaultOn: Boolean,
     onDismiss: () -> Unit,
     onSave: (
         workoutId: Long,
@@ -96,10 +98,17 @@ internal fun ScheduleWorkoutSheet(
         mutableIntStateOf(storedEntry?.startMinutes ?: DEFAULT_START_MINUTES)
     }
     var reminderEnabled by remember(stateKey) {
-        mutableStateOf(storedEntry?.reminderEnabled ?: true)
+        // New schedules default to a reminder unless the user declined the
+        // notification permission; existing ones keep their saved choice.
+        val stored = storedEntry?.reminderEnabled
+        mutableStateOf(
+            if (stored != null) stored && notificationsEnabled else reminderDefaultOn
+        )
     }
+    var awaitingNotificationGrant by remember { mutableStateOf(false) }
+    var notificationsWereEnabled by remember { mutableStateOf(notificationsEnabled) }
     var reminderMinutesBefore by remember(stateKey) {
-        mutableIntStateOf(storedEntry?.reminderMinutesBefore ?: 60)
+        mutableIntStateOf(storedEntry?.reminderMinutesBefore ?: 30)
     }
     var reminderNote by remember(stateKey) {
         mutableStateOf(storedEntry?.reminderNote.orEmpty())
@@ -111,6 +120,24 @@ internal fun ScheduleWorkoutSheet(
     var workoutMenuExpanded by remember { mutableStateOf(false) }
     var repeatsMenuExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+
+    // Keeps the toggle in sync with the notification permission: it turns on
+    // after the user grants it from a toggle tap, and only turns off when
+    // access is lost after the sheet opened. The reminder stays on by default
+    // even before the permission was ever requested.
+    LaunchedEffect(notificationsEnabled) {
+        when {
+            notificationsEnabled && awaitingNotificationGrant -> {
+                awaitingNotificationGrant = false
+                reminderEnabled = true
+            }
+            !notificationsEnabled && notificationsWereEnabled -> {
+                awaitingNotificationGrant = false
+                reminderEnabled = false
+            }
+        }
+        notificationsWereEnabled = notificationsEnabled
+    }
 
     LaunchedEffect(workouts, selectedWorkoutId) {
         val selectionStillExists = workouts.any { it.workoutId == selectedWorkoutId }
@@ -376,15 +403,11 @@ internal fun ScheduleWorkoutSheet(
                                 color = ScheduleInk,
                             )
                             Text(
-                                text = if (notificationsEnabled) {
-                                    "Get an alert before workout begins"
-                                } else {
-                                    "Notifications are off — tap to allow"
-                                },
-                                modifier = if (notificationsEnabled) {
-                                    Modifier
-                                } else {
-                                    Modifier.clickable(onClick = onRequestNotifications)
+                                text = when {
+                                    notificationsEnabled ->
+                                        "Get an alert before workout begins"
+                                    notificationsDenied -> "Notifications are blocked"
+                                    else -> "You'll be asked to allow notifications on save"
                                 },
                                 fontSize = 12.sp,
                                 color = if (notificationsEnabled) {
@@ -398,9 +421,19 @@ internal fun ScheduleWorkoutSheet(
                         Switch(
                             checked = reminderEnabled,
                             onCheckedChange = { enabled ->
-                                reminderEnabled = enabled
-                                if (enabled && !notificationsEnabled) {
-                                    onRequestNotifications()
+                                when {
+                                    !enabled -> {
+                                        awaitingNotificationGrant = false
+                                        reminderEnabled = false
+                                    }
+                                    notificationsEnabled -> reminderEnabled = true
+                                    else -> {
+                                        // Ask for the notification permission
+                                        // first; the switch stays off until it
+                                        // is granted.
+                                        awaitingNotificationGrant = true
+                                        onRequestNotifications()
+                                    }
                                 }
                             },
                             colors = SwitchDefaults.colors(

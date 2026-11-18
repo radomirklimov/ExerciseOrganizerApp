@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +55,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.organizer.notification.canScheduleExactAlarms
 import com.organizer.presentation.model.ScheduledWorkoutItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import com.organizer.presentation.screens.general.LoadingState
@@ -74,12 +76,32 @@ fun ScheduleScreen(
     var notificationsEnabled by remember {
         mutableStateOf(notificationsAllowed(context))
     }
+    var notificationsDenied by remember {
+        mutableStateOf(ReminderPreferences.notificationsDenied(context))
+    }
+    var exactAlarmsAllowed by remember {
+        mutableStateOf(context.canScheduleExactAlarms())
+    }
     var permissionRequested by rememberSaveable { mutableStateOf(false) }
+
+    // A save waiting for the notification permission answer. The entry is
+    // written only after the dialog closes, so a denial can be stored with the
+    // reminder turned off.
+    var pendingSave by remember { mutableStateOf<PendingScheduleSave?>(null) }
+    var permissionOutcome by remember { mutableStateOf<Boolean?>(null) }
+    // True while a pending save waits for the user to return from the app's
+    // notification settings (permission granted but notifications turned off).
+    var awaitingSettingsSave by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) {
-        notificationsEnabled = notificationsAllowed(context)
+        val granted = notificationsAllowed(context)
+        notificationsEnabled = granted
+        // A rejection keeps new schedules' reminders off; granting clears it.
+        ReminderPreferences.setNotificationsDenied(context, !granted)
+        notificationsDenied = !granted
+        permissionOutcome = granted
     }
 
     val lifecycleOwner = context.findLifecycleOwner()
@@ -87,6 +109,27 @@ fun ScheduleScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsEnabled = notificationsAllowed(context)
+                if (awaitingSettingsSave) {
+                    // Back from the notification settings: finish the save that
+                    // was waiting for the user to enable notifications.
+                    awaitingSettingsSave = false
+                    ReminderPreferences.setNotificationsDenied(context, !notificationsEnabled)
+                    notificationsDenied = !notificationsEnabled
+                    permissionOutcome = notificationsEnabled
+                }
+                if (notificationsEnabled && notificationsDenied) {
+                    // Granted from system settings, so new schedules default
+                    // back to a reminder that is on.
+                    ReminderPreferences.setNotificationsDenied(context, false)
+                    notificationsDenied = false
+                }
+                val allowed = context.canScheduleExactAlarms()
+                if (allowed != exactAlarmsAllowed) {
+                    // Exact-alarm access can only change outside the app, so
+                    // recreate the alarms when the user toggles it in settings.
+                    viewModel.rescheduleReminders()
+                }
+                exactAlarmsAllowed = allowed
             }
         }
         lifecycleOwner?.lifecycle?.addObserver(observer)
@@ -96,14 +139,8 @@ fun ScheduleScreen(
     }
 
     fun requestNotifications() {
-        val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS,
-            ) == PackageManager.PERMISSION_GRANTED
-
         when {
-            !granted -> {
+            !notificationPermissionGranted(context) -> {
                 if (permissionRequested) {
                     // The system has already shown its prompt. Further taps
                     // belong in app settings, where "Don't allow" can be undone.
@@ -175,6 +212,31 @@ fun ScheduleScreen(
     fun openSheet(entry: ScheduledWorkoutItem?) {
         sheetEntry = entry
         sheetOpen = true
+    }
+
+    fun persistEntry(save: PendingScheduleSave, reminderEnabled: Boolean) {
+        viewModel.saveEntry(
+            scheduleId = save.scheduleId,
+            workoutId = save.workoutId,
+            dayOfWeek = save.dayOfWeek,
+            scheduledDateKey = save.scheduledDateKey,
+            startMinutes = save.startMinutes,
+            reminderEnabled = reminderEnabled,
+            reminderMinutesBefore = save.reminderMinutesBefore,
+            reminderNote = save.reminderNote,
+        )
+        sheetOpen = false
+        sheetEntry = null
+    }
+
+    // Completes a save that was waiting for the notification permission. The
+    // reminder is kept only when the user allowed notifications.
+    LaunchedEffect(permissionOutcome) {
+        val granted = permissionOutcome ?: return@LaunchedEffect
+        val save = pendingSave ?: return@LaunchedEffect
+        pendingSave = null
+        permissionOutcome = null
+        persistEntry(save, reminderEnabled = granted)
     }
 
     Box(
@@ -261,25 +323,43 @@ fun ScheduleScreen(
             entry = sheetEntry,
             workouts = workouts,
             notificationsEnabled = notificationsEnabled,
+            notificationsDenied = notificationsDenied,
+            reminderDefaultOn = notificationsEnabled || !notificationsDenied,
             onDismiss = {
                 sheetOpen = false
                 sheetEntry = null
             },
             onSave = { workoutId, scheduledDateKey, startMinutes, reminderEnabled, minutesBefore, note ->
-                viewModel.saveEntry(
+                val save = PendingScheduleSave(
                     scheduleId = sheetEntry?.entry?.scheduleId,
                     workoutId = workoutId,
                     dayOfWeek = sheetEntry?.entry?.dayOfWeek ?: selectedDay,
                     scheduledDateKey = scheduledDateKey,
                     startMinutes = startMinutes,
-                    reminderEnabled = reminderEnabled,
                     reminderMinutesBefore = minutesBefore,
                     reminderNote = note,
                 )
-                sheetOpen = false
-                sheetEntry = null
+
                 if (reminderEnabled && !notificationsEnabled) {
-                    requestNotifications()
+                    // Ask for notifications only when a reminder is actually
+                    // saved. The answer decides whether the entry keeps the
+                    // reminder or is stored with it turned off.
+                    pendingSave = save
+                    permissionOutcome = null
+                    if (notificationPermissionGranted(context)) {
+                        // The permission exists but notifications are turned
+                        // off for the app, so only system settings can fix it.
+                        awaitingSettingsSave = true
+                        if (!openNotificationSettings(context)) {
+                            awaitingSettingsSave = false
+                            persistEntry(save, reminderEnabled = false)
+                        }
+                    } else {
+                        permissionRequested = true
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                } else {
+                    persistEntry(save, reminderEnabled)
                 }
             },
             onCreateWorkout = {
@@ -450,18 +530,19 @@ private fun Context.findLifecycleOwner(): LifecycleOwner? {
     return current as? LifecycleOwner
 }
 
-private fun notificationsAllowed(context: Context): Boolean {
-    val runtimeGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+private fun notificationsAllowed(context: Context): Boolean =
+    notificationPermissionGranted(context) &&
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+private fun notificationPermissionGranted(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.POST_NOTIFICATIONS,
         ) == PackageManager.PERMISSION_GRANTED
 
-    return runtimeGranted &&
-        NotificationManagerCompat.from(context).areNotificationsEnabled()
-}
 
-private fun openNotificationSettings(context: Context) {
+private fun openNotificationSettings(context: Context): Boolean {
     val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -476,5 +557,19 @@ private fun openNotificationSettings(context: Context) {
         }
     }
 
-    runCatching { context.startActivity(intent) }
+    return runCatching { context.startActivity(intent) }.isSuccess
 }
+
+/**
+ * Everything needed to write a schedule entry, held while the app waits for
+ * the user to answer the notification permission prompt.
+ */
+private data class PendingScheduleSave(
+    val scheduleId: Long?,
+    val workoutId: Long,
+    val dayOfWeek: Int,
+    val scheduledDateKey: Int?,
+    val startMinutes: Int,
+    val reminderMinutesBefore: Int,
+    val reminderNote: String,
+)

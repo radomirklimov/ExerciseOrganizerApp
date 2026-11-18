@@ -157,6 +157,16 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Recreates every pending alarm. Called after the user grants exact-alarm
+     * access so existing reminders switch from inexact to exact delivery.
+     */
+    fun rescheduleReminders() = viewModelScope.launch {
+        entryMutex.withLock {
+            reminderScheduler.rescheduleAll(scheduleRepo.getSchedule())
+        }
+    }
+
     fun updateReminderNote(scheduleId: Long, note: String) = viewModelScope.launch {
         // The receiver reads the note from the database when the alarm fires,
         // so changing it never needs a new alarm.

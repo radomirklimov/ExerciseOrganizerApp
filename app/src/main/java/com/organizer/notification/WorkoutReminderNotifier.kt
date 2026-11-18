@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -54,13 +55,18 @@ class WorkoutReminderNotifier @Inject constructor(
 
         val text = ReminderTextFormatter.format(
             workoutStartMillis = workoutStartMillis,
-            workoutName = workoutName,
             note = entry.reminderNote,
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_workout_reminder)
-            .setContentTitle("Workout Reminder")
+            .setSmallIcon(R.drawable.ic_stat_exercise_organizer)
+            .setLargeIcon(
+                BitmapFactory.decodeResource(
+                    context.resources,
+                    R.mipmap.exercise_organizer_logo_foreground,
+                )
+            )
+            .setContentTitle(workoutName)
             .setContentText(text.shortText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text.longText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)

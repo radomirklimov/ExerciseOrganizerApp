@@ -84,11 +84,10 @@ class WorkoutReminderScheduler @Inject constructor(
     private fun scheduleAlarm(triggerAtMillis: Long, pendingIntent: PendingIntent) {
         val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
 
-        // Exact alarms need a user-granted permission on Android 12+. The app
-        // does not request that permission, so fall back to an inexact alarm
-        // that the system can still deliver while the device is dozing.
-        val canUseExactAlarm = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            alarmManager.canScheduleExactAlarms()
+        // Exact alarms need a user-granted permission on Android 12+. When it
+        // is missing, fall back to an inexact alarm that the system can still
+        // deliver while the device is dozing.
+        val canUseExactAlarm = context.canScheduleExactAlarms()
 
         if (canUseExactAlarm) {
             try {
@@ -139,3 +138,11 @@ class WorkoutReminderScheduler @Inject constructor(
         private const val REMINDER_URI_PREFIX = "workout-reminder://"
     }
 }
+
+/**
+ * Whether the app may schedule exact alarms. Before Android 12 this is always
+ * true; from Android 12 on the user controls it in system settings.
+ */
+fun Context.canScheduleExactAlarms(): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+        getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true

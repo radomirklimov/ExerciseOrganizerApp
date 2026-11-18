@@ -42,7 +42,7 @@ data class ScheduledWorkoutEntity(
     val startMinutes: Int,
     val reminderEnabled: Boolean = true,
     /** How long before the workout the reminder fires. */
-    val reminderMinutesBefore: Int = 60,
+    val reminderMinutesBefore: Int = 30,
     /** Optional text included in the reminder notification. */
     val reminderNote: String = "",
 )

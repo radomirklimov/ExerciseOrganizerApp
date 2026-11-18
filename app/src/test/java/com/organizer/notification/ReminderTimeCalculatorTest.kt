@@ -116,20 +116,22 @@ class ReminderTimeCalculatorTest {
     }
 
     @Test
-    fun `notification text contains date time workout and note`() {
+    fun `notification text contains time and note`() {
         val text = ReminderTextFormatter.format(
             workoutStartMillis = utcMillis(2026, Calendar.NOVEMBER, 23, 18, 0),
-            workoutName = "Chest Day",
             note = "Don't forget to bring my lifting belt!",
             timeZone = utc,
             locale = Locale.ENGLISH,
         )
 
-        assertEquals("Monday, 23 November", text.date)
         assertEquals("18:00", text.time)
-        assertTrue(text.longText.contains("Date: Monday, 23 November"))
+        assertEquals(
+            "Time: 18:00 · Don't forget to bring my lifting belt!",
+            text.shortText,
+        )
+        assertFalse(text.longText.contains("Date:"))
+        assertFalse(text.longText.contains("Workout:"))
         assertTrue(text.longText.contains("Time: 18:00"))
-        assertTrue(text.longText.contains("Workout: Chest Day"))
         assertTrue(text.longText.contains("Note: Don't forget to bring my lifting belt!"))
     }
 
@@ -137,14 +139,13 @@ class ReminderTimeCalculatorTest {
     fun `blank note is omitted from the notification text`() {
         val text = ReminderTextFormatter.format(
             workoutStartMillis = utcMillis(2026, Calendar.NOVEMBER, 23, 18, 0),
-            workoutName = "Chest Day",
             note = "   ",
             timeZone = utc,
             locale = Locale.ENGLISH,
         )
 
         assertFalse(text.longText.contains("Note:"))
-        assertEquals("Monday, 23 November · 18:00 · Chest Day", text.shortText)
+        assertEquals("Time: 18:00", text.shortText)
     }
 
     private fun utcMillis(

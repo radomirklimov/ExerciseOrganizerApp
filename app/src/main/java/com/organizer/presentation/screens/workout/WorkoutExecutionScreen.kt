@@ -52,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,7 @@ import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseImageAnimation
+import com.organizer.presentation.screens.exercises.InstructionPager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlin.time.Duration.Companion.seconds
@@ -342,7 +344,6 @@ fun WorkoutExecutionScreen(
                         ) {
                             ExerciseHeroCard(
                                 exercise = current,
-                                workoutNote = workout?.notes?.trim().orEmpty(),
                                 typeLabel = exerciseTypeLabel(currentType ?: current.exerciseType),
                                 viewModel = viewModel,
                             )
@@ -625,7 +626,6 @@ private fun ElapsedTimerPill(seconds: Int) {
 @Composable
 private fun ExerciseHeroCard(
     exercise: ExerciseEntity,
-    workoutNote: String,
     typeLabel: String,
     viewModel: OrganizerViewModel,
 ) {
@@ -689,51 +689,13 @@ private fun ExerciseHeroCard(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            val instruction = exercise.instructions.firstOrNull()?.takeIf { it.isNotBlank() }
-            if (instruction != null) {
-                Spacer(Modifier.height(10.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = ExecutionBrand50.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, ExecutionBrand100),
-                ) {
-                    Text(
-                        text = instruction,
-                        modifier = Modifier.padding(12.dp),
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        color = ExecutionInkSecondary,
-                    )
-                }
-            }
-
-            if (workoutNote.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = ExecutionBrand50.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, ExecutionBrand100),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = ExecutionBrand,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = workoutNote,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            color = ExecutionInkSecondary,
-                        )
-                    }
+            if (exercise.instructions.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                // Same component as the exercise card: step cards with the
+                // horizontal step paging and progress dots. Re-keyed per
+                // exercise so every exercise starts at step 1.
+                key(exercise.exerciseId) {
+                    InstructionPager(instructions = exercise.instructions)
                 }
             }
         }

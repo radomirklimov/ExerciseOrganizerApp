@@ -142,7 +142,11 @@ fun ExerciseListItem(
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
-                            model = remember(mediaTick) {
+                            model = remember(
+                                mediaTick,
+                                exercise.imageUrls.first(),
+                                exercise.isCustom,
+                            ) {
                                 viewModel.getImageFile(exercise.imageUrls.first(), exercise.isCustom)
                             },
                             contentDescription = exercise.name,

@@ -32,7 +32,7 @@ fun TabSelector(onboardPages: List<OnboardPage>, currentPage: Int, onTabSelected
                         .size(8.dp)
                         .background(
                             color = if (index == currentPage) MaterialTheme.colorScheme.onPrimary
-                            else Color.LightGray, shape = RoundedCornerShape(4.dp)
+                            else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f), shape = RoundedCornerShape(4.dp)
                         )
                 )
             })

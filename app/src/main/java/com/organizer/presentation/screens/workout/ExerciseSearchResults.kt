@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.model.ExerciseCatalogEntry
 
 /** Upper bound for a search result list; the UI offers a "refine" hint above it. */
@@ -100,7 +101,7 @@ internal fun ExerciseOptionRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (selected) Brand50.copy(alpha = 0.7f) else Color.White)
+            .background(if (selected) Brand50.copy(alpha = 0.7f) else AppTheme.colors.surface)
             .border(
                 width = if (selected) 2.dp else 1.dp,
                 color = if (selected) Brand else RowBorder,
@@ -182,10 +183,10 @@ private fun SelectionIndicator(selected: Boolean) {
         modifier = Modifier
             .size(28.dp)
             .clip(shape)
-            .background(if (selected) Brand else Color.White)
+            .background(if (selected) Brand else AppTheme.colors.surface)
             .border(
                 width = if (selected) 1.dp else 2.dp,
-                color = if (selected) Brand else Color(0xFFCAC5D3),
+                color = if (selected) Brand else AppTheme.colors.borderStrong,
                 shape = shape,
             ),
         contentAlignment = Alignment.Center,
@@ -194,7 +195,7 @@ private fun SelectionIndicator(selected: Boolean) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = AppTheme.colors.onPrimary,
                 modifier = Modifier.size(18.dp),
             )
         }

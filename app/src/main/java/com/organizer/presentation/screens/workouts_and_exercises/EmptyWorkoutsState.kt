@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun EmptyWorkoutsState(
@@ -58,7 +59,7 @@ fun EmptyWorkoutsState(
                 modifier = Modifier
                     .size(176.dp)
                     .blur(48.dp)
-                    .background(Color(0xFFE9DDFF).copy(alpha = 0.5f), CircleShape),
+                    .background(AppTheme.colors.primarySoft.copy(alpha = 0.5f), CircleShape),
             )
 
             Box(
@@ -66,21 +67,21 @@ fun EmptyWorkoutsState(
                     .size(144.dp)
                     .shadow(4.dp, RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
+                    .background(AppTheme.colors.surface)
+                    .border(1.dp, AppTheme.colors.borderStrong.copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
             ) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(96.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFE9DDFF)),
+                        .background(AppTheme.colors.primarySoft),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.FitnessCenter,
                         contentDescription = null,
-                        tint = Color(0xFF4F378A),
+                        tint = AppTheme.colors.primaryDark,
                         modifier = Modifier.size(48.dp),
                     )
                 }
@@ -91,7 +92,7 @@ fun EmptyWorkoutsState(
             text = "No Workout Routines Yet",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF1C1B1F),
+            color = AppTheme.colors.textPrimary,
             textAlign = TextAlign.Center,
         )
 
@@ -100,7 +101,7 @@ fun EmptyWorkoutsState(
         Text(
             text = "Create structured workout routines to organize exercises, track sets, reps, and weights during your sessions.",
             fontSize = 14.sp,
-            color = Color(0xFF494551),
+            color = AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
             lineHeight = 20.sp,
             modifier = Modifier.padding(horizontal = 8.dp),

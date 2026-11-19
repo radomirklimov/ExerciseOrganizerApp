@@ -15,8 +15,8 @@ import javax.inject.Singleton
  * library; these values are simple scalars, so SharedPreferences is enough.
  *
  * The stored values drive the profile UI. The language is applied app-wide
- * through [AppLocale]; the theme and font-size choices are still design-only
- * and are not applied yet.
+ * through [AppLocale] and the theme through [com.organizer.ui.theme.AppThemeProvider];
+ * the font-size choice is still design-only.
  */
 @Singleton
 class SettingsRepository @Inject constructor(
@@ -117,5 +117,15 @@ class SettingsRepository @Inject constructor(
             context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_LANGUAGE, null)
                 ?: LanguageOption.ENGLISH.tag
+
+        /**
+         * Reads the saved theme before the Activity window is created, so the
+         * window background and splash screen already match the chosen mode.
+         */
+        fun readThemeMode(context: Context): ThemeMode {
+            val raw = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_THEME, null)
+            return ThemeMode.entries.firstOrNull { it.name == raw } ?: ThemeMode.LIGHT
+        }
     }
 }

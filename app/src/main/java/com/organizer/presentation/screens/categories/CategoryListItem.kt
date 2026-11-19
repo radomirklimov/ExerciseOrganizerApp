@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -86,7 +87,7 @@ fun CategoryListItem(
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = AppTheme.colors.surface
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 4.dp
@@ -132,7 +133,7 @@ fun CategoryListItem(
                     modifier = Modifier
                         .horizontalScroll(textScrollState),
                     fontSize = 24.sp,
-                    color = Color.Black,
+                    color = AppTheme.colors.textPrimary,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                 )
@@ -140,7 +141,7 @@ fun CategoryListItem(
                     Text(
                         text = subtitle,
                         fontSize = 13.sp,
-                        color = Color(0xFF494551),
+                        color = AppTheme.colors.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -149,7 +150,7 @@ fun CategoryListItem(
                     Text(
                         text = "${categoryExercises?.size ?: 0} Exercises",
                         fontSize = 13.sp,
-                        color = Color(0xFF494551),
+                        color = AppTheme.colors.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -162,11 +163,11 @@ fun CategoryListItem(
             val isPressed by interactionSource.collectIsPressedAsState()
             val arrowHighlighted = selected || isPressed
             val arrowBackground by animateColorAsState(
-                targetValue = if (arrowHighlighted) Color(0xFF6750A4) else Color(0xFFF7F2F8),
+                targetValue = if (arrowHighlighted) AppTheme.colors.primary else AppTheme.colors.surfaceMuted,
                 label = "categoryArrowBackground",
             )
             val arrowTint by animateColorAsState(
-                targetValue = if (arrowHighlighted) Color.White else Color(0xFF494551),
+                targetValue = if (arrowHighlighted) AppTheme.colors.onPrimary else AppTheme.colors.textSecondary,
                 label = "categoryArrowTint",
             )
 

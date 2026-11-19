@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import com.organizer.ui.theme.themedColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -269,7 +270,7 @@ internal fun ScheduledWorkoutCard(
                         text = "Personal Note / Checklist",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF334155),
+                        color = themedColor(Color(0xFF334155), ScheduleInkSecondary),
                     )
                     Text(
                         text = "Included in alert",

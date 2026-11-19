@@ -44,6 +44,7 @@ import com.organizer.presentation.screens.workout.ExerciseSectionHeading
 import com.organizer.presentation.screens.workout.MAX_EXERCISE_SEARCH_RESULTS
 import com.organizer.presentation.screens.workout.emptyExerciseSearchMessage
 import com.organizer.presentation.screens.workout.filterExerciseEntries
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun SportsScreen(
@@ -98,7 +99,7 @@ fun SportsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFEFBFE))
+            .background(AppTheme.colors.background)
             .padding(horizontal = 24.dp)
             .padding(top = 16.dp)
     ) {

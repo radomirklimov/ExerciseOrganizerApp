@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,12 +49,18 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 
-private val Primary = Color(0xFF4F378A)
-private val PrimaryContainer = Color(0xFFE9DDFF)
-private val OnSurface = Color(0xFF1C1B1F)
-private val OnSurfaceVariant = Color(0xFF494551)
-private val OutlineVariant = Color(0xFFCBC4D2)
+private val Primary: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.primaryDark
+private val PrimaryContainer: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.primarySoft
+private val OnSurface: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.textPrimary
+private val OnSurfaceVariant: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.textSecondary
+private val OutlineVariant: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.borderStrong
 
 /**
  * Picks an icon that describes what the template trains. [categoryName] is the
@@ -96,7 +103,7 @@ fun StarterTemplateCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = AppTheme.colors.surface,
         border = BorderStroke(1.dp, OutlineVariant.copy(alpha = 0.3f)),
         shadowElevation = 4.dp,
     ) {
@@ -141,7 +148,7 @@ fun StarterTemplateCard(
                     color = OnSurfaceVariant,
                     modifier = Modifier
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(Color(0xFFEBE7EC))
+                        .background(AppTheme.colors.surfaceStrong)
                         .padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
@@ -160,7 +167,7 @@ fun StarterTemplateCard(
             Text(
                 text = template.categoryLabel,
                 fontSize = 12.sp,
-                color = Color(0xFF7A7582),
+                color = AppTheme.colors.textMuted,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
@@ -168,7 +175,7 @@ fun StarterTemplateCard(
 
             Spacer(modifier = Modifier.weight(1f).height(12.dp))
 
-            HorizontalDivider(color = Color(0xFFF1ECF2), thickness = 1.dp)
+            HorizontalDivider(color = AppTheme.colors.surfaceMuted, thickness = 1.dp)
 
             Row(
                 modifier = Modifier
@@ -230,10 +237,10 @@ fun StarterTemplatesSection(
                     if (templates.size == 1) "routine" else "routines",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF7A7582),
+                color = AppTheme.colors.textMuted,
                 modifier = Modifier
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(Color(0xFFF1ECF2))
+                    .background(AppTheme.colors.surfaceMuted)
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
@@ -295,13 +302,13 @@ private fun ViewAllTemplatesCard(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.18f)),
+                    .background(AppTheme.colors.onPrimary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = AppTheme.colors.onPrimary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -312,13 +319,13 @@ private fun ViewAllTemplatesCard(
                 text = "View all",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = AppTheme.colors.onPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = "All templates",
                 fontSize = 11.sp,
-                color = Color.White.copy(alpha = 0.75f),
+                color = AppTheme.colors.onPrimary.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 2.dp),
             )

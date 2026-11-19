@@ -1,57 +1,75 @@
 package com.organizer.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
+    primary = Color(0xFF6750A4),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFE9DDFF),
+    onPrimaryContainer = Color(0xFF21005D),
+    secondary = Color(0xFF625B71),
+    onSecondary = Color(0xFFFFFFFF),
+    tertiary = Color(0xFF7D5260),
+    onTertiary = Color(0xFFFFFFFF),
+    background = Color(0xFFFEFBFE),
     onBackground = Color(0xFF1C1B1F),
+    surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF1C1B1F),
-    */
+    surfaceVariant = Color(0xFFF1ECF2),
+    onSurfaceVariant = Color(0xFF494551),
+    outline = Color(0xFFCBC4D2),
+    outlineVariant = Color(0xFFE7E3EC),
+    error = Color(0xFFB3261E),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFF9DEDC),
+    onErrorContainer = Color(0xFF410E0B),
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFFC9B8FF),
+    onPrimary = Color(0xFF2A1758),
+    primaryContainer = Color(0xFF463278),
+    onPrimaryContainer = Color(0xFFE9DDFF),
+    secondary = Color(0xFFC9C2D3),
+    onSecondary = Color(0xFF322F38),
+    tertiary = Color(0xFFEFB8C8),
+    onTertiary = Color(0xFF4A2530),
+    background = Color(0xFF121016),
+    onBackground = Color(0xFFF4F0F7),
+    surface = Color(0xFF1C1921),
+    onSurface = Color(0xFFF4F0F7),
+    surfaceVariant = Color(0xFF24202A),
+    onSurfaceVariant = Color(0xFFC9C2D3),
+    outline = Color(0xFF4B4456),
+    outlineVariant = Color(0xFF37323F),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+)
+
+/**
+ * Root theme for the Compose hierarchy. [darkTheme] follows the app's own
+ * Light/Dark setting rather than the system setting.
+ */
 @Composable
-fun ExerciseOrganizerAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
+fun AppThemeProvider(
+    darkTheme: Boolean,
+    content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val palette = if (darkTheme) DarkAppPalette else LightAppPalette
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    CompositionLocalProvider(LocalAppPalette provides palette) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content,
+        )
     }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
 }

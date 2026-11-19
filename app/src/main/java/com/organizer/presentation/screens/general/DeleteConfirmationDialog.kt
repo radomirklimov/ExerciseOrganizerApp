@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,16 +55,27 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import com.organizer.ui.theme.AppTheme
+import com.organizer.ui.theme.themedColor
 
-private val Danger = Color(0xFFB3261E)
-private val DangerSoft = Color(0xFFF9DEDC)
-private val DangerBorder = Color(0xFFF2B8B5)
-private val Ink = Color(0xFF0F172A)
-private val InkMuted = Color(0xFF64748B)
-private val InkStrong = Color(0xFF334155)
-private val SlateSoft = Color(0xFFF1F5F9)
-private val SlateLine = Color(0xFFF1F5F9)
-private val SlateIcon = Color(0xFF94A3B8)
+private val Danger: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFB3261E), Color(0xFFC6342B))
+private val DangerSoft: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFF9DEDC), AppTheme.colors.dangerSoft)
+private val DangerBorder: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFF2B8B5), AppTheme.colors.dangerBorder)
+private val Ink: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF0F172A), AppTheme.colors.textPrimary)
+private val InkMuted: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF64748B), AppTheme.colors.textMuted)
+private val InkStrong: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF334155), AppTheme.colors.textSecondary)
+private val SlateSoft: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFF1F5F9), AppTheme.colors.surfaceMuted)
+private val SlateLine: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFF1F5F9), AppTheme.colors.border)
+private val SlateIcon: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF94A3B8), AppTheme.colors.textMuted)
 
 /**
  * Describes the thing a delete button is about to remove.
@@ -119,7 +131,7 @@ fun DeleteConfirmationDialog(
                         .fillMaxWidth()
                         .widthIn(max = 360.dp),
                     shape = RoundedCornerShape(28.dp),
-                    color = Color.White,
+                    color = AppTheme.colors.surface,
                     border = BorderStroke(1.dp, SlateLine),
                     shadowElevation = 24.dp,
                 ) {
@@ -167,6 +179,7 @@ fun DeleteConfirmationDialog(
                                     itemName = itemName,
                                     location = location,
                                     isPermanent = isPermanent,
+                                    strongColor = InkStrong,
                                 ),
                                 fontSize = 13.sp,
                                 lineHeight = 19.sp,
@@ -252,15 +265,20 @@ fun DeleteConfirmationDialog(
     }
 }
 
-private fun deletionMessage(itemName: String, location: String?, isPermanent: Boolean) =
+private fun deletionMessage(
+    itemName: String,
+    location: String?,
+    isPermanent: Boolean,
+    strongColor: Color,
+) =
     buildAnnotatedString {
         append(if (isPermanent) "Are you sure you want to permanently delete " else "Are you sure you want to remove ")
-        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = InkStrong)) {
+        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
             append(itemName)
         }
         location?.takeIf { it.isNotBlank() }?.let { place ->
             append(" from ")
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = InkStrong)) {
+            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
                 append(place)
             }
         }

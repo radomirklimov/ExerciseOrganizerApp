@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 
 
@@ -171,7 +172,7 @@ private fun MissingExerciseBlock(
             .fillMaxWidth()
             .padding(top = 8.dp)
             .shadow(4.dp, RoundedCornerShape(20.dp))
-            .background(Color(0xFFF7F2F8), RoundedCornerShape(20.dp))
+            .background(AppTheme.colors.surfaceMuted, RoundedCornerShape(20.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -182,13 +183,13 @@ private fun MissingExerciseBlock(
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .background(Color(0xFF6750A4).copy(alpha = 0.1f), RoundedCornerShape(50)),
+                    .background(AppTheme.colors.primary.copy(alpha = 0.1f), RoundedCornerShape(50)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                     contentDescription = null,
-                    tint = Color(0xFF6750A4),
+                    tint = AppTheme.colors.primary,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -197,7 +198,7 @@ private fun MissingExerciseBlock(
                     text = "Missing an exercise?",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF1C1B1F),
+                    color = AppTheme.colors.textPrimary,
                 )
             }
         }
@@ -205,7 +206,7 @@ private fun MissingExerciseBlock(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(12.dp))
+                .background(AppTheme.colors.surface, RoundedCornerShape(12.dp))
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -218,13 +219,13 @@ private fun MissingExerciseBlock(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(Color(0xFFE9DDFF), RoundedCornerShape(8.dp)),
+                        .background(AppTheme.colors.primarySoft, RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.AddCircle,
                         contentDescription = null,
-                        tint = Color(0xFF4B3087),
+                        tint = AppTheme.colors.primaryDark,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -233,12 +234,12 @@ private fun MissingExerciseBlock(
                         text = "Add custom movement",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1C1B1F),
+                        color = AppTheme.colors.textPrimary,
                     )
                     Text(
                         text = "Create and track your own variation",
                         fontSize = 12.sp,
-                        color = Color(0xFF494551),
+                        color = AppTheme.colors.textSecondary,
                     )
                 }
             }
@@ -254,7 +255,7 @@ private fun MissingExerciseBlock(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(12.dp))
+                .background(AppTheme.colors.surface, RoundedCornerShape(12.dp))
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -267,13 +268,13 @@ private fun MissingExerciseBlock(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(Color(0xFFEBE7EC), RoundedCornerShape(8.dp)),
+                        .background(AppTheme.colors.surfaceStrong, RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Campaign,
                         contentDescription = null,
-                        tint = Color(0xFF494551),
+                        tint = AppTheme.colors.textSecondary,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -282,12 +283,12 @@ private fun MissingExerciseBlock(
                         text = "Suggest an exercise",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1C1B1F),
+                        color = AppTheme.colors.textPrimary,
                     )
                     Text(
                         text = "Tell us what's missing in this category",
                         fontSize = 12.sp,
-                        color = Color(0xFF494551),
+                        color = AppTheme.colors.textSecondary,
                     )
                 }
             }

@@ -75,6 +75,8 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
+import com.organizer.ui.theme.themedColor
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import com.organizer.presentation.screens.general.DeletionInfo
@@ -185,7 +187,7 @@ fun WorkoutContentScreen(
                     text = workoutName,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1C1B1F)
+                    color = AppTheme.colors.textPrimary
                 )
                 Text(
                     text = if (isTemplate) {
@@ -197,7 +199,7 @@ fun WorkoutContentScreen(
                         "${exerciseList.size} exercises"
                     },
                     fontSize = 12.sp,
-                    color = Color(0xFF7A7582)
+                    color = AppTheme.colors.textMuted
                 )
             }
         }
@@ -336,6 +338,9 @@ fun WorkoutContentScreen(
                 ) {
                     // Dashed "Add Exercise to Routine" button
                     if (!isTemplate) {
+                        // Read the palette here: drawBehind runs outside the
+                        // composable scope.
+                        val dashedBorder = AppTheme.colors.borderStrong.copy(alpha = 0.8f)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -344,7 +349,7 @@ fun WorkoutContentScreen(
                                 .drawBehind {
                                     val stroke = 2.dp.toPx()
                                     drawRoundRect(
-                                        color = Color(0xFFCBC4D2).copy(alpha = 0.8f),
+                                        color = dashedBorder,
                                         topLeft = Offset(stroke / 2, stroke / 2),
                                         size = Size(size.width - stroke, size.height - stroke),
                                         cornerRadius = CornerRadius(50.dp.toPx()),
@@ -356,7 +361,7 @@ fun WorkoutContentScreen(
                                         )
                                     )
                                 }
-                                .background(Color.White.copy(alpha = 0.5f))
+                                .background(AppTheme.colors.surface.copy(alpha = 0.5f))
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -367,13 +372,13 @@ fun WorkoutContentScreen(
                                 Icon(
                                     imageVector = Icons.Filled.Add,
                                     contentDescription = null,
-                                    tint = Color(0xFF4F378A),
+                                    tint = AppTheme.colors.primaryDark,
                                     modifier = Modifier.size(20.dp),
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "+ Add Exercise to Routine",
-                                    color = Color(0xFF4F378A),
+                                    color = AppTheme.colors.primaryDark,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 15.sp,
                                 )
@@ -385,7 +390,7 @@ fun WorkoutContentScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Column(
@@ -396,13 +401,13 @@ fun WorkoutContentScreen(
                                 Icon(
                                     imageVector = Icons.Filled.EditNote,
                                     contentDescription = null,
-                                    tint = Color(0xFF4F378A)
+                                    tint = AppTheme.colors.primaryDark
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = if (isTemplate) "Template Notes" else "Session Notes",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1C1B1F)
+                                    color = AppTheme.colors.textPrimary
                                 )
                             }
                             if (isTemplate) {
@@ -410,9 +415,9 @@ fun WorkoutContentScreen(
                                     text = notesText.ifBlank { "No notes for this template." },
                                     fontSize = 14.sp,
                                     color = if (notesText.isBlank()) {
-                                        Color(0xFF7A7582)
+                                        AppTheme.colors.textMuted
                                     } else {
-                                        Color(0xFF1C1B1F)
+                                        AppTheme.colors.textPrimary
                                     },
                                     lineHeight = 20.sp,
                                 )
@@ -437,7 +442,7 @@ fun WorkoutContentScreen(
                         Text(
                             text = "Add this starter routine to your workouts to edit it, track sets, and keep your own notes.",
                             fontSize = 12.sp,
-                            color = Color(0xFF7A7582),
+                            color = AppTheme.colors.textMuted,
                             lineHeight = 16.sp,
                         )
                     } else {
@@ -451,7 +456,7 @@ fun WorkoutContentScreen(
                             ) {
                                 Text(
                                     text = "Delete Workout",
-                                    color = Color(0xFFB3261E),
+                                    color = AppTheme.colors.danger,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -517,14 +522,14 @@ private fun AddExerciseChoiceDialog(
     onCreateCustomExercise: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val primary = Color(0xFF4F378A)
-    val secondary = Color(0xFF684EA7)
-    val primaryContainer = Color(0xFF6750A4)
-    val onSurface = Color(0xFF1C1B1F)
-    val onSurfaceVariant = Color(0xFF494551)
-    val surfaceContainerLow = Color(0xFFF7F2F8)
-    val surfaceContainer = Color(0xFFF1ECF2)
-    val outlineVariant = Color(0xFFCBC4D2)
+    val primary = AppTheme.colors.primaryDark
+    val secondary = themedColor(Color(0xFF684EA7), AppTheme.colors.primary)
+    val primaryContainer = AppTheme.colors.primary
+    val onSurface = AppTheme.colors.textPrimary
+    val onSurfaceVariant = AppTheme.colors.textSecondary
+    val surfaceContainerLow = AppTheme.colors.surfaceMuted
+    val surfaceContainer = AppTheme.colors.surfaceMuted
+    val outlineVariant = AppTheme.colors.borderStrong
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -541,7 +546,7 @@ private fun AddExerciseChoiceDialog(
                     .fillMaxWidth()
                     .widthIn(max = 480.dp),
             shape = RoundedCornerShape(28.dp),
-            color = Color.White,
+            color = AppTheme.colors.surface,
             shadowElevation = 12.dp,
             border = BorderStroke(1.dp, outlineVariant.copy(alpha = 0.4f)),
         ) {
@@ -658,16 +663,16 @@ private fun AddExerciseOptionCard(
     subtitle: String,
     onClick: () -> Unit,
 ) {
-    val onSurface = Color(0xFF1C1B1F)
-    val onSurfaceVariant = Color(0xFF494551)
-    val outlineVariant = Color(0xFFCBC4D2)
-    val surfaceContainer = Color(0xFFF1ECF2)
+    val onSurface = AppTheme.colors.textPrimary
+    val onSurfaceVariant = AppTheme.colors.textSecondary
+    val outlineVariant = AppTheme.colors.borderStrong
+    val surfaceContainer = AppTheme.colors.surfaceMuted
 
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFFF7F2F8),
+        color = AppTheme.colors.surfaceMuted,
         border = BorderStroke(1.dp, outlineVariant.copy(alpha = 0.6f)),
         shadowElevation = 1.dp,
     ) {
@@ -688,7 +693,7 @@ private fun AddExerciseOptionCard(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = AppTheme.colors.onPrimary,
                         modifier = Modifier.size(24.dp),
                     )
                 }

@@ -41,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,18 +69,31 @@ import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.general.CreateWorkoutFirstHint
 import com.organizer.presentation.screens.general.LoadingState
+import com.organizer.ui.theme.themedColor
+import com.organizer.ui.theme.AppTheme
 
-private val Brand = Color(0xFF6750A4)
-private val BrandDark = Color(0xFF4F378A)
-private val Brand50 = Color(0xFFF1ECF2)
-private val Brand200 = Color(0xFFCBC4D2)
-private val TextPrimary = Color(0xFF1C1B1F)
-private val TextSecondary = Color(0xFF7A7582)
-private val DividerColor = Color(0xFFF0EEF3)
-private val FieldBackground = Color(0xFFF4F3F7)
-private val RowBorder = Color(0xFFE4E2EA)
-private val DisabledBackground = Color(0xFFE7E5EB)
-private val DisabledText = Color(0xFFA9A4B2)
+private val Brand: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF6750A4), AppTheme.colors.primary)
+private val BrandDark: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF4F378A), AppTheme.colors.primaryDark)
+private val Brand50: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFF1ECF2), AppTheme.colors.primarySoft)
+private val Brand200: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFCBC4D2), AppTheme.colors.borderStrong)
+private val TextPrimary: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.textPrimary
+private val TextSecondary: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF7A7582), AppTheme.colors.textMuted)
+private val DividerColor: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.divider
+private val FieldBackground: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFF4F3F7), AppTheme.colors.surfaceMuted)
+private val RowBorder: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFE4E2EA), AppTheme.colors.border)
+private val DisabledBackground: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFE7E5EB), AppTheme.colors.surfaceStrong)
+private val DisabledText: Color
+    @Composable @ReadOnlyComposable get() = themedColor(Color(0xFFA9A4B2), AppTheme.colors.textMuted)
 
 /**
  * Bottom sheet that lets the user add [exerciseId] to one or more existing
@@ -114,7 +128,7 @@ fun SaveExercisePopup(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = AppTheme.colors.surface,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         dragHandle = { BottomSheetDefaults.DragHandle() },
         // The default content insets are consumed dynamically from the sheet's drag offset
@@ -249,7 +263,7 @@ private fun SheetHeader(onClose: () -> Unit) {
             Surface(
                 onClick = onClose,
                 shape = CircleShape,
-                color = Color(0xFFF1F0F4),
+                color = AppTheme.colors.surfaceMuted,
                 modifier = Modifier.size(44.dp),
             ) {
                 Box(
@@ -259,7 +273,7 @@ private fun SheetHeader(onClose: () -> Unit) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Close",
-                        tint = Color(0xFF6B6675),
+                        tint = AppTheme.colors.textMuted,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -302,7 +316,7 @@ private fun WorkoutFilterField(
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = null,
-                    tint = Color(0xFF9A95A3),
+                    tint = AppTheme.colors.textMuted,
                     modifier = Modifier.size(20.dp),
                 )
 
@@ -316,7 +330,7 @@ private fun WorkoutFilterField(
                         Text(
                             text = "Search workouts...",
                             fontSize = 14.sp,
-                            color = Color(0xFF9A95A3),
+                            color = AppTheme.colors.textMuted,
                         )
                     }
                     innerTextField()
@@ -333,7 +347,7 @@ private fun WorkoutFilterField(
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "Clear filter",
-                            tint = Color(0xFF9A95A3),
+                            tint = AppTheme.colors.textMuted,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -346,6 +360,8 @@ private fun WorkoutFilterField(
 @Composable
 private fun CreateWorkoutCard(onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
+    // Read the palette here: drawWithContent runs outside the composable scope.
+    val dashedBorder = Brand200
 
     Row(
         modifier = Modifier
@@ -357,7 +373,7 @@ private fun CreateWorkoutCard(onClick: () -> Unit) {
                 drawContent()
                 val strokeWidth = 2.dp.toPx()
                 drawRoundRect(
-                    color = Brand200,
+                    color = dashedBorder,
                     topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
                     size = Size(
                         width = size.width - strokeWidth,
@@ -379,7 +395,7 @@ private fun CreateWorkoutCard(onClick: () -> Unit) {
             modifier = Modifier
                 .size(46.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color.White)
+                .background(AppTheme.colors.surface)
                 .border(1.dp, Brand200, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center,
         ) {
@@ -432,7 +448,7 @@ private fun WorkoutOptionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (selected) Brand50.copy(alpha = 0.7f) else Color.White)
+            .background(if (selected) Brand50.copy(alpha = 0.7f) else AppTheme.colors.surface)
             .border(
                 width = if (selected) 2.dp else 1.dp,
                 color = if (selected) Brand else RowBorder,
@@ -474,10 +490,10 @@ private fun SelectionIndicator(selected: Boolean) {
         modifier = Modifier
             .size(28.dp)
             .clip(shape)
-            .background(if (selected) Brand else Color.White)
+            .background(if (selected) Brand else AppTheme.colors.surface)
             .border(
                 width = if (selected) 1.dp else 2.dp,
-                color = if (selected) Brand else Color(0xFFCAC5D3),
+                color = if (selected) Brand else AppTheme.colors.borderStrong,
                 shape = shape,
             ),
         contentAlignment = Alignment.Center,
@@ -486,7 +502,7 @@ private fun SelectionIndicator(selected: Boolean) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = AppTheme.colors.onPrimary,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -503,7 +519,7 @@ private fun SaveFooter(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White),
+            .background(AppTheme.colors.surface),
     ) {
         HorizontalDivider(color = DividerColor)
 
@@ -527,7 +543,7 @@ private fun SaveFooter(
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Brand,
-                    contentColor = Color.White,
+                    contentColor = AppTheme.colors.onPrimary,
                     disabledContainerColor = DisabledBackground,
                     disabledContentColor = DisabledText,
                 ),

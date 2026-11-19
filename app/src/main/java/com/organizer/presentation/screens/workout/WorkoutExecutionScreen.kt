@@ -80,6 +80,8 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
+import com.organizer.ui.theme.themedColor
 import com.organizer.presentation.screens.exercises.ExerciseImageAnimation
 import com.organizer.presentation.screens.exercises.InstructionPager
 import kotlinx.coroutines.delay
@@ -847,7 +849,7 @@ private fun ExecutionSetRow(
                     text = set.number.toString(),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (checked || isCurrent) Color.White else ExecutionInkMuted,
+                    color = if (checked || isCurrent) AppTheme.colors.onPrimary else ExecutionInkMuted,
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -876,7 +878,7 @@ private fun ExecutionSetRow(
                 colors = CheckboxDefaults.colors(
                     checkedColor = ExecutionGreen,
                     uncheckedColor = ExecutionFieldBorder,
-                    checkmarkColor = Color.White,
+                    checkmarkColor = AppTheme.colors.onPrimary,
                 ),
             )
         }
@@ -1030,7 +1032,7 @@ private fun PrimaryTimerButton(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = ExecutionBrand,
-            contentColor = Color.White,
+            contentColor = AppTheme.colors.onPrimary,
         ),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
     ) {
@@ -1096,7 +1098,7 @@ private fun UpNextCard(
             .clip(shape)
             .background(
                 Brush.horizontalGradient(
-                    listOf(ExecutionBrand50, Color(0xFFEEF2FF))
+                    listOf(ExecutionBrand50, themedColor(Color(0xFFEEF2FF), Color(0xFF232A3A)))
                 )
             )
             .border(1.dp, ExecutionBrand200.copy(alpha = 0.5f), shape)
@@ -1205,23 +1207,23 @@ private fun PrimaryActionButton(
         shape = RoundedCornerShape(50),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = Color.White,
+            contentColor = AppTheme.colors.onPrimary,
             disabledContainerColor = containerColor.copy(alpha = 0.35f),
-            disabledContentColor = Color.White.copy(alpha = 0.7f),
+            disabledContentColor = AppTheme.colors.onPrimary.copy(alpha = 0.7f),
         ),
     ) {
         Box(
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.2f)),
+                .background(AppTheme.colors.onPrimary.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = Color.White,
+                tint = AppTheme.colors.onPrimary,
             )
         }
         Spacer(Modifier.width(10.dp))
@@ -1345,7 +1347,7 @@ private fun CompletionOverlay(
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ExecutionBrand,
-                        contentColor = Color.White,
+                        contentColor = AppTheme.colors.onPrimary,
                     ),
                 ) {
                     Text(

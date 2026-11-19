@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -83,7 +84,7 @@ fun ExerciseCard(
             ) {
                 Text(
                     text = "Loading...",
-                    color = Color.Gray,
+                    color = AppTheme.colors.textMuted,
                     fontSize = 16.sp
                 )
             }
@@ -102,11 +103,11 @@ fun ExerciseCard(
             val interactionSource = remember { MutableInteractionSource() }
             val isPressed by interactionSource.collectIsPressedAsState()
             val arrowBackground by animateColorAsState(
-                targetValue = if (isPressed) Color(0xFF6750A4) else Color(0xFFF7F2F8),
+                targetValue = if (isPressed) AppTheme.colors.primary else AppTheme.colors.surfaceMuted,
                 label = "exerciseBackArrowBackground",
             )
             val arrowTint by animateColorAsState(
-                targetValue = if (isPressed) Color.White else Color(0xFF494551),
+                targetValue = if (isPressed) AppTheme.colors.onPrimary else AppTheme.colors.textSecondary,
                 label = "exerciseBackArrowTint",
             )
 
@@ -228,7 +229,7 @@ private fun FavoriteToggle(
     onToggle: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
-        targetValue = if (isFavorite) Color(0xFFFBE4EC) else Color(0xFFF7F2F8),
+        targetValue = if (isFavorite) AppTheme.colors.favoriteSoft else AppTheme.colors.surfaceMuted,
         label = "exerciseFavoriteBackground",
     )
 
@@ -253,7 +254,7 @@ private fun FavoriteToggle(
                 } else {
                     "Add to favorite exercises"
                 },
-                tint = if (isFavorite) Color(0xFFE05275) else Color(0xFF494551),
+                tint = if (isFavorite) AppTheme.colors.favorite else AppTheme.colors.textSecondary,
                 modifier = Modifier.size(22.dp),
             )
         }

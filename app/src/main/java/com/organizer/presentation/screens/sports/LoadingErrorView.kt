@@ -28,7 +28,7 @@ fun LoadingErrorView(
 
                 Text(
                     text = "Loading...",
-                    color = Color.Gray,
+                    color = com.organizer.ui.theme.AppTheme.colors.textMuted,
                     fontSize = 18.sp
                 )
             }
@@ -36,7 +36,7 @@ fun LoadingErrorView(
             errorMessage != null -> {
                 Text(
                     text = errorMessage,
-                    color = Color.Gray,
+                    color = com.organizer.ui.theme.AppTheme.colors.textMuted,
                     fontSize = 18.sp,
                     textAlign = TextAlign.Center
                 )
@@ -51,7 +51,7 @@ fun LoadingErrorView(
             else -> {
                 Text(
                     text = "No data available",
-                    color = Color.Gray,
+                    color = com.organizer.ui.theme.AppTheme.colors.textMuted,
                     fontSize = 18.sp
                 )
 

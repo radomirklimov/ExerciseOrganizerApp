@@ -61,7 +61,7 @@ fun ProfileAvatar(
         } else {
             Text(
                 text = initials,
-                color = Color.White,
+                color = colors.onPrimary,
                 fontSize = (size.value * 0.36f).sp,
                 fontWeight = FontWeight.Bold,
             )

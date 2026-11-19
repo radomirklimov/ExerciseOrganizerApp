@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -31,6 +32,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.organizer.data.preferences.AppLocale
+import com.organizer.data.preferences.SettingsRepository
+import com.organizer.data.preferences.ThemeMode
+import com.organizer.data.preferences.UserSettings
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
 import com.organizer.presentation.settings.SettingsViewModel
@@ -51,6 +55,8 @@ import com.organizer.presentation.screens.workouts_and_exercises.CustomWorkoutsA
 import com.organizer.presentation.screens.workouts_and_exercises.WorkoutsScreen
 import com.organizer.presentation.screens.workouts_and_exercises.ExercisesScreen
 import com.organizer.presentation.screens.workouts_and_exercises.StarterTemplatesScreen
+import com.organizer.ui.theme.AppTheme
+import com.organizer.ui.theme.AppThemeProvider
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -63,6 +69,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Pick the window/splash theme before the window is created, so dark
+        // mode does not flash a light background on launch.
+        val splashTheme = if (SettingsRepository.readThemeMode(this) == ThemeMode.DARK) {
+            R.style.Theme_ExerciseOrganizerApp_Splash_Dark
+        } else {
+            R.style.Theme_ExerciseOrganizerApp_Splash
+        }
+        setTheme(splashTheme)
         installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
@@ -74,13 +88,26 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(showOnboarding: Boolean) {
-    // create viewModel for instant data load
-    val organizerViewModel: OrganizerViewModel = hiltViewModel()
-
-    // Only used for the profile header (name, email, avatar). The profile
-    // settings are not applied to the app while the design is being reviewed.
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val settings by settingsViewModel.settings.collectAsState()
+
+    AppThemeProvider(darkTheme = settings.themeMode == ThemeMode.DARK) {
+        AppNavigationContent(
+            showOnboarding = showOnboarding,
+            settings = settings,
+            settingsViewModel = settingsViewModel,
+        )
+    }
+}
+
+@Composable
+private fun AppNavigationContent(
+    showOnboarding: Boolean,
+    settings: UserSettings,
+    settingsViewModel: SettingsViewModel,
+) {
+    // create viewModel for instant data load
+    val organizerViewModel: OrganizerViewModel = hiltViewModel()
 
     val navController = rememberNavController()
     val currentRoute = navController
@@ -90,22 +117,30 @@ fun AppNavigation(showOnboarding: Boolean) {
         ?.route
 
     val context = LocalContext.current
-    LaunchedEffect(currentRoute) {
+    val palette = AppTheme.colors
+    LaunchedEffect(currentRoute, palette.isDark) {
         val activity = context as? Activity ?: return@LaunchedEffect
         val statusBarColor = when (currentRoute) {
             Routes.Sports.route,
             Routes.Schedule.route,
-            -> android.graphics.Color.parseColor("#FEFBFE")
+            -> palette.background.toArgb()
 
-            // The execution screen has a white header pinned under the status bar.
-            Routes.WorkoutExecution.route -> android.graphics.Color.parseColor("#FFFFFF")
+            // The execution screen has its own header pinned under the status bar.
+            Routes.WorkoutExecution.route -> palette.surface.toArgb()
 
-            else -> android.graphics.Color.parseColor("#F8F5F5")
+            else -> if (palette.isDark) {
+                palette.background.toArgb()
+            } else {
+                palette.backgroundSubtle.toArgb()
+            }
         }
         activity.window.statusBarColor = statusBarColor
+        activity.window.navigationBarColor = palette.background.toArgb()
         activity.window.setBackgroundDrawable(ColorDrawable(statusBarColor))
-        WindowCompat.getInsetsController(activity.window, activity.window.decorView)
-            .isAppearanceLightStatusBars = true
+        WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
+            isAppearanceLightStatusBars = !palette.isDark
+            isAppearanceLightNavigationBars = !palette.isDark
+        }
     }
 
     fun popBackScreen() {
@@ -158,7 +193,7 @@ fun AppNavigation(showOnboarding: Boolean) {
     }
 
     Scaffold(
-        containerColor = Color(0xFFFEFBFE),
+        containerColor = palette.background,
         bottomBar = {
             // The workout player is an immersive flow: it provides its own
             // fixed action bar and must not show the app navigation.

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.data.repo.joinCategoryNames
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun WorkoutListItem(
@@ -41,7 +42,7 @@ fun WorkoutListItem(
         onClick = onClick,
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = AppTheme.colors.surface
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp
@@ -62,7 +63,7 @@ fun WorkoutListItem(
                 Text(
                     text = title,
                     fontSize = 24.sp,
-                    color = Color.Black,
+                    color = AppTheme.colors.textPrimary,
                     fontWeight = FontWeight.Medium,
 //                    fontWeight = FontWeight.Bold,
 //                    color = Color(0xFF1C1B1F),
@@ -100,7 +101,7 @@ private fun WorkoutCategorySummary(
     // Same style as the sport subtitles on the home page: size and colour.
     val textStyle = LocalTextStyle.current.copy(
         fontSize = 13.sp,
-        color = Color(0xFF494551),
+        color = AppTheme.colors.textSecondary,
     )
     val measurer = rememberTextMeasurer()
 

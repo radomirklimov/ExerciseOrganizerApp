@@ -308,7 +308,7 @@ private fun HeaderCard(
                         Icon(
                             imageVector = Icons.Filled.PhotoCamera,
                             contentDescription = stringResource(R.string.profile_change_photo),
-                            tint = Color.White,
+                            tint = colors.onPrimary,
                             modifier = Modifier.size(17.dp),
                         )
                     }
@@ -519,14 +519,14 @@ private fun ThemeOption(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else colors.textSecondary,
+                tint = if (selected) colors.onPrimary else colors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
             Text(
                 text = label,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (selected) Color.White else colors.textSecondary,
+                color = if (selected) colors.onPrimary else colors.textSecondary,
             )
         }
     }
@@ -692,7 +692,7 @@ private fun LanguageAndUnitsCard(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (selected) Color.White else colors.textSecondary,
+                            color = if (selected) colors.onPrimary else colors.textSecondary,
                         )
                     }
                 }
@@ -790,7 +790,7 @@ private fun PreferenceSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
+                checkedThumbColor = colors.onPrimary,
                 checkedTrackColor = colors.success,
                 checkedBorderColor = colors.success,
                 uncheckedThumbColor = colors.surface,

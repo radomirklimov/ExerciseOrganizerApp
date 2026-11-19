@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,13 +41,19 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.screens.general.LoadingState
 
-private val Primary = Color(0xFF4F378A)
-private val PrimaryContainer = Color(0xFFE9DDFF)
-private val OnSurface = Color(0xFF1C1B1F)
-private val OnSurfaceVariant = Color(0xFF494551)
-private val OutlineVariant = Color(0xFFCBC4D2)
+private val Primary: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.primaryDark
+private val PrimaryContainer: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.primarySoft
+private val OnSurface: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.textPrimary
+private val OnSurfaceVariant: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.textSecondary
+private val OutlineVariant: Color
+    @Composable @ReadOnlyComposable get() = AppTheme.colors.borderStrong
 
 @Composable
 fun StarterTemplatesScreen(
@@ -89,7 +96,7 @@ fun StarterTemplatesScreen(
                 Text(
                     text = "Ready-made routines you can add to your workouts",
                     fontSize = 12.sp,
-                    color = Color(0xFF7A7582),
+                    color = AppTheme.colors.textMuted,
                 )
             }
         }
@@ -147,7 +154,7 @@ private fun StarterTemplateListItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        color = Color.White,
+        color = AppTheme.colors.surface,
         border = BorderStroke(1.dp, OutlineVariant.copy(alpha = 0.3f)),
         shadowElevation = 5.dp,
     ) {
@@ -213,7 +220,7 @@ private fun StarterTemplateListItem(
                         color = OnSurfaceVariant,
                         modifier = Modifier
                             .clip(RoundedCornerShape(9999.dp))
-                            .background(Color(0xFFEBE7EC))
+                            .background(AppTheme.colors.surfaceStrong)
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                     )
                 }
@@ -221,7 +228,7 @@ private fun StarterTemplateListItem(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            HorizontalDivider(color = Color(0xFFF1ECF2), thickness = 1.dp)
+            HorizontalDivider(color = AppTheme.colors.surfaceMuted, thickness = 1.dp)
 
             Row(
                 modifier = Modifier

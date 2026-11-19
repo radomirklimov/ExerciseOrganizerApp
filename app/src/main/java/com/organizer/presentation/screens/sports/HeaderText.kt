@@ -21,7 +21,7 @@ fun HeaderText() {
         fontSize = 30.sp,
         lineHeight = 34.sp,
         fontWeight = FontWeight.SemiBold,
-        color = Color.Black,
+        color = com.organizer.ui.theme.AppTheme.colors.textPrimary,
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -29,7 +29,7 @@ fun HeaderText() {
     Text(
         text = stringResource(R.string.home_subtitle),
         fontSize = 16.sp,
-        color = Color.Gray
+        color = com.organizer.ui.theme.AppTheme.colors.textMuted
     )
 
     Spacer(modifier = Modifier.height(16.dp))

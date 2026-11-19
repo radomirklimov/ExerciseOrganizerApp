@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun WorkoutHeader(
@@ -49,7 +50,7 @@ fun WorkoutHeader(
                     text = workout.name,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = AppTheme.colors.textPrimary
                 )
             }
         }

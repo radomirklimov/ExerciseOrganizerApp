@@ -544,7 +544,6 @@ private fun FontOption(
         FontSizeOption.SMALL -> stringResource(R.string.font_small)
         FontSizeOption.MEDIUM -> stringResource(R.string.font_medium)
         FontSizeOption.LARGE -> stringResource(R.string.font_large)
-        FontSizeOption.XL -> stringResource(R.string.font_xl)
     }
 
     Surface(

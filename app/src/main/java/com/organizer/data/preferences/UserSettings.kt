@@ -11,7 +11,6 @@ enum class FontSizeOption(val label: String, val scale: Float) {
     SMALL("Small", 0.9f),
     MEDIUM("Medium", 1f),
     LARGE("Large", 1.15f),
-    XL("XL", 1.3f),
 }
 
 /** Languages the profile screen can switch between. */

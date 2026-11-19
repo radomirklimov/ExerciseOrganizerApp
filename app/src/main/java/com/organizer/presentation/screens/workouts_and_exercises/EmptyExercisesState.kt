@@ -170,7 +170,7 @@ fun EmptyExercisesState(
                         containerColor = AppTheme.colors.primary,
                         contentColor = AppTheme.colors.onPrimary,
                     ),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
                 ) {
                     Row(

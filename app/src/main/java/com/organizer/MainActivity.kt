@@ -91,7 +91,10 @@ fun AppNavigation(showOnboarding: Boolean) {
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val settings by settingsViewModel.settings.collectAsState()
 
-    AppThemeProvider(darkTheme = settings.themeMode == ThemeMode.DARK) {
+    AppThemeProvider(
+        darkTheme = settings.themeMode == ThemeMode.DARK,
+        fontScale = settings.fontSize.scale,
+    ) {
         AppNavigationContent(
             showOnboarding = showOnboarding,
             settings = settings,

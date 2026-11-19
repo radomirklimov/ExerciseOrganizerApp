@@ -26,7 +26,6 @@
     <string name="font_small">Pequeno</string>
     <string name="font_medium">Médio</string>
     <string name="font_large">Grande</string>
-    <string name="font_xl">XL</string>
     <string name="profile_language_units">Idioma e unidades</string>
     <string name="profile_app_language">Idioma do app</string>
     <string name="profile_change">Alterar</string>

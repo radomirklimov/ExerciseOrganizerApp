@@ -14,9 +14,9 @@ import javax.inject.Singleton
  * Small key-value store for the profile screen. Room backs the exercise
  * library; these values are simple scalars, so SharedPreferences is enough.
  *
- * The stored values drive the profile UI. The language is applied app-wide
- * through [AppLocale] and the theme through [com.organizer.ui.theme.AppThemeProvider];
- * the font-size choice is still design-only.
+ * The stored values drive the profile UI. The language, theme and font-size
+ * choices are applied app-wide (through [AppLocale] and
+ * [com.organizer.ui.theme.AppThemeProvider]).
  */
 @Singleton
 class SettingsRepository @Inject constructor(

@@ -6,6 +6,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF6750A4),
@@ -56,16 +58,28 @@ private val DarkColorScheme = darkColorScheme(
 /**
  * Root theme for the Compose hierarchy. [darkTheme] follows the app's own
  * Light/Dark setting rather than the system setting.
+ *
+ * [fontScale] is applied on top of the system font scale through
+ * [LocalDensity], so every `sp` text size in the app follows the profile
+ * Font Size setting without touching individual screens.
  */
 @Composable
 fun AppThemeProvider(
     darkTheme: Boolean,
+    fontScale: Float = 1f,
     content: @Composable () -> Unit,
 ) {
     val palette = if (darkTheme) DarkAppPalette else LightAppPalette
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val density = LocalDensity.current
 
-    CompositionLocalProvider(LocalAppPalette provides palette) {
+    CompositionLocalProvider(
+        LocalAppPalette provides palette,
+        LocalDensity provides Density(
+            density = density.density,
+            fontScale = density.fontScale * fontScale,
+        ),
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

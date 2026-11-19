@@ -48,6 +48,7 @@ import com.organizer.presentation.screens.workout.CreateWorkoutScreen
 import com.organizer.presentation.screens.general.BottomNavigationBar
 import com.organizer.presentation.screens.welcome.OnboardScreen
 import com.organizer.presentation.screens.welcome.OnboardingManager
+import com.organizer.presentation.screens.welcome.OnboardingProfileScreen
 import com.organizer.presentation.screens.workout.WorkoutContentScreen
 import com.organizer.presentation.screens.workout.WorkoutExecutionScreen
 import com.organizer.presentation.screens.workout.StarterTemplatePreviewScreen
@@ -201,6 +202,7 @@ private fun AppNavigationContent(
             // The workout player is an immersive flow: it provides its own
             // fixed action bar and must not show the app navigation.
             if (currentRoute != Routes.Onboarding.route &&
+                currentRoute != Routes.OnboardingProfile.route &&
                 currentRoute != Routes.WorkoutExecution.route
             ) {
                 BottomNavigationBar(
@@ -232,21 +234,40 @@ private fun AppNavigationContent(
             popEnterTransition = { fadeIn(animationSpec = tween(200)) },
             popExitTransition = { fadeOut(animationSpec = tween(200)) },
         ) {
-            composable(Routes.Onboarding.route) {
-                val context = LocalContext.current
-                OnboardScreen(
-                    onFinish = {
-                        OnboardingManager.complete(
-                            context = context
-                        )
-                        navController.navigate(Routes.Sports.route) {
-                            popUpTo(Routes.Onboarding.route) {
-                                inclusive = true
+            if (showOnboarding) {
+                composable(Routes.Onboarding.route) {
+                    OnboardScreen(
+                        onFinish = {
+                            navController.navigate(Routes.OnboardingProfile.route) {
+                                popUpTo(Routes.Onboarding.route) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
                             }
-                            launchSingleTop = true
                         }
-                    }
-                )
+                    )
+                }
+
+                composable(Routes.OnboardingProfile.route) {
+                    val context = LocalContext.current
+                    OnboardingProfileScreen(
+                        onComplete = { name, language ->
+                            val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+                            prefs.edit().apply {
+                                putString("profile_name", name.trim().ifBlank { "Alex Morgan" })
+                                putString("profile_email", "alex.morgan@fitflow.app")
+                                putString("profile_language", language.tag)
+                                putBoolean("onboarding_done", true)
+                            }.commit()
+                            settingsViewModel.reload()
+                            navController.navigate(Routes.Sports.route) {
+                                popUpTo(Routes.OnboardingProfile.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                            (context as? Activity)?.recreate()
+                        }
+                    )
+                }
             }
 
             composable(Routes.Sports.route) {

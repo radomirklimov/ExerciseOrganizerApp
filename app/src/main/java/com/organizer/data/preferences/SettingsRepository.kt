@@ -46,6 +46,11 @@ class SettingsRepository @Inject constructor(
 
     fun setLanguage(value: LanguageOption) = update { it.copy(language = value) }
 
+    /** Re-reads the persisted preferences into the in-memory state. */
+    fun reload() {
+        _settings.value = read()
+    }
+
     fun setUnitSystem(value: UnitSystem) = update { it.copy(unitSystem = value) }
 
     fun setWorkoutReminderEnabled(value: Boolean) =

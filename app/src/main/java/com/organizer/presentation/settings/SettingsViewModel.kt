@@ -24,6 +24,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setLanguage(language: LanguageOption) = repository.setLanguage(language)
 
+    /** Re-reads preferences into the in-memory state (used after external writes). */
+    fun reload() = repository.reload()
+
     fun setUnitSystem(units: UnitSystem) = repository.setUnitSystem(units)
 
     fun setWorkoutReminderEnabled(enabled: Boolean) =

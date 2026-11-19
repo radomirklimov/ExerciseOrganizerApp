@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,10 +17,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.ui.theme.AppTheme
 import java.io.File
@@ -26,8 +26,8 @@ import java.io.File
 /**
  * Round user picture used on the home header and on the profile screen.
  *
- * Falls back to a soft violet gradient with the user's initials while no
- * avatar has been chosen (or when the saved file no longer exists).
+ * Falls back to a person silhouette while no avatar has been chosen (or when
+ * the saved file no longer exists).
  */
 @Composable
 fun ProfileAvatar(
@@ -59,11 +59,12 @@ fun ProfileAvatar(
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            Text(
-                text = initials,
-                color = colors.onPrimary,
-                fontSize = (size.value * 0.36f).sp,
-                fontWeight = FontWeight.Bold,
+            // Default silhouette shown while the user has no avatar yet.
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                tint = colors.onPrimary,
+                modifier = Modifier.size(size * 0.55f),
             )
         }
     }

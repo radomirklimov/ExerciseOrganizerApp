@@ -76,7 +76,6 @@ import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
-import com.organizer.ui.theme.themedColor
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import com.organizer.presentation.screens.general.DeletionInfo
@@ -523,7 +522,6 @@ private fun AddExerciseChoiceDialog(
     onDismiss: () -> Unit,
 ) {
     val primary = AppTheme.colors.primaryDark
-    val secondary = themedColor(Color(0xFF684EA7), AppTheme.colors.primary)
     val primaryContainer = AppTheme.colors.primary
     val onSurface = AppTheme.colors.textPrimary
     val onSurfaceVariant = AppTheme.colors.textSecondary
@@ -593,8 +591,8 @@ private fun AddExerciseChoiceDialog(
                         onClick = onStandard,
                     )
                     AddExerciseOptionCard(
-                        icon = Icons.Filled.Person,
-                        iconContainerColor = secondary,
+                        icon = Icons.Filled.Add,
+                        iconContainerColor = primaryContainer,
                         title = "My own exercises",
                         subtitle = "Select from custom exercises",
                         onClick = onCustom,

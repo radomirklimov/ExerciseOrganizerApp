@@ -13,6 +13,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,7 +31,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
+import com.organizer.presentation.settings.SettingsViewModel
 import com.organizer.presentation.screens.add_card.AddCardScreen
+import com.organizer.presentation.screens.profile.ProfileScreen
 import com.organizer.presentation.screens.sports.SportsScreen
 import com.organizer.presentation.screens.schedule.ScheduleScreen
 import com.organizer.presentation.screens.categories.CategoryContentScreen
@@ -64,6 +68,11 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation(showOnboarding: Boolean) {
     // create viewModel for instant data load
     val organizerViewModel: OrganizerViewModel = hiltViewModel()
+
+    // Only used for the profile header (name, email, avatar). The profile
+    // settings are not applied to the app while the design is being reviewed.
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val settings by settingsViewModel.settings.collectAsState()
 
     val navController = rememberNavController()
     val currentRoute = navController
@@ -206,7 +215,33 @@ fun AppNavigation(showOnboarding: Boolean) {
                             Routes.ExerciseCard.createRoute(exercise.exerciseId)
                         )
                     },
+                    onProfileClick = {
+                        navController.navigate(Routes.Profile.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    avatarPath = settings.avatarPath,
+                    initials = settings.initials,
                     viewModel = organizerViewModel,
+                )
+            }
+
+            composable(Routes.Profile.route) {
+                ProfileScreen(
+                    settings = settings,
+                    onBackClick = { popBackScreen() },
+                    onAccountClosed = {
+                        val popped = navController.popBackStack(
+                            route = Routes.Sports.route,
+                            inclusive = false,
+                        )
+                        if (!popped) {
+                            navController.navigate(Routes.Sports.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    viewModel = settingsViewModel,
                 )
             }
 

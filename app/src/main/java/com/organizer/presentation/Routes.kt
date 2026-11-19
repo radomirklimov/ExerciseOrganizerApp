@@ -28,6 +28,7 @@ sealed class Routes(val route: String) {
             if (exerciseId == null) "createWorkout" else "createWorkout?exerciseId=$exerciseId"
     }
     object AddCard: Routes("addCard")
+    object Profile : Routes("profile")
     object Workout: Routes("workout/{workoutId}") {
         fun createRoute(workoutId: Long): String {
             return "workout/$workoutId"

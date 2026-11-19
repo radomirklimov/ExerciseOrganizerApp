@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">IndiSport</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Início</string>
+    <string name="nav_workouts">Treinos</string>
+    <string name="nav_schedule">Agenda</string>
+    <string name="nav_exercises">Exercícios</string>
+    <string name="nav_custom">Meus</string>
+
+    <!-- Home header -->
+    <string name="home_title">Crie seu próprio\ntreino!</string>
+    <string name="home_subtitle">O que você quer fazer hoje?</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Perfil</string>
+    <string name="profile_back">Voltar</string>
+    <string name="profile_change_photo">Alterar foto</string>
+    <string name="profile_edit">Editar perfil</string>
+    <string name="profile_change_password">Alterar senha</string>
+    <string name="profile_appearance">Aparência</string>
+    <string name="profile_theme">Tema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Escuro</string>
+    <string name="profile_font_size">Tamanho do texto</string>
+    <string name="font_small">Pequeno</string>
+    <string name="font_medium">Médio</string>
+    <string name="font_large">Grande</string>
+    <string name="font_xl">XL</string>
+    <string name="profile_language_units">Idioma e unidades</string>
+    <string name="profile_app_language">Idioma do app</string>
+    <string name="profile_change">Alterar</string>
+    <string name="profile_unit_system">Sistema de unidades</string>
+    <string name="profile_weight_distance">Peso e distância</string>
+    <string name="profile_preferences">Preferências</string>
+    <string name="profile_workout_reminder">Lembrete de treino</string>
+    <string name="profile_daily_at">Diariamente às %1$s</string>
+    <string name="profile_notification_alerts">Alertas de notificação</string>
+    <string name="profile_streaks">Sequências e avisos da comunidade</string>
+    <string name="profile_about_legal">Sobre e legal</string>
+    <string name="profile_privacy_policy">Política de privacidade</string>
+    <string name="profile_terms_of_service">Termos de uso</string>
+    <string name="profile_about_version">Sobre e versão</string>
+    <string name="profile_log_out">Sair</string>
+    <string name="profile_delete_account">Excluir conta</string>
+    <string name="profile_edit_title">Editar perfil</string>
+    <string name="profile_name">Nome</string>
+    <string name="profile_email">E-mail</string>
+    <string name="profile_save">Salvar</string>
+    <string name="profile_cancel">Cancelar</string>
+
+    <!-- Dialogs -->
+    <string name="profile_log_out_title">Sair?</string>
+    <string name="profile_log_out_message">Você voltará para a tela inicial. Seus dados locais continuam neste dispositivo.</string>
+    <string name="profile_delete_title">Excluir conta?</string>
+    <string name="profile_delete_message">Isso remove os dados do perfil e a personalização deste dispositivo. Treinos e exercícios são mantidos.</string>
+    <string name="profile_delete_confirm">Excluir</string>
+    <string name="profile_password_title">Alterar senha</string>
+    <string name="profile_password_message">Este perfil fica no seu dispositivo, então não há senha. Tudo continua disponível offline.</string>
+    <string name="profile_privacy_title">Política de privacidade</string>
+    <string name="profile_privacy_message">Seus treinos, exercícios e ajustes ficam apenas neste dispositivo. As imagens dos exercícios são baixadas do catálogo público e guardadas localmente.</string>
+    <string name="profile_terms_title">Termos de uso</string>
+    <string name="profile_terms_message">O IndiSport é fornecido como está para acompanhamento pessoal. Siga as instruções com responsabilidade e treine dentro dos seus limites.</string>
+    <string name="profile_about_title">Sobre o IndiSport</string>
+    <string name="profile_version">Versão %1$s</string>
+    <string name="profile_close">Fechar</string>
+</resources>

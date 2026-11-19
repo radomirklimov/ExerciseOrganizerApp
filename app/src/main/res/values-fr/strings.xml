@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">IndiSport</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_workouts">Séances</string>
+    <string name="nav_schedule">Agenda</string>
+    <string name="nav_exercises">Exercices</string>
+    <string name="nav_custom">Perso</string>
+
+    <!-- Home header -->
+    <string name="home_title">Créez votre\npropre séance !</string>
+    <string name="home_subtitle">Que voulez-vous faire aujourd’hui ?</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="profile_back">Retour</string>
+    <string name="profile_change_photo">Changer la photo</string>
+    <string name="profile_edit">Modifier le profil</string>
+    <string name="profile_change_password">Changer le mot de passe</string>
+    <string name="profile_appearance">Apparence</string>
+    <string name="profile_theme">Thème</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="profile_font_size">Taille du texte</string>
+    <string name="font_small">Petit</string>
+    <string name="font_medium">Moyen</string>
+    <string name="font_large">Grand</string>
+    <string name="font_xl">XL</string>
+    <string name="profile_language_units">Langue et unités</string>
+    <string name="profile_app_language">Langue de l’app</string>
+    <string name="profile_change">Changer</string>
+    <string name="profile_unit_system">Système d’unités</string>
+    <string name="profile_weight_distance">Poids et distance</string>
+    <string name="profile_preferences">Préférences</string>
+    <string name="profile_workout_reminder">Rappel de séance</string>
+    <string name="profile_daily_at">Tous les jours à %1$s</string>
+    <string name="profile_notification_alerts">Alertes de notification</string>
+    <string name="profile_streaks">Séries et rappels de la communauté</string>
+    <string name="profile_about_legal">À propos et mentions</string>
+    <string name="profile_privacy_policy">Confidentialité</string>
+    <string name="profile_terms_of_service">Conditions d’utilisation</string>
+    <string name="profile_about_version">À propos et version</string>
+    <string name="profile_log_out">Déconnexion</string>
+    <string name="profile_delete_account">Supprimer le compte</string>
+    <string name="profile_edit_title">Modifier le profil</string>
+    <string name="profile_name">Nom</string>
+    <string name="profile_email">E-mail</string>
+    <string name="profile_save">Enregistrer</string>
+    <string name="profile_cancel">Annuler</string>
+
+    <!-- Dialogs -->
+    <string name="profile_log_out_title">Se déconnecter ?</string>
+    <string name="profile_log_out_message">Vous reviendrez à l’écran d’accueil. Vos données locales restent sur cet appareil.</string>
+    <string name="profile_delete_title">Supprimer le compte ?</string>
+    <string name="profile_delete_message">Cela supprime les informations du profil et la personnalisation de cet appareil. Les séances et exercices sont conservés.</string>
+    <string name="profile_delete_confirm">Supprimer</string>
+    <string name="profile_password_title">Changer le mot de passe</string>
+    <string name="profile_password_message">Ce profil est stocké sur votre appareil, il n’y a donc pas de mot de passe. Tout reste disponible hors ligne.</string>
+    <string name="profile_privacy_title">Confidentialité</string>
+    <string name="profile_privacy_message">Vos séances, exercices et réglages sont stockés uniquement sur cet appareil. Les images d’exercices sont téléchargées depuis le catalogue public et mises en cache localement.</string>
+    <string name="profile_terms_title">Conditions d’utilisation</string>
+    <string name="profile_terms_message">IndiSport est fourni en l’état pour le suivi personnel. Suivez les consignes avec discernement et entraînez-vous dans vos limites.</string>
+    <string name="profile_about_title">À propos d’IndiSport</string>
+    <string name="profile_version">Version %1$s</string>
+    <string name="profile_close">Fermer</string>
+</resources>

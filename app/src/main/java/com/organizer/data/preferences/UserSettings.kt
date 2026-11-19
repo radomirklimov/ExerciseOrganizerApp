@@ -4,7 +4,6 @@ package com.organizer.data.preferences
 enum class ThemeMode(val label: String) {
     LIGHT("Light"),
     DARK("Dark"),
-    SYSTEM("System"),
 }
 
 /** App-wide text scale multiplier. Applied on top of the system font scale. */
@@ -21,10 +20,12 @@ enum class LanguageOption(
     val englishName: String,
     val nativeName: String,
 ) {
-    ENGLISH("en", "English (US)", "English (US)"),
+    ENGLISH("en", "English", "English (US)"),
+    RUSSIAN("ru", "Russian", "Русский"),
     GERMAN("de", "German", "Deutsch"),
     SPANISH("es", "Spanish", "Español"),
-    BULGARIAN("bg", "Bulgarian", "Български"),
+    FRENCH("fr", "French", "Français"),
+    PORTUGUESE_BRAZIL("pt-BR", "Portuguese (Brazil)", "Português (Brasil)"),
     ;
 
     companion object {

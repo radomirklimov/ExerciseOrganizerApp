@@ -14,8 +14,9 @@ import javax.inject.Singleton
  * Small key-value store for the profile screen. Room backs the exercise
  * library; these values are simple scalars, so SharedPreferences is enough.
  *
- * The stored preferences are only used by the profile UI for now: they are
- * not applied to the app while the design is still being reviewed.
+ * The stored values drive the profile UI. The language is applied app-wide
+ * through [AppLocale]; the theme and font-size choices are still design-only
+ * and are not applied yet.
  */
 @Singleton
 class SettingsRepository @Inject constructor(
@@ -107,5 +108,14 @@ class SettingsRepository @Inject constructor(
         private const val KEY_REMINDER = "profile_workout_reminder"
         private const val KEY_NOTIFICATIONS = "profile_notifications"
         private const val KEY_REMINDER_TIME = "profile_reminder_time"
+
+        /**
+         * Reads the saved language without constructing the repository. Called
+         * from [AppLocale] while the Activity is still being attached.
+         */
+        fun readLanguageTag(context: Context): String =
+            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_LANGUAGE, null)
+                ?: LanguageOption.ENGLISH.tag
     }
 }

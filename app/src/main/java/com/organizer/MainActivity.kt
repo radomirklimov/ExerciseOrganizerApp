@@ -1,6 +1,7 @@
 package com.organizer
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -29,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.organizer.data.preferences.AppLocale
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
 import com.organizer.presentation.settings.SettingsViewModel
@@ -53,6 +55,12 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        // Apply the language chosen on the profile screen before any resource
+        // is resolved, so the choice survives restarts.
+        super.attachBaseContext(AppLocale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()

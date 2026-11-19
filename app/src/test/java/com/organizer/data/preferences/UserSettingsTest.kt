@@ -18,8 +18,18 @@ class UserSettingsTest {
     }
 
     @Test
-    fun languageFromTagFallsBackToEnglish() {
+    fun languageTagsMapToTheSixSupportedLanguages() {
+        assertEquals(LanguageOption.ENGLISH, LanguageOption.fromTag("en"))
+        assertEquals(LanguageOption.RUSSIAN, LanguageOption.fromTag("ru"))
         assertEquals(LanguageOption.GERMAN, LanguageOption.fromTag("de"))
+        assertEquals(LanguageOption.SPANISH, LanguageOption.fromTag("es"))
+        assertEquals(LanguageOption.FRENCH, LanguageOption.fromTag("fr"))
+        assertEquals(LanguageOption.PORTUGUESE_BRAZIL, LanguageOption.fromTag("pt-BR"))
+    }
+
+    @Test
+    fun languageFromTagFallsBackToEnglish() {
+        assertEquals(LanguageOption.ENGLISH, LanguageOption.fromTag("bg"))
         assertEquals(LanguageOption.ENGLISH, LanguageOption.fromTag("unknown"))
         assertEquals(LanguageOption.ENGLISH, LanguageOption.fromTag(null))
     }

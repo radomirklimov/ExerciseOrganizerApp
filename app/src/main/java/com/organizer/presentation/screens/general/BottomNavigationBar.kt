@@ -25,9 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.R
 import com.organizer.presentation.Routes
 
 private val NavigationSelectedColor = Color(0xFF6750A4)
@@ -60,7 +64,7 @@ fun BottomNavigationBar(
             CustomNavigationItem(
                 selected = currentRoute == Routes.Sports.route,
                 icon = Icons.Outlined.Home,
-                label = "Home",
+                label = stringResource(R.string.nav_home),
                 onClick = onHomeClick,
             )
 
@@ -69,28 +73,28 @@ fun BottomNavigationBar(
                     currentRoute == Routes.StarterTemplates.route ||
                     currentRoute == Routes.StarterTemplate.route,
                 icon = Icons.Outlined.FitnessCenter,
-                label = "Workouts",
+                label = stringResource(R.string.nav_workouts),
                 onClick = onWorkoutsClick,
             )
 
             CustomNavigationItem(
                 selected = currentRoute == Routes.Schedule.route,
                 icon = Icons.Outlined.CalendarMonth,
-                label = "Schedule",
+                label = stringResource(R.string.nav_schedule),
                 onClick = onScheduleClick,
             )
 
             CustomNavigationItem(
                 selected = currentRoute == Routes.Exercises.route,
                 icon = Icons.Outlined.List,
-                label = "Exercises",
+                label = stringResource(R.string.nav_exercises),
                 onClick = onExercisesClick,
             )
 
             CustomNavigationItem(
                 selected = currentRoute == Routes.AddCard.route,
                 icon = Icons.Outlined.Add,
-                label = "Custom",
+                label = stringResource(R.string.nav_custom),
                 onClick = onAddCardClick,
             )
         }
@@ -126,6 +130,7 @@ private fun RowScope.CustomNavigationItem(
 
     Column(
         modifier = Modifier
+            .weight(1f)
             .fillMaxHeight()
             .clickable(
                 interactionSource = remember {
@@ -169,13 +174,17 @@ private fun RowScope.CustomNavigationItem(
 
         Text(
             text = label,
-            fontSize = 14.sp,
+            modifier = Modifier.fillMaxWidth(),
+            fontSize = 12.sp,
             fontWeight = if (selected) {
                 FontWeight.Bold
             } else {
                 FontWeight.Medium
             },
             color = animatedColor,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

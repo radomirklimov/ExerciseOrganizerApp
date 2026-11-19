@@ -1,19 +1,27 @@
 <resources>
     <string name="app_name">IndiSport</string>
 
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_workouts">Workouts</string>
+    <string name="nav_schedule">Schedule</string>
+    <string name="nav_exercises">Exercises</string>
+    <string name="nav_custom">Custom</string>
+
+    <!-- Home header -->
+    <string name="home_title">Build Your\nOwn Workout!</string>
+    <string name="home_subtitle">What Would You Like To Do Today?</string>
+
     <!-- Profile -->
     <string name="profile_title">Profile</string>
     <string name="profile_back">Back</string>
-    <string name="profile_verified">Verified</string>
     <string name="profile_change_photo">Change photo</string>
     <string name="profile_edit">Edit Profile</string>
     <string name="profile_change_password">Change Password</string>
-    <string name="profile_view_account_details">View Account Details</string>
     <string name="profile_appearance">Appearance</string>
     <string name="profile_theme">Theme</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
-    <string name="theme_system">System</string>
     <string name="profile_font_size">Font Size</string>
     <string name="font_small">Small</string>
     <string name="font_medium">Medium</string>
@@ -49,7 +57,6 @@
     <string name="profile_delete_confirm">Delete</string>
     <string name="profile_password_title">Change Password</string>
     <string name="profile_password_message">This profile is stored on your device, so there is no password to change. Everything stays available offline.</string>
-    <string name="profile_account_title">Account Details</string>
     <string name="profile_privacy_title">Privacy Policy</string>
     <string name="profile_privacy_message">Your workouts, exercises and settings are stored only on this device. Exercise images are downloaded from the public exercise catalogue and cached locally.</string>
     <string name="profile_terms_title">Terms of Service</string>

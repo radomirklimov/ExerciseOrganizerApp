@@ -25,14 +25,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -41,7 +39,6 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.SettingsBrightness
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -137,12 +134,6 @@ fun ProfileScreen(
                             message = context.getString(R.string.profile_password_message),
                         )
                     },
-                    onViewAccount = {
-                        infoDialog = InfoDialogContent(
-                            title = context.getString(R.string.profile_account_title),
-                            message = "${settings.displayName}\n${settings.email}",
-                        )
-                    },
                 )
             }
 
@@ -162,6 +153,9 @@ fun ProfileScreen(
                     onLanguageSelected = { language ->
                         viewModel.setLanguage(language)
                         showLanguageMenu = false
+                        // Rebuild every resource-backed string with the
+                        // chosen locale.
+                        (context as? android.app.Activity)?.recreate()
                     },
                     onUnitSelected = viewModel::setUnitSystem,
                 )
@@ -288,7 +282,6 @@ private fun HeaderCard(
     onEditProfile: () -> Unit,
     onAvatarClick: () -> Unit,
     onChangePassword: () -> Unit,
-    onViewAccount: () -> Unit,
 ) {
     val colors = AppTheme.colors
     ProfileCard {
@@ -324,21 +317,12 @@ private fun HeaderCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = settings.displayName,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary,
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.Filled.Verified,
-                    contentDescription = stringResource(R.string.profile_verified),
-                    tint = colors.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Text(
+                text = settings.displayName,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+            )
 
             Spacer(modifier = Modifier.height(2.dp))
 
@@ -388,11 +372,6 @@ private fun HeaderCard(
                     icon = Icons.Filled.LockReset,
                     label = stringResource(R.string.profile_change_password),
                     onClick = onChangePassword,
-                )
-                QuickLinkRow(
-                    icon = Icons.Filled.Badge,
-                    label = stringResource(R.string.profile_view_account_details),
-                    onClick = onViewAccount,
                 )
             }
         }
@@ -519,12 +498,10 @@ private fun ThemeOption(
     val icon = when (mode) {
         ThemeMode.LIGHT -> Icons.Outlined.LightMode
         ThemeMode.DARK -> Icons.Outlined.DarkMode
-        ThemeMode.SYSTEM -> Icons.Outlined.SettingsBrightness
     }
     val label = when (mode) {
         ThemeMode.LIGHT -> stringResource(R.string.theme_light)
         ThemeMode.DARK -> stringResource(R.string.theme_dark)
-        ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
     }
 
     Surface(

@@ -198,6 +198,7 @@ class OrganizerViewModel @Inject constructor(
         weight: Double? = null,
         durationSeconds: Int? = null,
         sessionId: Long = 0L,
+        unitSystem: String = "METRIC",
     ) = viewModelScope.launch {
         exerciseProgressRepo.addSet(
             workoutId,
@@ -207,6 +208,7 @@ class OrganizerViewModel @Inject constructor(
             weight,
             durationSeconds,
             sessionId,
+            unitSystem,
         )
     }
 

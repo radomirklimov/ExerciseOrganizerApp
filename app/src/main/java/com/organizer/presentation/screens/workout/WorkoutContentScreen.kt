@@ -807,6 +807,10 @@ private fun ExerciseSetRow(
                 }
                 else -> {
                     // Weight is centered in the space between "Set" and reps.
+                    // The unit follows the set itself, so records made before a
+                    // unit switch keep the unit they were tracked in.
+                    val setUnit = UnitSystem.entries.firstOrNull { it.name == set.unitSystem }
+                        ?: UnitSystem.METRIC
                     Box(
                         modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.Center
@@ -819,7 +823,7 @@ private fun ExerciseSetRow(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = unitSystem.label,
+                                text = setUnit.label,
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

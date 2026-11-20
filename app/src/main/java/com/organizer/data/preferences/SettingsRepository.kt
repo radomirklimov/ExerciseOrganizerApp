@@ -51,7 +51,12 @@ class SettingsRepository @Inject constructor(
         _settings.value = read()
     }
 
-    fun setUnitSystem(value: UnitSystem) = update { it.copy(unitSystem = value) }
+    fun setUnitSystem(value: UnitSystem) = update { current ->
+        current.copy(
+            unitSystem = value,
+            weight = UserSettings.convertWeight(current.weight, current.unitSystem, value),
+        )
+    }
 
     fun setWeight(value: Double?) = update { it.copy(weight = value) }
 

@@ -44,4 +44,6 @@ data class ExerciseProgressEntity(
      * `0` marks rows recorded before sessions were introduced.
      */
     val sessionId: Long = 0L,
+    /** Unit the recorded weight belongs to (kg or lb); sticks to the set. */
+    val unitSystem: String = "METRIC",
 )

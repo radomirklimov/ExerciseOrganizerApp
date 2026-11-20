@@ -186,7 +186,7 @@ fun WorkoutExecutionScreen(
         } else {
             latestSessionSets
                 .sortedBy { it.setNumber }
-                .map { ExecutionSet(it.setNumber, setSummary(it, unitSystem)) }
+                .map { ExecutionSet(it.setNumber, setSummary(it)) }
         }
     }
 
@@ -1462,10 +1462,10 @@ private fun ExitWorkoutDialog(
     )
 }
 
-private fun setSummary(set: ExerciseProgressEntity, unitSystem: UnitSystem = UnitSystem.METRIC): String = when (set.inferredExerciseType()) {
+private fun setSummary(set: ExerciseProgressEntity): String = when (set.inferredExerciseType()) {
     DURATION_TYPE -> formatDuration(set.durationSeconds ?: 0)
     "REPS" -> "${set.reps ?: 0} reps"
-    else -> "${formatWeight(set.weight, unitSystem)} × ${set.reps ?: 0} reps"
+    else -> "${formatWeight(set.weight, UnitSystem.entries.firstOrNull { it.name == set.unitSystem } ?: UnitSystem.METRIC)} × ${set.reps ?: 0} reps"
 }
 
 private fun formatElapsed(seconds: Int): String {

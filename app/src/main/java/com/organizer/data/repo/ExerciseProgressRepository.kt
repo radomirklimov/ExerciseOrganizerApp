@@ -30,6 +30,7 @@ class ExerciseProgressRepository @Inject constructor(
         weight: Double? = null,
         durationSeconds: Int? = null,
         sessionId: Long = 0L,
+        unitSystem: String = "METRIC",
     ) {
         dao.insert(
             ExerciseProgressEntity(
@@ -40,6 +41,7 @@ class ExerciseProgressRepository @Inject constructor(
                 weight = weight,
                 durationSeconds = durationSeconds,
                 sessionId = sessionId,
+                unitSystem = unitSystem,
             )
         )
     }

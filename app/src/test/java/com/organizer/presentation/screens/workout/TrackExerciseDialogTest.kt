@@ -2,6 +2,7 @@ package com.organizer.presentation.screens.workout
 
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.preferences.UnitSystem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -39,6 +40,13 @@ class TrackExerciseDialogTest {
         assertEquals("0 kg", formatWeight(0.0))
         assertEquals("15 kg", formatWeight(15.0))
         assertEquals("15.5 kg", formatWeight(15.5))
+    }
+
+    @Test
+    fun `weight formatting uses the selected unit system`() {
+        assertEquals("0 lb", formatWeight(0.0, UnitSystem.IMPERIAL))
+        assertEquals("5.5 lb", formatWeight(5.5, UnitSystem.IMPERIAL))
+        assertEquals("15 kg", formatWeight(15.0, UnitSystem.METRIC))
     }
 
     @Test

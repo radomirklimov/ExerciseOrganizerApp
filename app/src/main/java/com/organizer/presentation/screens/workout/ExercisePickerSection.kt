@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.model.ExerciseCatalogEntry
 import com.organizer.presentation.screens.general.SearchBar
 
@@ -209,7 +210,7 @@ private fun FilterChip(
             text = label,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            color = if (selected) Color.White else TextSecondary,
+            color = if (selected) AppTheme.colors.onPrimary else TextSecondary,
             maxLines = 1,
         )
 
@@ -220,7 +221,7 @@ private fun FilterChip(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
                     .background(
-                        if (selected) Color.White.copy(alpha = 0.22f)
+                        if (selected) AppTheme.colors.onPrimary.copy(alpha = 0.22f)
                         else Brand.copy(alpha = 0.12f)
                     )
                     .padding(horizontal = 7.dp, vertical = 2.dp),
@@ -230,7 +231,7 @@ private fun FilterChip(
                     text = count.toString(),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (selected) Color.White else Brand,
+                    color = if (selected) AppTheme.colors.onPrimary else Brand,
                 )
             }
         }

@@ -6,6 +6,11 @@
         <item name="android:statusBarColor">#FEFBFE</item>
     </style>
 
+    <style name="Theme.ExerciseOrganizerApp.Dark" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#121016</item>
+        <item name="android:statusBarColor">#121016</item>
+    </style>
+
 
     <style name="Theme.ExerciseOrganizerApp.Splash"
         parent="Theme.SplashScreen">
@@ -16,6 +21,19 @@
 
         <item name="postSplashScreenTheme">
             @style/Theme.ExerciseOrganizerApp
+        </item>
+
+    </style>
+
+    <style name="Theme.ExerciseOrganizerApp.Splash.Dark"
+        parent="Theme.SplashScreen">
+
+        <item name="windowSplashScreenBackground">#121016</item>
+
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/exercise_organizer_logo_round</item>
+
+        <item name="postSplashScreenTheme">
+            @style/Theme.ExerciseOrganizerApp.Dark
         </item>
 
     </style>

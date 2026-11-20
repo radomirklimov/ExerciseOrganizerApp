@@ -35,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun CustomWorkoutsAndExercisesScreen(
@@ -123,7 +124,7 @@ fun ExercisesScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(50))
-                .background(Color(0xFFF1ECF2))
+                .background(AppTheme.colors.surfaceMuted)
                 .padding(4.dp),
         ) {
             listOf(ExercisesTab.FAVORITES to "Favorites", ExercisesTab.CUSTOM to "Custom").forEach { (tab, label) ->
@@ -132,7 +133,7 @@ fun ExercisesScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(50))
-                        .background(if (selected) Color.White else Color.Transparent)
+                        .background(if (selected) AppTheme.colors.surface else Color.Transparent)
                         .clickable { selectedTab = tab }
                         .padding(vertical = 6.dp, horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
@@ -141,7 +142,7 @@ fun ExercisesScreen(
                         text = label,
                         fontSize = 13.sp,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                        color = if (selected) Color(0xFF4F378A) else Color(0xFF494551),
+                        color = if (selected) AppTheme.colors.primaryDark else AppTheme.colors.textSecondary,
                     )
                 }
             }

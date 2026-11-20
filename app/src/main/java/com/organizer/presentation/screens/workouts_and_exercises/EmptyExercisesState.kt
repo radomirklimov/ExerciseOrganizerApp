@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun EmptyExercisesState(
@@ -69,7 +70,7 @@ fun EmptyExercisesState(
                 modifier = Modifier
                     .size(176.dp)
                     .blur(48.dp)
-                    .background(Color(0xFFE9DDFF).copy(alpha = 0.5f), CircleShape),
+                    .background(AppTheme.colors.primarySoft.copy(alpha = 0.5f), CircleShape),
             )
 
             Box(
@@ -77,21 +78,21 @@ fun EmptyExercisesState(
                     .size(144.dp)
                     .shadow(4.dp, RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
+                    .background(AppTheme.colors.surface)
+                    .border(1.dp, AppTheme.colors.borderStrong.copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
             ) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(96.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFE9DDFF)),
+                        .background(AppTheme.colors.primarySoft),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = Color(0xFF4F378A),
+                        tint = AppTheme.colors.primaryDark,
                         modifier = Modifier.size(48.dp),
                     )
                 }
@@ -102,7 +103,7 @@ fun EmptyExercisesState(
             text = title,
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF1C1B1F),
+            color = AppTheme.colors.textPrimary,
             textAlign = TextAlign.Center,
         )
 
@@ -111,7 +112,7 @@ fun EmptyExercisesState(
         Text(
             text = description,
             fontSize = 14.sp,
-            color = Color(0xFF494551),
+            color = AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
             lineHeight = 20.sp,
             modifier = Modifier.padding(horizontal = 8.dp),
@@ -132,14 +133,14 @@ fun EmptyExercisesState(
                 capabilityPills.forEach { label ->
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFF1ECF2), RoundedCornerShape(50))
-                            .border(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.3f), RoundedCornerShape(50))
+                            .background(AppTheme.colors.surfaceMuted, RoundedCornerShape(50))
+                            .border(1.dp, AppTheme.colors.borderStrong.copy(alpha = 0.3f), RoundedCornerShape(50))
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         Text(
                             text = label,
                             fontSize = 13.sp,
-                            color = Color(0xFF1C1B1F),
+                            color = AppTheme.colors.textPrimary,
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -166,10 +167,10 @@ fun EmptyExercisesState(
                         .height(48.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6750A4),
-                        contentColor = Color.White,
+                        containerColor = AppTheme.colors.primary,
+                        contentColor = AppTheme.colors.onPrimary,
                     ),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
                 ) {
                     Row(
@@ -201,10 +202,10 @@ fun EmptyExercisesState(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF1C1B1F),
+                    containerColor = AppTheme.colors.surface,
+                    contentColor = AppTheme.colors.textPrimary,
                 ),
-                border = BorderStroke(1.dp, Color(0xFFCBC4D2).copy(alpha = 0.4f)),
+                border = BorderStroke(1.dp, AppTheme.colors.borderStrong.copy(alpha = 0.4f)),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
             ) {
@@ -220,13 +221,13 @@ fun EmptyExercisesState(
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
-                                .background(Color(0xFFF1ECF2), RoundedCornerShape(8.dp)),
+                                .background(AppTheme.colors.surfaceMuted, RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                 contentDescription = null,
-                                tint = Color(0xFF4F378A),
+                                tint = AppTheme.colors.primaryDark,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -235,19 +236,19 @@ fun EmptyExercisesState(
                                 text = "Browse Standard Exercises",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1C1B1F),
+                                color = AppTheme.colors.textPrimary,
                             )
                             Text(
                                 text = "Explore 400+ built-in gym movements",
                                 fontSize = 12.sp,
-                                color = Color(0xFF7A7582),
+                                color = AppTheme.colors.textMuted,
                             )
                         }
                     }
                     Icon(
                         imageVector = Icons.Filled.ChevronRight,
                         contentDescription = null,
-                        tint = Color(0xFF7A7582),
+                        tint = AppTheme.colors.textMuted,
                         modifier = Modifier.size(18.dp),
                     )
                 }

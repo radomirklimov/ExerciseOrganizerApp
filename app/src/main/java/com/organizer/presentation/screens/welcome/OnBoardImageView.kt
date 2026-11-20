@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun OnBoardImageView(modifier: Modifier = Modifier, imageRes: Int) {
@@ -32,7 +33,7 @@ fun OnBoardImageView(modifier: Modifier = Modifier, imageRes: Int) {
             .background(
                 Brush.verticalGradient(
                     colorStops = arrayOf(
-                        Pair(0.8f, Color.Transparent), Pair(1f, Color.White)
+                        Pair(0.8f, Color.Transparent), Pair(1f, AppTheme.colors.background)
                     )
                 )
             ))

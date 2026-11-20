@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.organizer.ui.theme.themedColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -447,7 +448,7 @@ internal fun ScheduleWorkoutSheet(
                                 checkedTrackColor = ScheduleBrand,
                                 checkedBorderColor = ScheduleBrand,
                                 uncheckedThumbColor = ScheduleSurface,
-                                uncheckedTrackColor = androidx.compose.ui.graphics.Color(0xFFCBD5E1),
+                                uncheckedTrackColor = ScheduleFieldBorder,
                                 uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
                             ),
                         )
@@ -464,7 +465,7 @@ internal fun ScheduleWorkoutSheet(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (reminderEnabled) {
-                                androidx.compose.ui.graphics.Color(0xFF334155)
+                                themedColor(androidx.compose.ui.graphics.Color(0xFF334155), ScheduleInkSecondary)
                             } else {
                                 ScheduleInkMuted
                             },
@@ -600,7 +601,7 @@ private fun FieldLabel(
         modifier = modifier.padding(bottom = 8.dp),
         fontSize = 13.sp,
         fontWeight = FontWeight.Bold,
-        color = androidx.compose.ui.graphics.Color(0xFF334155),
+        color = themedColor(androidx.compose.ui.graphics.Color(0xFF334155), ScheduleInkSecondary),
     )
 }
 

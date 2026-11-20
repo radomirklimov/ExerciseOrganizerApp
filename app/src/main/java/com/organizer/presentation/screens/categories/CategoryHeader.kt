@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun CategoryHeader(
@@ -86,7 +87,7 @@ fun CategoryHeader(
                     text = it.name,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = AppTheme.colors.textPrimary
                 )
             }
         }
@@ -106,8 +107,16 @@ fun CategoryHeader(
             ) {
                 breadcrumbItems.forEachIndexed { index, category ->
                     val isCurrent = index == breadcrumbItems.lastIndex
-                    val blockColor = if (isCurrent) Color(0xFF6750A4) else Color(0xFFF1ECF2)
-                    val textColor = if (isCurrent) Color.White else Color(0xFF6750A4)
+                    val blockColor = if (isCurrent) {
+                        AppTheme.colors.primary
+                    } else {
+                        AppTheme.colors.surfaceMuted
+                    }
+                    val textColor = if (isCurrent) {
+                        AppTheme.colors.onPrimary
+                    } else {
+                        AppTheme.colors.primary
+                    }
 
                     Box(
                         modifier = (if (isCurrent) {
@@ -133,7 +142,7 @@ fun CategoryHeader(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .padding(horizontal = 6.dp),
-                            color = Color.Gray
+                            color = AppTheme.colors.textMuted
                         )
                     }
                 }

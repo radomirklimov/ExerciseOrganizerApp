@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun CreateWorkoutScreen(
@@ -213,7 +214,7 @@ private fun CreateWorkoutFooter(
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Brand,
-                contentColor = Color.White,
+                contentColor = AppTheme.colors.onPrimary,
                 disabledContainerColor = DisabledBackground,
                 disabledContentColor = DisabledText,
             ),

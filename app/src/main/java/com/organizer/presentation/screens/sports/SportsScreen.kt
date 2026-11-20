@@ -3,12 +3,16 @@ package com.organizer.presentation.screens.sports
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -21,11 +25,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.organizer.R
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.categories.CategoryListItem
+import com.organizer.presentation.screens.general.ProfileAvatar
 import com.organizer.presentation.screens.general.SearchBar
 import com.organizer.presentation.screens.workout.ExerciseFilter
 import com.organizer.presentation.screens.workout.ExerciseOptionRow
@@ -35,11 +44,15 @@ import com.organizer.presentation.screens.workout.ExerciseSectionHeading
 import com.organizer.presentation.screens.workout.MAX_EXERCISE_SEARCH_RESULTS
 import com.organizer.presentation.screens.workout.emptyExerciseSearchMessage
 import com.organizer.presentation.screens.workout.filterExerciseEntries
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun SportsScreen(
     onSportClick: (CategoryEntity) -> Unit,
     onExerciseClick: (ExerciseEntity) -> Unit,
+    onProfileClick: () -> Unit,
+    avatarPath: String?,
+    initials: String,
     viewModel: OrganizerViewModel,
 ) {
     val sportsState by viewModel.sportsUiState.collectAsState()
@@ -50,6 +63,7 @@ fun SportsScreen(
 
     val sports = sportsState.orEmpty()
     val isSearching = searchQuery.isNotBlank()
+    val profileLabel = stringResource(R.string.profile_title)
 
     // Keep the last query while its results fade into the sports grid. Without
     // it, clearing the field would briefly render an empty result list and the
@@ -85,12 +99,26 @@ fun SportsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFEFBFE))
+            .background(AppTheme.colors.background)
             .padding(horizontal = 24.dp)
             .padding(top = 16.dp)
     ) {
 
-        HeaderText()
+        Row(verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                HeaderText()
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            ProfileAvatar(
+                avatarPath = avatarPath,
+                initials = initials,
+                size = 48.dp,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .clickable(onClick = onProfileClick)
+                    .semantics { contentDescription = profileLabel },
+            )
+        }
 
         SearchBar(
             query = searchQuery,

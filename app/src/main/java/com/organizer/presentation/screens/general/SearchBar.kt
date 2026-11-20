@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun SearchBar(
@@ -44,8 +45,8 @@ fun SearchBar(
         },
         shape = RoundedCornerShape(18.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
+            focusedContainerColor = AppTheme.colors.surface,
+            unfocusedContainerColor = AppTheme.colors.surface,
         ),
         leadingIcon = {
             // The scope pill makes this row wider than the slot's 48dp minimum,

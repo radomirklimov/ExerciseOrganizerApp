@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.screens.sports.LoadingErrorView
 
 @Composable
@@ -45,7 +46,7 @@ fun CategoryContentScreen(
     val parentCategory = categoryPath.dropLast(1).lastOrNull()
 
     // Keep the same background color on every screen.
-    val backgroundColor = Color(0xFFFEFBFE)
+    val backgroundColor = AppTheme.colors.background
 
     // Prioritize this category's media every time its data changes: opening
     // another category dynamically raises its images and icons above pending
@@ -60,7 +61,7 @@ fun CategoryContentScreen(
         // Keep the header in the default surface color, independent of the
         // category-depth background tint used by the content below.
         Surface(
-            color = Color(0xFFFEFBFE),
+            color = AppTheme.colors.background,
             modifier = Modifier.fillMaxWidth()
         ) {
             CategoryHeader(

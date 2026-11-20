@@ -1,6 +1,7 @@
 package com.organizer
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,9 +14,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -27,9 +31,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.organizer.data.preferences.AppLocale
+import com.organizer.data.preferences.SettingsRepository
+import com.organizer.data.preferences.ThemeMode
+import com.organizer.data.preferences.UserSettings
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
+import com.organizer.presentation.settings.SettingsViewModel
 import com.organizer.presentation.screens.add_card.AddCardScreen
+import com.organizer.presentation.screens.profile.ProfileScreen
 import com.organizer.presentation.screens.sports.SportsScreen
 import com.organizer.presentation.screens.schedule.ScheduleScreen
 import com.organizer.presentation.screens.categories.CategoryContentScreen
@@ -38,6 +48,7 @@ import com.organizer.presentation.screens.workout.CreateWorkoutScreen
 import com.organizer.presentation.screens.general.BottomNavigationBar
 import com.organizer.presentation.screens.welcome.OnboardScreen
 import com.organizer.presentation.screens.welcome.OnboardingManager
+import com.organizer.presentation.screens.welcome.OnboardingProfileScreen
 import com.organizer.presentation.screens.workout.WorkoutContentScreen
 import com.organizer.presentation.screens.workout.WorkoutExecutionScreen
 import com.organizer.presentation.screens.workout.StarterTemplatePreviewScreen
@@ -45,12 +56,28 @@ import com.organizer.presentation.screens.workouts_and_exercises.CustomWorkoutsA
 import com.organizer.presentation.screens.workouts_and_exercises.WorkoutsScreen
 import com.organizer.presentation.screens.workouts_and_exercises.ExercisesScreen
 import com.organizer.presentation.screens.workouts_and_exercises.StarterTemplatesScreen
+import com.organizer.ui.theme.AppTheme
+import com.organizer.ui.theme.AppThemeProvider
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    override fun attachBaseContext(newBase: Context) {
+        // Apply the language chosen on the profile screen before any resource
+        // is resolved, so the choice survives restarts.
+        super.attachBaseContext(AppLocale.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Pick the window/splash theme before the window is created, so dark
+        // mode does not flash a light background on launch.
+        val splashTheme = if (SettingsRepository.readThemeMode(this) == ThemeMode.DARK) {
+            R.style.Theme_ExerciseOrganizerApp_Splash_Dark
+        } else {
+            R.style.Theme_ExerciseOrganizerApp_Splash
+        }
+        setTheme(splashTheme)
         installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
@@ -62,6 +89,27 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(showOnboarding: Boolean) {
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val settings by settingsViewModel.settings.collectAsState()
+
+    AppThemeProvider(
+        darkTheme = settings.themeMode == ThemeMode.DARK,
+        fontScale = settings.fontSize.scale,
+    ) {
+        AppNavigationContent(
+            showOnboarding = showOnboarding,
+            settings = settings,
+            settingsViewModel = settingsViewModel,
+        )
+    }
+}
+
+@Composable
+private fun AppNavigationContent(
+    showOnboarding: Boolean,
+    settings: UserSettings,
+    settingsViewModel: SettingsViewModel,
+) {
     // create viewModel for instant data load
     val organizerViewModel: OrganizerViewModel = hiltViewModel()
 
@@ -73,22 +121,30 @@ fun AppNavigation(showOnboarding: Boolean) {
         ?.route
 
     val context = LocalContext.current
-    LaunchedEffect(currentRoute) {
+    val palette = AppTheme.colors
+    LaunchedEffect(currentRoute, palette.isDark) {
         val activity = context as? Activity ?: return@LaunchedEffect
         val statusBarColor = when (currentRoute) {
             Routes.Sports.route,
             Routes.Schedule.route,
-            -> android.graphics.Color.parseColor("#FEFBFE")
+            -> palette.background.toArgb()
 
-            // The execution screen has a white header pinned under the status bar.
-            Routes.WorkoutExecution.route -> android.graphics.Color.parseColor("#FFFFFF")
+            // The execution screen has its own header pinned under the status bar.
+            Routes.WorkoutExecution.route -> palette.surface.toArgb()
 
-            else -> android.graphics.Color.parseColor("#F8F5F5")
+            else -> if (palette.isDark) {
+                palette.background.toArgb()
+            } else {
+                palette.backgroundSubtle.toArgb()
+            }
         }
         activity.window.statusBarColor = statusBarColor
+        activity.window.navigationBarColor = palette.background.toArgb()
         activity.window.setBackgroundDrawable(ColorDrawable(statusBarColor))
-        WindowCompat.getInsetsController(activity.window, activity.window.decorView)
-            .isAppearanceLightStatusBars = true
+        WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
+            isAppearanceLightStatusBars = !palette.isDark
+            isAppearanceLightNavigationBars = !palette.isDark
+        }
     }
 
     fun popBackScreen() {
@@ -141,11 +197,12 @@ fun AppNavigation(showOnboarding: Boolean) {
     }
 
     Scaffold(
-        containerColor = Color(0xFFFEFBFE),
+        containerColor = palette.background,
         bottomBar = {
             // The workout player is an immersive flow: it provides its own
             // fixed action bar and must not show the app navigation.
             if (currentRoute != Routes.Onboarding.route &&
+                currentRoute != Routes.OnboardingProfile.route &&
                 currentRoute != Routes.WorkoutExecution.route
             ) {
                 BottomNavigationBar(
@@ -177,21 +234,40 @@ fun AppNavigation(showOnboarding: Boolean) {
             popEnterTransition = { fadeIn(animationSpec = tween(200)) },
             popExitTransition = { fadeOut(animationSpec = tween(200)) },
         ) {
-            composable(Routes.Onboarding.route) {
-                val context = LocalContext.current
-                OnboardScreen(
-                    onFinish = {
-                        OnboardingManager.complete(
-                            context = context
-                        )
-                        navController.navigate(Routes.Sports.route) {
-                            popUpTo(Routes.Onboarding.route) {
-                                inclusive = true
+            if (showOnboarding) {
+                composable(Routes.Onboarding.route) {
+                    OnboardScreen(
+                        onFinish = {
+                            navController.navigate(Routes.OnboardingProfile.route) {
+                                popUpTo(Routes.Onboarding.route) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
                             }
-                            launchSingleTop = true
                         }
-                    }
-                )
+                    )
+                }
+
+                composable(Routes.OnboardingProfile.route) {
+                    val context = LocalContext.current
+                    OnboardingProfileScreen(
+                        onComplete = { name, language ->
+                            val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+                            prefs.edit().apply {
+                                putString("profile_name", name.trim().ifBlank { "Alex Morgan" })
+                                putString("profile_email", "alex.morgan@fitflow.app")
+                                putString("profile_language", language.tag)
+                                putBoolean("onboarding_done", true)
+                            }.commit()
+                            settingsViewModel.reload()
+                            navController.navigate(Routes.Sports.route) {
+                                popUpTo(Routes.OnboardingProfile.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                            (context as? Activity)?.recreate()
+                        }
+                    )
+                }
             }
 
             composable(Routes.Sports.route) {
@@ -206,7 +282,33 @@ fun AppNavigation(showOnboarding: Boolean) {
                             Routes.ExerciseCard.createRoute(exercise.exerciseId)
                         )
                     },
+                    onProfileClick = {
+                        navController.navigate(Routes.Profile.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    avatarPath = settings.avatarPath,
+                    initials = settings.initials,
                     viewModel = organizerViewModel,
+                )
+            }
+
+            composable(Routes.Profile.route) {
+                ProfileScreen(
+                    settings = settings,
+                    onBackClick = { popBackScreen() },
+                    onAccountClosed = {
+                        val popped = navController.popBackStack(
+                            route = Routes.Sports.route,
+                            inclusive = false,
+                        )
+                        if (!popped) {
+                            navController.navigate(Routes.Sports.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    viewModel = settingsViewModel,
                 )
             }
 
@@ -419,6 +521,7 @@ fun AppNavigation(showOnboarding: Boolean) {
                         navController.navigate(Routes.AddCard.route)
                     },
                     viewModel = organizerViewModel,
+                    unitSystem = settings.unitSystem,
                 )
             }
 
@@ -437,6 +540,7 @@ fun AppNavigation(showOnboarding: Boolean) {
                         popBackScreen()
                     },
                     viewModel = organizerViewModel,
+                    unitSystem = settings.unitSystem,
                 )
             }
 

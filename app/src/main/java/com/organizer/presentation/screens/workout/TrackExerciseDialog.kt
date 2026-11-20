@@ -75,6 +75,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import kotlin.math.abs
@@ -133,12 +134,13 @@ internal fun effectiveExerciseType(
     }
 }
 
-internal fun formatWeight(weight: Double?): String {
+internal fun formatWeight(weight: Double?, unitSystem: UnitSystem = UnitSystem.METRIC): String {
     val value = weight ?: 0.0
+    val unit = unitSystem.label
     return if (value == value.toLong().toDouble()) {
-        "${value.toLong()} kg"
+        "${value.toLong()} $unit"
     } else {
-        "$value kg"
+        "$value $unit"
     }
 }
 
@@ -212,6 +214,7 @@ fun TrackExerciseDialog(
     initialReps: Int? = null,
     initialWeight: Double? = null,
     initialDurationSeconds: Int? = null,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     SetEditorDialog(
         stateKey = exercise.exerciseId,
@@ -232,6 +235,7 @@ fun TrackExerciseDialog(
         initialReps = initialReps,
         initialWeight = initialWeight,
         initialDurationSeconds = initialDurationSeconds,
+        unitSystem = unitSystem,
         onAddSet = { reps, weight, duration ->
             viewModel.addExerciseSet(
                 workoutId = workoutId,
@@ -279,6 +283,7 @@ internal fun SetEditorDialog(
     initialWeight: Double? = null,
     initialDurationSeconds: Int? = null,
     deletePermanently: Boolean = true,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     // The workout's current effective type is the default tracking mode. The
     // user can switch modes for this dialog without changing the exercise.
@@ -428,12 +433,14 @@ internal fun SetEditorDialog(
                                     actionEnabled = hasRequiredValues,
                                     onAction = ::saveSet,
                                     onCancel = ::cancelEditing,
+                                    unitSystem = unitSystem,
                                 )
                             } else {
                                 RecordedSetCard(
                                     entry = set,
                                     onEdit = { loadSet(set) },
                                     onDelete = { setToDelete = set },
+                                    unitSystem = unitSystem,
                                 )
                             }
                         }
@@ -452,6 +459,7 @@ internal fun SetEditorDialog(
                                 actionEnabled = hasRequiredValues,
                                 onAction = ::saveSet,
                                 onCancel = ::cancelEditing,
+                                unitSystem = unitSystem,
                             )
                         } else {
                             AddSetCard(
@@ -653,6 +661,7 @@ private fun RecordedSetCard(
     entry: SetEditorEntry,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -715,7 +724,7 @@ private fun RecordedSetCard(
                             text = "${entry.reps ?: 0} reps",
                         )
                         RecordedSetValue(
-                            text = formatWeight(entry.weight),
+                            text = formatWeight(entry.weight, unitSystem),
                         )
                     }
                 }
@@ -773,6 +782,7 @@ private fun ActiveSetEditor(
     actionEnabled: Boolean,
     onAction: () -> Unit,
     onCancel: () -> Unit,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -832,6 +842,7 @@ private fun ActiveSetEditor(
                         modifier = Modifier.fillMaxWidth(),
                         weightTenths = weightTenths,
                         onWeightChange = onWeightChange,
+                        unitSystem = unitSystem,
                     )
                 }
             }
@@ -1005,12 +1016,13 @@ private fun WeightStepper(
     modifier: Modifier = Modifier,
     weightTenths: Int,
     onWeightChange: (Int) -> Unit,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     MetricStepper(
         modifier = modifier,
-        label = "LOAD (KG)",
+        label = "LOAD (${unitSystem.label})",
         valueText = formatWeightNumber(weightTenths / 10.0),
-        unit = "kg",
+        unit = unitSystem.label,
         valueColor = MaterialTheme.colorScheme.onSurface,
         dragValue = weightTenths,
         dragValueRange = 0..Int.MAX_VALUE,

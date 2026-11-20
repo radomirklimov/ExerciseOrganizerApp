@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun InstructionPager(
@@ -88,7 +89,7 @@ fun InstructionPager(
                             if (pagerState.currentPage == index)
                                 MaterialTheme.colorScheme.primary
                             else
-                                Color.LightGray
+                                AppTheme.colors.borderStrong
                         )
                 )
             }

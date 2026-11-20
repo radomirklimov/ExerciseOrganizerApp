@@ -141,6 +141,8 @@ private fun DayPill(
 ) {
     val shape = RoundedCornerShape(18.dp)
     val isRestDay = !hasWorkout
+    // Read the palette here: drawBehind runs outside the composable scope.
+    val restDayBorder = ScheduleRestDayBorder
 
     val background = when {
         selected -> ScheduleBrand
@@ -155,7 +157,7 @@ private fun DayPill(
             // half of the dashed outline.
             val stroke = 1.dp.toPx()
             drawRoundRect(
-                color = ScheduleRestDayBorder,
+                color = restDayBorder,
                 topLeft = Offset(stroke / 2, stroke / 2),
                 size = Size(size.width - stroke, size.height - stroke),
                 cornerRadius = CornerRadius(18.dp.toPx() - stroke / 2),

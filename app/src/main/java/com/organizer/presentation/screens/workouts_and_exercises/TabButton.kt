@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.organizer.ui.theme.AppTheme
 
 @Composable
 fun TabButton(
@@ -26,7 +27,7 @@ fun TabButton(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .background(
-                if (selected) Color.White
+                if (selected) AppTheme.colors.surface
                 else Color.Transparent
             )
             .clickable(onClick = onClick)
@@ -38,8 +39,8 @@ fun TabButton(
             text = title,
             fontWeight = FontWeight.SemiBold,
             color =
-                if (selected) Color.Black
-                else Color.LightGray
+                if (selected) AppTheme.colors.textPrimary
+                else AppTheme.colors.textMuted
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.organizer.presentation.screens.profile
 
+import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -53,6 +54,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +78,9 @@ import com.organizer.data.preferences.ThemeMode
 import com.organizer.data.preferences.UnitSystem
 import com.organizer.data.preferences.UserSettings
 import com.organizer.presentation.screens.general.ProfileAvatar
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.organizer.auth.UserState
+import com.organizer.presentation.account.AccountViewModel
 import com.organizer.presentation.settings.SettingsViewModel
 import com.organizer.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +99,8 @@ fun ProfileScreen(
     val colors = AppTheme.colors
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val accountViewModel: AccountViewModel = hiltViewModel()
+    val userState by accountViewModel.userState.collectAsState()
 
     var showEditProfile by remember { mutableStateOf(false) }
     var showLanguageMenu by remember { mutableStateOf(false) }
@@ -196,6 +203,16 @@ fun ProfileScreen(
                             ),
                         )
                     },
+                )
+            }
+
+            item {
+                AccountCard(
+                    userState = userState,
+                    onGoogleClick = {
+                        (context as? Activity)?.let { accountViewModel.signInWithGoogle(it) }
+                    },
+                    onSignOutClick = { accountViewModel.signOut() },
                 )
             }
 
@@ -1104,6 +1121,86 @@ private fun appVersion(context: Context): String =
     runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName
     }.getOrNull() ?: "1.0"
+
+@Composable
+private fun AccountCard(
+    userState: UserState,
+    onGoogleClick: () -> Unit,
+    onSignOutClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    ProfileCard {
+        when (userState) {
+            is UserState.Guest, UserState.Authenticating -> {
+                Text(
+                    text = "Guest Mode",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Your workouts are currently stored only on this device.",
+                    fontSize = 13.sp,
+                    color = colors.textSecondary,
+                )
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    onClick = onGoogleClick,
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "Continue with Google",
+                        modifier = Modifier.padding(12.dp),
+                        color = colors.onPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                if (userState == UserState.Authenticating) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Authenticating...", color = colors.textSecondary)
+                }
+            }
+            is UserState.Authenticated -> {
+                Text(
+                    text = "Signed in",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = userState.email ?: "",
+                    fontSize = 13.sp,
+                    color = colors.textSecondary,
+                )
+                if (userState.displayName != null) {
+                    Text(
+                        text = userState.displayName,
+                        fontSize = 13.sp,
+                        color = colors.textSecondary,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    onClick = onSignOutClick,
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surfaceMuted,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "Sign out",
+                        modifier = Modifier.padding(12.dp),
+                        color = colors.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
 
 private fun copyAvatar(context: Context, uri: Uri): String? = runCatching {
     val target = File(context.filesDir, "profile/avatar.jpg")

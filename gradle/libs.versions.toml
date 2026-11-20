@@ -20,10 +20,15 @@ navigation = "2.9.8"
 font-awesome = "1.1.1"
 icons-extended = "1.7.8"
 hilt-navigation-compose = "1.3.0"
+hilt-work = "1.2.0"
 splashscreen = "1.2.0"
 reorderable = "3.1.0"
 datastore = "1.2.1"
 gson = "2.14.0"
+firebase-bom = "35.2.0"
+google-services = "4.6.0"
+credentials = "1.5.0"
+googleid = "1.1.1"
 junit = "4.13.2"
 coroutines-test = "1.9.0"
 
@@ -69,6 +74,7 @@ hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.re
 # Navigation
 navigation = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
+hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hilt-work" }
 # SplashScreen
 core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 # Reorderable
@@ -77,6 +83,11 @@ reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reo
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 # Convert Java Objects into their JSON representation
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 # Unit testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines-test" }
@@ -92,3 +103,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serialization" }
 # Dependency injection
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }

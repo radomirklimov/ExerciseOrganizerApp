@@ -87,6 +87,8 @@ import com.organizer.ui.theme.AppTheme
 import com.organizer.ui.theme.themedColor
 import com.organizer.presentation.screens.exercises.ExerciseImageAnimation
 import com.organizer.presentation.screens.exercises.InstructionPager
+import com.organizer.presentation.screens.general.CelebrationMessage
+import com.organizer.presentation.screens.general.CelebrationOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlin.time.Duration.Companion.milliseconds
@@ -151,6 +153,25 @@ fun WorkoutExecutionScreen(
         endRealtime = elapsedEndRealtime,
         nowRealtime = elapsedTickRealtime,
     )
+
+    // One-shot finish celebration. The flag survives process death, so
+    // restoring a finished session does not replay the toast.
+    var celebration by remember { mutableStateOf<CelebrationMessage?>(null) }
+    var completionCelebrated by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(finished) {
+        if (finished && !completionCelebrated) {
+            completionCelebrated = true
+            val finishedIn = elapsedSecondsSince(
+                startRealtime = elapsedStartRealtime,
+                endRealtime = NO_TIMER_ANCHOR,
+                nowRealtime = SystemClock.elapsedRealtime(),
+            )
+            celebration = CelebrationMessage(
+                title = "Workout Complete! 🎉",
+                subtitle = "Finished in ${formatSeconds(finishedIn)}",
+            )
+        }
+    }
 
     // Only exercise outcomes are tracked: Done counts, Skip does not. The
     // percentage lands on today's date in the schedule calendar.
@@ -442,6 +463,12 @@ fun WorkoutExecutionScreen(
                 onBackClick = onBackClick,
             )
         }
+
+        // Drawn last so the finish toast and confetti sit above the summary.
+        CelebrationOverlay(
+            message = celebration,
+            onDismiss = { celebration = null },
+        )
     }
 
     if (showExitDialog) {

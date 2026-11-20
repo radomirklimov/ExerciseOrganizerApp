@@ -53,6 +53,8 @@ class SettingsRepository @Inject constructor(
 
     fun setUnitSystem(value: UnitSystem) = update { it.copy(unitSystem = value) }
 
+    fun setWeight(value: Double?) = update { it.copy(weight = value) }
+
     fun setWorkoutReminderEnabled(value: Boolean) =
         update { it.copy(workoutReminderEnabled = value) }
 
@@ -78,6 +80,7 @@ class SettingsRepository @Inject constructor(
         fontSize = enumOr(prefs.getString(KEY_FONT, null), FontSizeOption.MEDIUM),
         language = LanguageOption.fromTag(prefs.getString(KEY_LANGUAGE, null)),
         unitSystem = enumOr(prefs.getString(KEY_UNITS, null), UnitSystem.METRIC),
+        weight = prefs.getString(KEY_WEIGHT, null)?.toString()?.toDoubleOrNull(),
         workoutReminderEnabled = prefs.getBoolean(KEY_REMINDER, true),
         notificationsEnabled = prefs.getBoolean(KEY_NOTIFICATIONS, true),
         reminderTime = prefs.getString(KEY_REMINDER_TIME, null) ?: "18:00",
@@ -92,6 +95,7 @@ class SettingsRepository @Inject constructor(
             putString(KEY_FONT, value.fontSize.name)
             putString(KEY_LANGUAGE, value.language.tag)
             putString(KEY_UNITS, value.unitSystem.name)
+            putString(KEY_WEIGHT, value.weight?.toString())
             putBoolean(KEY_REMINDER, value.workoutReminderEnabled)
             putBoolean(KEY_NOTIFICATIONS, value.notificationsEnabled)
             putString(KEY_REMINDER_TIME, value.reminderTime)
@@ -110,6 +114,7 @@ class SettingsRepository @Inject constructor(
         private const val KEY_THEME = "profile_theme"
         private const val KEY_FONT = "profile_font_size"
         private const val KEY_UNITS = "profile_units"
+        private const val KEY_WEIGHT = "profile_weight"
         private const val KEY_REMINDER = "profile_workout_reminder"
         private const val KEY_NOTIFICATIONS = "profile_notifications"
         private const val KEY_REMINDER_TIME = "profile_reminder_time"

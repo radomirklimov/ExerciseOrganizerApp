@@ -30,7 +30,7 @@
     <string name="profile_app_language">Langue de l’app</string>
     <string name="profile_change">Changer</string>
     <string name="profile_unit_system">Système d’unités</string>
-    <string name="profile_weight_distance">Poids et distance</string>
+    <string name="profile_weight">Poids</string>
     <string name="profile_preferences">Préférences</string>
     <string name="profile_workout_reminder">Rappel de séance</string>
     <string name="profile_daily_at">Tous les jours à %1$s</string>

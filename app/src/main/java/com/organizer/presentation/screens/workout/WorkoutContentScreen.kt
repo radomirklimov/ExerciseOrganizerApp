@@ -74,6 +74,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
+import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.screens.exercises.ExerciseListItem
@@ -95,6 +96,7 @@ fun WorkoutContentScreen(
     templateExercises: List<ExerciseEntity> = emptyList(),
     isTemplatePreview: Boolean = false,
     onAddToMyWorkouts: (() -> Unit)? = null,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     val isTemplate = isTemplatePreview
     val workout by viewModel.observeWorkout(workoutId).collectAsState(initial = null)
@@ -285,6 +287,7 @@ fun WorkoutContentScreen(
                                             ExerciseSetRow(
                                                 exerciseType = set.inferredExerciseType(),
                                                 set = set,
+                                                unitSystem = unitSystem,
                                             )
                                         }
                                     }
@@ -509,6 +512,7 @@ fun WorkoutContentScreen(
                 viewModel = viewModel,
                 sessionId = trackedSessionId,
                 onDismiss = { trackedExerciseId = null },
+                unitSystem = unitSystem,
             )
         }
     }
@@ -737,6 +741,7 @@ private fun AddExerciseOptionCard(
 private fun ExerciseSetRow(
     exerciseType: String,
     set: ExerciseProgressEntity,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -814,7 +819,7 @@ private fun ExerciseSetRow(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "kg",
+                                text = unitSystem.label,
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

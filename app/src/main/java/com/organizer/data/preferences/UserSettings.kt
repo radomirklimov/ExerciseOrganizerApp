@@ -34,8 +34,8 @@ enum class LanguageOption(
 }
 
 enum class UnitSystem(val label: String) {
-    METRIC("kg / cm"),
-    IMPERIAL("lb / ft"),
+    METRIC("kg"),
+    IMPERIAL("lb"),
 }
 
 /** Everything the profile screen lets the user personalise. */
@@ -47,6 +47,8 @@ data class UserSettings(
     val fontSize: FontSizeOption = FontSizeOption.MEDIUM,
     val language: LanguageOption = LanguageOption.ENGLISH,
     val unitSystem: UnitSystem = UnitSystem.METRIC,
+    /** Body weight in the unit chosen in [unitSystem] (kg or lb). */
+    val weight: Double? = null,
     val workoutReminderEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val reminderTime: String = "18:00",

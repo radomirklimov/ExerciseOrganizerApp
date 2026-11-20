@@ -521,6 +521,7 @@ private fun AppNavigationContent(
                         navController.navigate(Routes.AddCard.route)
                     },
                     viewModel = organizerViewModel,
+                    unitSystem = settings.unitSystem,
                 )
             }
 
@@ -539,6 +540,7 @@ private fun AppNavigationContent(
                         popBackScreen()
                     },
                     viewModel = organizerViewModel,
+                    unitSystem = settings.unitSystem,
                 )
             }
 

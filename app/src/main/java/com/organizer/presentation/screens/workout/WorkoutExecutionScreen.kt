@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.PlannedSetEntity
+import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
 import com.organizer.ui.theme.themedColor
@@ -95,6 +96,7 @@ fun WorkoutExecutionScreen(
     workoutId: Long,
     onBackClick: () -> Unit,
     viewModel: OrganizerViewModel,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     // Hoist the observed flows: creating them inline would restart collection on
     // every recomposition (the elapsed timer recomposes the screen every second)
@@ -180,11 +182,11 @@ fun WorkoutExecutionScreen(
         if (plannedSets.isNotEmpty()) {
             plannedSets
                 .sortedBy { it.setNumber }
-                .map { ExecutionSet(it.setNumber, plannedSetSummary(it)) }
+                .map { ExecutionSet(it.setNumber, plannedSetSummary(it, unitSystem)) }
         } else {
             latestSessionSets
                 .sortedBy { it.setNumber }
-                .map { ExecutionSet(it.setNumber, setSummary(it)) }
+                .map { ExecutionSet(it.setNumber, setSummary(it, unitSystem)) }
         }
     }
 
@@ -1460,10 +1462,10 @@ private fun ExitWorkoutDialog(
     )
 }
 
-private fun setSummary(set: ExerciseProgressEntity): String = when (set.inferredExerciseType()) {
+private fun setSummary(set: ExerciseProgressEntity, unitSystem: UnitSystem = UnitSystem.METRIC): String = when (set.inferredExerciseType()) {
     DURATION_TYPE -> formatDuration(set.durationSeconds ?: 0)
     "REPS" -> "${set.reps ?: 0} reps"
-    else -> "${formatWeight(set.weight)} × ${set.reps ?: 0} reps"
+    else -> "${formatWeight(set.weight, unitSystem)} × ${set.reps ?: 0} reps"
 }
 
 private fun formatElapsed(seconds: Int): String {
@@ -1473,10 +1475,10 @@ private fun formatElapsed(seconds: Int): String {
     return "%d:%02d".format(m, s)
 }
 
-private fun plannedSetSummary(planned: PlannedSetEntity): String = when {
+private fun plannedSetSummary(planned: PlannedSetEntity, unitSystem: UnitSystem = UnitSystem.METRIC): String = when {
     planned.durationSeconds != null -> formatDuration(planned.durationSeconds)
     planned.weight != null && planned.weight > 0.0 ->
-        "${formatWeight(planned.weight)} × ${planned.reps ?: 0} reps"
+        "${formatWeight(planned.weight, unitSystem)} × ${planned.reps ?: 0} reps"
     else -> "${planned.reps ?: 0} reps"
 }
 

@@ -26,12 +26,6 @@ class AccountViewModel @Inject constructor(
         }
     }
 
-    fun sendSignInLink(email: String) {
-        viewModelScope.launch {
-            authRepository.sendSignInLink(email)
-        }
-    }
-
     fun signOut() {
         viewModelScope.launch {
             authRepository.signOut()

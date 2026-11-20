@@ -37,7 +37,6 @@ import com.organizer.data.preferences.ThemeMode
 import com.organizer.data.preferences.UserSettings
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.Routes
-import com.organizer.auth.AuthRepository
 import com.organizer.presentation.settings.SettingsViewModel
 import com.organizer.presentation.screens.add_card.AddCardScreen
 import com.organizer.presentation.screens.profile.ProfileScreen
@@ -64,9 +63,6 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @javax.inject.Inject
-    lateinit var authRepository: AuthRepository
-
     override fun attachBaseContext(newBase: Context) {
         // Apply the language chosen on the profile screen before any resource
         // is resolved, so the choice survives restarts.
@@ -84,16 +80,10 @@ class MainActivity : ComponentActivity() {
         setTheme(splashTheme)
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        authRepository.handleEmailLink(this, intent)
         setContent {
             val showOnboarding = !OnboardingManager.isCompleted(this)
             AppNavigation(showOnboarding)
         }
-    }
-
-    override fun onNewIntent(intent: android.content.Intent) {
-        super.onNewIntent(intent)
-        authRepository.handleEmailLink(this, intent)
     }
 }
 

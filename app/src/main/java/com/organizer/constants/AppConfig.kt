@@ -10,5 +10,4 @@ object AppConfig {
 
     // Firebase / Google Sign-In. Replace with values from your Firebase Console.
     const val GOOGLE_WEB_CLIENT_ID = "715510964001-jktl4bjes3vc1qocrsg9re77mhp1gfe5.apps.googleusercontent.com"
-    const val EMAIL_SIGN_IN_CONTINUE_URL = "https://exerciseorganizer.web.app/signin"
 }

@@ -212,9 +212,6 @@ fun ProfileScreen(
                     onGoogleClick = {
                         (context as? Activity)?.let { accountViewModel.signInWithGoogle(it) }
                     },
-                    onEmailClick = { email ->
-                        accountViewModel.sendSignInLink(email)
-                    },
                     onSignOutClick = { accountViewModel.signOut() },
                 )
             }
@@ -1129,11 +1126,9 @@ private fun appVersion(context: Context): String =
 private fun AccountCard(
     userState: UserState,
     onGoogleClick: () -> Unit,
-    onEmailClick: (String) -> Unit,
     onSignOutClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
-    var email by remember { mutableStateOf("") }
     ProfileCard {
         when (userState) {
             is UserState.Guest, UserState.Authenticating -> {
@@ -1160,28 +1155,6 @@ private fun AccountCard(
                         text = "Continue with Google",
                         modifier = Modifier.padding(12.dp),
                         color = colors.onPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    onClick = { if (email.isNotBlank()) onEmailClick(email) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = colors.surfaceMuted,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = "Continue with Email",
-                        modifier = Modifier.padding(12.dp),
-                        color = colors.primary,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }

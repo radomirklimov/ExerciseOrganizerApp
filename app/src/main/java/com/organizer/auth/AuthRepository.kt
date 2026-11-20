@@ -2,14 +2,13 @@ package com.organizer.auth
 
 import android.app.Activity
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
@@ -23,12 +22,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -40,9 +36,6 @@ class AuthRepository @Inject constructor(
     private val userApi: UserApi,
     @ApplicationContext private val context: Context,
 ) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _state = MutableStateFlow<UserState>(UserState.Guest)
@@ -59,7 +52,6 @@ class AuthRepository @Inject constructor(
                 scope.launch { resolveBackendUser(user) }
             }
         }
-        // Restore persisted state hint (Firebase already restores session).
         val current = firebaseAuth.currentUser
         if (current != null) {
             scope.launch { resolveBackendUser(current) }
@@ -69,8 +61,7 @@ class AuthRepository @Inject constructor(
     private suspend fun resolveBackendUser(user: FirebaseUser) {
         _state.value = UserState.Authenticating
         try {
-            val tokenResult = user.getIdToken(false).await()
-            // Token is attached by interceptor; nothing to store.
+            user.getIdToken(false).await()
             val dto: AppUserDto = userApi.me()
             _state.value = UserState.Authenticated(
                 appUserId = dto.id,
@@ -107,41 +98,6 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun sendSignInLink(email: String): Result<Unit> {
-        return try {
-            val settings = com.google.firebase.auth.ActionCodeSettings.newBuilder()
-                .setUrl(AppConfig.EMAIL_SIGN_IN_CONTINUE_URL)
-                .setHandleCodeInApp(true)
-                .setAndroidPackageName(context.packageName, true, null)
-                .build()
-            firebaseAuth.sendSignInLinkToEmail(email, settings).await()
-            prefs.edit().putString("email_for_sign_in", email).apply()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    fun isSignInWithEmailLink(link: String): Boolean =
-        firebaseAuth.isSignInWithEmailLink(link)
-
-    suspend fun completeSignInWithEmailLink(email: String?, link: String): Result<Unit> {
-        _state.value = UserState.Authenticating
-        return try {
-            val resolvedEmail = email ?: prefs.getString("email_for_sign_in", null)
-            if (resolvedEmail.isNullOrBlank()) {
-                _state.value = UserState.Guest
-                return Result.failure(IllegalStateException("Email required to complete sign-in"))
-            }
-            firebaseAuth.signInWithEmailLink(resolvedEmail, link).await()
-            prefs.edit().remove("email_for_sign_in").apply()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            _state.value = UserState.Guest
-            Result.failure(e)
-        }
-    }
-
     private fun scheduleSync() {
         val oneTime = OneTimeWorkRequestBuilder<SyncWorker>().build()
         WorkManager.getInstance(context).enqueueUniqueWork(
@@ -160,16 +116,5 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() {
         firebaseAuth.signOut()
         _state.value = UserState.Guest
-    }
-
-    fun rememberedEmail(): String? = prefs.getString("email_for_sign_in", null)
-
-    fun handleEmailLink(activity: Activity, intent: android.content.Intent?) {
-        val link = intent?.data?.toString() ?: return
-        if (!firebaseAuth.isSignInWithEmailLink(link)) return
-        scope.launch {
-            val email = rememberedEmail()
-            completeSignInWithEmailLink(email, link)
-        }
     }
 }

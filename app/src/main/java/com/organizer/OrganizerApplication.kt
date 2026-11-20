@@ -1,6 +1,7 @@
 package com.organizer
 
 import android.app.Application
+import androidx.work.Configuration
 import com.organizer.data.repo.ScheduleRepository
 import com.organizer.notification.WorkoutReminderNotifier
 import com.organizer.notification.WorkoutReminderScheduler
@@ -12,7 +13,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class OrganizerApplication : Application() {
+class OrganizerApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var scheduleRepository: ScheduleRepository
@@ -22,6 +23,12 @@ class OrganizerApplication : Application() {
 
     @Inject
     lateinit var reminderNotifier: WorkoutReminderNotifier
+
+    @Inject
+    lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()

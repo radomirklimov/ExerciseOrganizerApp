@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.devtools.ksp)
     alias(libs.plugins.serialization)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -76,12 +77,19 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.navigation)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.compiler)
     implementation(libs.font.awesome)
     implementation(libs.icons.extended)
     implementation(libs.core.splashscreen)
     implementation(libs.reorderable)
     implementation(libs.datastore.preferences)
     implementation(libs.gson)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
 }

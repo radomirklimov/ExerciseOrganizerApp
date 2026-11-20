@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "715510964001",
+    "project_id": "exerciseorganizer",
+    "storage_bucket": "exerciseorganizer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:715510964001:android:39e7680d46e716cc876860",
+        "android_client_info": {
+          "package_name": "com.organizer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "715510964001-55demfvbgf0p433map5ibbq1eflk1vk5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.organizer",
+            "certificate_hash": "499e2b8485a36ee5bd2ad7655d566a6b321025e6"
+          }
+        },
+        {
+          "client_id": "715510964001-jktl4bjes3vc1qocrsg9re77mhp1gfe5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjj2pyzKBpwLTQe_OvDn_JSYpccnS6_yY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "715510964001-jktl4bjes3vc1qocrsg9re77mhp1gfe5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

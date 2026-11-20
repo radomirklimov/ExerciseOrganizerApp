@@ -27,7 +27,11 @@ import com.organizer.data.local.db.STARTER_TEMPLATES_MIGRATION_5_6
 import com.organizer.data.local.db.STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7
 import com.organizer.data.local.db.WORKOUT_COMPLETION_MIGRATION_11_12
 import com.organizer.data.local.db.WORKOUT_NOTES_MIGRATION_4_5
+import com.google.firebase.auth.FirebaseAuth
 import com.organizer.data.remote.ApiService
+import com.organizer.data.remote.AuthInterceptor
+import com.organizer.data.remote.SyncApi
+import com.organizer.data.remote.UserApi
 import com.organizer.data.local.storage.FileStorage
 import com.organizer.data.local.storage.FileStore
 import com.organizer.data.media.MediaDownloadQueue
@@ -43,6 +47,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import kotlin.jvm.java
 
@@ -56,9 +61,22 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(): Retrofit {
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(client: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(AppConfig.API_BASE_URL.trimEnd('/') + "/")
+            .client(client)
             .addConverterFactory(
                 json.asConverterFactory(
                     "application/json".toMediaType()
@@ -73,6 +91,22 @@ object AppModule {
         retrofit: Retrofit
     ): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApi(
+        retrofit: Retrofit
+    ): UserApi {
+        return retrofit.create(UserApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSyncApi(
+        retrofit: Retrofit
+    ): SyncApi {
+        return retrofit.create(SyncApi::class.java)
     }
 
     @Provides

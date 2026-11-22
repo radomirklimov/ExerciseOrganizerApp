@@ -46,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,6 +72,7 @@ import com.organizer.presentation.screens.general.CreateWorkoutFirstHint
 import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.ui.theme.themedColor
 import com.organizer.ui.theme.AppTheme
+import kotlinx.coroutines.launch
 
 private val Brand: Color
     @Composable @ReadOnlyComposable get() = themedColor(Color(0xFF6750A4), AppTheme.colors.primary)
@@ -125,6 +127,28 @@ fun SaveExercisePopup(
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    // Set as soon as the sheet starts closing. Prevents the save logic from
+    // running twice when the footer button is tapped repeatedly.
+    var closing by remember { mutableStateOf(false) }
+
+    // Animate the sheet away first and only then drop it from the composition.
+    // Removing a still-expanded sheet in the same frame as the click used to
+    // leave the dialog window on screen, so the celebration was started behind
+    // it and only became visible once the sheet was closed manually.
+    val closeSheet: () -> Unit = {
+        if (!closing) {
+            closing = true
+            scope.launch {
+                try {
+                    sheetState.hide()
+                } finally {
+                    onDismiss()
+                }
+            }
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -148,7 +172,7 @@ fun SaveExercisePopup(
                     .heightIn(max = maxSheetHeight)
                     .navigationBarsPadding(),
             ) {
-                SheetHeader(onClose = onDismiss)
+                SheetHeader(onClose = closeSheet)
 
                 if (workoutsState == null) {
                     LoadingState(modifier = Modifier.weight(1f, fill = false))
@@ -217,17 +241,21 @@ fun SaveExercisePopup(
                     SaveFooter(
                         selectedCount = selectedWorkoutIds.size,
                         onSave = {
-                            val targets = workouts.filter {
-                                it.workoutId in selectedWorkoutIds
+                            if (!closing) {
+                                val targets = workouts.filter {
+                                    it.workoutId in selectedWorkoutIds
+                                }
+                                selectedWorkoutIds.forEach { workoutId ->
+                                    viewModel.addExerciseToWorkout(
+                                        workoutId = workoutId,
+                                        exerciseId = exerciseId,
+                                    )
+                                }
+                                // Recorded right away; ExerciseCard only shows
+                                // it once this sheet has left the screen.
+                                onExercisesAdded(targets.map { it.name })
+                                closeSheet()
                             }
-                            selectedWorkoutIds.forEach { workoutId ->
-                                viewModel.addExerciseToWorkout(
-                                    workoutId = workoutId,
-                                    exerciseId = exerciseId,
-                                )
-                            }
-                            onDismiss()
-                            onExercisesAdded(targets.map { it.name })
                         },
                     )
                 }

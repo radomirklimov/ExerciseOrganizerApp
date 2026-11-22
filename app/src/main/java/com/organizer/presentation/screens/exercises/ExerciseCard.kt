@@ -45,6 +45,7 @@ import com.organizer.presentation.screens.general.CelebrationMessage
 import com.organizer.presentation.screens.general.CelebrationOverlay
 import com.organizer.ui.theme.AppTheme
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.organizer.ui.theme.darkerShade
@@ -60,8 +61,24 @@ fun ExerciseCard(
     val exercise by viewModel.observeExercise(exerciseId).collectAsState(initial = null)
     val favoriteIds by viewModel.favoriteExerciseIds.collectAsState()
     var showSavePopup by remember { mutableStateOf(false) }
-    var celebration by remember { mutableStateOf<CelebrationMessage?>(null) }
+    var celebration by remember {
+        mutableStateOf<CelebrationMessage?>(null, referentialEqualityPolicy())
+    }
+    // Held until the "Add to Workout" sheet has left the composition. The sheet
+    // is a dialog window drawn above the screen, so confetti started while it is
+    // still around would be hidden behind it.
+    var pendingCelebration by remember {
+        mutableStateOf<CelebrationMessage?>(null, referentialEqualityPolicy())
+    }
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(showSavePopup, pendingCelebration) {
+        val message = pendingCelebration ?: return@LaunchedEffect
+        if (!showSavePopup) {
+            pendingCelebration = null
+            celebration = message
+        }
+    }
 
     // All images of the displayed exercise download first.
     LaunchedEffect(exercise) {
@@ -184,7 +201,7 @@ fun ExerciseCard(
                 onOpenWorkoutsClick = onOpenWorkoutsClick,
                 viewModel = viewModel,
                 onExercisesAdded = { workoutNames ->
-                    celebration = CelebrationMessage(
+                    pendingCelebration = CelebrationMessage(
                         title = "Exercise Added! 🎉",
                         subtitle = workoutNamesSubtitle(workoutNames),
                     )

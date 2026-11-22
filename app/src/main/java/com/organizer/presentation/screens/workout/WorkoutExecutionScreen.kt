@@ -1,5 +1,6 @@
 package com.organizer.presentation.screens.workout
 
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -59,6 +60,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
@@ -85,8 +87,11 @@ import com.organizer.ui.theme.AppTheme
 import com.organizer.ui.theme.themedColor
 import com.organizer.presentation.screens.exercises.ExerciseImageAnimation
 import com.organizer.presentation.screens.exercises.InstructionPager
+import com.organizer.presentation.screens.general.CelebrationMessage
+import com.organizer.presentation.screens.general.CelebrationOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 private const val DURATION_TYPE = TYPE_DURATION
@@ -121,17 +126,51 @@ fun WorkoutExecutionScreen(
     val nextExercise: ExerciseEntity? =
         if (finished || total == 0) null else exercises.getOrNull(currentIndex + 1)
 
-    // Overall elapsed workout timer (counts up from 0).
-    var elapsedSeconds by rememberSaveable { mutableIntStateOf(0) }
-    var elapsedRunning by rememberSaveable { mutableStateOf(true) }
+    // Overall elapsed workout timer (counts up from 0). The timer stores the
+    // monotonic clock reading of its start instead of counting ticks: while
+    // the app is in the background, the screen is off or the process is
+    // frozen the ticker does not fire, but the displayed value is always
+    // recomputed from the anchor, so that time is not lost.
+    val elapsedStartRealtime = rememberSaveable { SystemClock.elapsedRealtime() }
+    var elapsedEndRealtime by rememberSaveable { mutableLongStateOf(NO_TIMER_ANCHOR) }
+    var elapsedTickRealtime by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    val elapsedRunning = elapsedEndRealtime == NO_TIMER_ANCHOR
     LaunchedEffect(elapsedRunning) {
         while (elapsedRunning) {
+            elapsedTickRealtime = SystemClock.elapsedRealtime()
             delay(1.seconds)
-            elapsedSeconds++
         }
     }
     LaunchedEffect(finished) {
-        if (finished) elapsedRunning = false
+        if (finished && elapsedEndRealtime == NO_TIMER_ANCHOR) {
+            val now = SystemClock.elapsedRealtime()
+            elapsedTickRealtime = now
+            elapsedEndRealtime = now
+        }
+    }
+    val elapsedSeconds = elapsedSecondsSince(
+        startRealtime = elapsedStartRealtime,
+        endRealtime = elapsedEndRealtime,
+        nowRealtime = elapsedTickRealtime,
+    )
+
+    // One-shot finish celebration. The flag survives process death, so
+    // restoring a finished session does not replay the toast.
+    var celebration by remember { mutableStateOf<CelebrationMessage?>(null) }
+    var completionCelebrated by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(finished) {
+        if (finished && !completionCelebrated) {
+            completionCelebrated = true
+            val finishedIn = elapsedSecondsSince(
+                startRealtime = elapsedStartRealtime,
+                endRealtime = NO_TIMER_ANCHOR,
+                nowRealtime = SystemClock.elapsedRealtime(),
+            )
+            celebration = CelebrationMessage(
+                title = "Workout Complete! 🎉",
+                subtitle = "Finished in ${formatSeconds(finishedIn)}",
+            )
+        }
     }
 
     // Only exercise outcomes are tracked: Done counts, Skip does not. The
@@ -186,7 +225,7 @@ fun WorkoutExecutionScreen(
         } else {
             latestSessionSets
                 .sortedBy { it.setNumber }
-                .map { ExecutionSet(it.setNumber, setSummary(it, unitSystem)) }
+                .map { ExecutionSet(it.setNumber, setSummary(it)) }
         }
     }
 
@@ -213,10 +252,15 @@ fun WorkoutExecutionScreen(
 
     // Stopwatch for duration exercises. It is not a countdown: the user
     // starts it, pauses/resumes it and stops it when the exercise is over.
-    var stopwatchSeconds by rememberSaveable { mutableIntStateOf(0) }
+    // Like the workout timer it keeps clock anchors rather than counting
+    // ticks, so background time counts and a pause stays exactly frozen.
+    var stopwatchState by rememberSaveable(stateSaver = StopwatchStateSaver) {
+        mutableStateOf(StopwatchState())
+    }
     var stopwatchStarted by rememberSaveable { mutableStateOf(false) }
-    var stopwatchRunning by rememberSaveable { mutableStateOf(false) }
     var stopwatchStopped by rememberSaveable { mutableStateOf(false) }
+    var stopwatchTickRealtime by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    val stopwatchRunning = stopwatchState.running
     // Which exercise the stopwatch belongs to, so moving to the next exercise
     // resets it while rotation keeps the running measurement.
     var stopwatchExercise by rememberSaveable { mutableStateOf(0L) }
@@ -225,19 +269,21 @@ fun WorkoutExecutionScreen(
         val exerciseId = currentExerciseId ?: 0L
         if (stopwatchExercise != exerciseId) {
             stopwatchExercise = exerciseId
-            stopwatchSeconds = 0
+            stopwatchState = StopwatchState()
             stopwatchStarted = false
-            stopwatchRunning = false
             stopwatchStopped = false
         }
     }
 
     LaunchedEffect(stopwatchRunning) {
         while (stopwatchRunning) {
-            delay(1.seconds)
-            stopwatchSeconds++
+            // Refreshes the display; the value itself comes from the anchors.
+            stopwatchTickRealtime = SystemClock.elapsedRealtime()
+            delay(250.milliseconds)
         }
     }
+
+    val stopwatchSeconds = stopwatchState.elapsedSeconds(stopwatchTickRealtime)
 
     LaunchedEffect(exercises) {
         if (exercises.isNotEmpty()) viewModel.prioritizeWorkoutMedia(exercises)
@@ -330,15 +376,22 @@ fun WorkoutExecutionScreen(
                                     running = stopwatchRunning,
                                     stopped = stopwatchStopped,
                                     onStart = {
-                                        stopwatchSeconds = 0
+                                        stopwatchState = StopwatchState()
+                                            .start(SystemClock.elapsedRealtime())
                                         stopwatchStarted = true
                                         stopwatchStopped = false
-                                        stopwatchRunning = true
                                     },
-                                    onPause = { stopwatchRunning = false },
-                                    onResume = { stopwatchRunning = true },
+                                    onPause = {
+                                        stopwatchState = stopwatchState
+                                            .pause(SystemClock.elapsedRealtime())
+                                    },
+                                    onResume = {
+                                        stopwatchState = stopwatchState
+                                            .resume(SystemClock.elapsedRealtime())
+                                    },
                                     onStop = {
-                                        stopwatchRunning = false
+                                        stopwatchState = stopwatchState
+                                            .stop(SystemClock.elapsedRealtime())
                                         stopwatchStopped = true
                                     },
                                 )
@@ -410,6 +463,12 @@ fun WorkoutExecutionScreen(
                 onBackClick = onBackClick,
             )
         }
+
+        // Drawn last so the finish toast and confetti sit above the summary.
+        CelebrationOverlay(
+            message = celebration,
+            onDismiss = { celebration = null },
+        )
     }
 
     if (showExitDialog) {
@@ -1462,10 +1521,10 @@ private fun ExitWorkoutDialog(
     )
 }
 
-private fun setSummary(set: ExerciseProgressEntity, unitSystem: UnitSystem = UnitSystem.METRIC): String = when (set.inferredExerciseType()) {
+private fun setSummary(set: ExerciseProgressEntity): String = when (set.inferredExerciseType()) {
     DURATION_TYPE -> formatDuration(set.durationSeconds ?: 0)
     "REPS" -> "${set.reps ?: 0} reps"
-    else -> "${formatWeight(set.weight, unitSystem)} × ${set.reps ?: 0} reps"
+    else -> "${formatWeight(set.weight, UnitSystem.entries.firstOrNull { it.name == set.unitSystem } ?: UnitSystem.METRIC)} × ${set.reps ?: 0} reps"
 }
 
 private fun formatElapsed(seconds: Int): String {

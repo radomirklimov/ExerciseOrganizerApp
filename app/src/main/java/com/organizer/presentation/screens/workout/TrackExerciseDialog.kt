@@ -189,6 +189,7 @@ internal data class SetEditorEntry(
     val reps: Int?,
     val weight: Double?,
     val durationSeconds: Int?,
+    val unitSystem: UnitSystem = UnitSystem.METRIC,
 )
 
 internal fun SetEditorEntry.inferredExerciseType(): String = when {
@@ -228,6 +229,8 @@ fun TrackExerciseDialog(
                 reps = set.reps,
                 weight = set.weight,
                 durationSeconds = set.durationSeconds,
+                unitSystem = UnitSystem.entries.firstOrNull { it.name == set.unitSystem }
+                    ?: UnitSystem.METRIC,
             )
         },
         emptyText = "No sets recorded yet.",
@@ -236,7 +239,7 @@ fun TrackExerciseDialog(
         initialWeight = initialWeight,
         initialDurationSeconds = initialDurationSeconds,
         unitSystem = unitSystem,
-        onAddSet = { reps, weight, duration ->
+        onAddSet = { reps, weight, duration, unit ->
             viewModel.addExerciseSet(
                 workoutId = workoutId,
                 exerciseId = exercise.exerciseId,
@@ -245,6 +248,7 @@ fun TrackExerciseDialog(
                 weight = weight,
                 durationSeconds = duration,
                 sessionId = sessionId,
+                unitSystem = unit.name,
             )
         },
         onUpdateSet = { id, reps, weight, duration ->
@@ -273,7 +277,7 @@ internal fun SetEditorDialog(
     initialType: String,
     sets: List<SetEditorEntry>,
     emptyText: String,
-    onAddSet: (reps: Int?, weight: Double?, durationSeconds: Int?) -> Unit,
+    onAddSet: (reps: Int?, weight: Double?, durationSeconds: Int?, unitSystem: UnitSystem) -> Unit,
     onUpdateSet: (id: Long, reps: Int?, weight: Double?, durationSeconds: Int?) -> Unit,
     onDeleteSet: (SetEditorEntry) -> Unit,
     onSave: () -> Unit,
@@ -304,6 +308,9 @@ internal fun SetEditorDialog(
     var editingSetId by remember(stateKey) { mutableStateOf<Long?>(null) }
     var isAddingSet by remember(stateKey) { mutableStateOf(startAddingSet) }
     var setToDelete by remember(stateKey) { mutableStateOf<SetEditorEntry?>(null) }
+    // The unit a set is tracked in: the selected unit for new sets, the unit
+    // the edited set was recorded with for existing ones.
+    var editorUnit by remember(stateKey) { mutableStateOf(unitSystem) }
 
     LaunchedEffect(initialType) {
         if (!typeTouched) {
@@ -326,6 +333,7 @@ internal fun SetEditorDialog(
         durationParts = DurationParts()
         editingSetId = null
         isAddingSet = false
+        editorUnit = unitSystem
     }
 
     fun startAddingSet() {
@@ -342,6 +350,7 @@ internal fun SetEditorDialog(
     fun loadSet(entry: SetEditorEntry) {
         typeTouched = true
         selectedType = entry.inferredExerciseType()
+        editorUnit = entry.unitSystem
         repsValue = entry.reps ?: 0
         weightTenths = ((entry.weight ?: 0.0) * 10).roundToInt()
         durationParts = DurationParts.fromSeconds(entry.durationSeconds ?: 0)
@@ -361,7 +370,7 @@ internal fun SetEditorDialog(
         if (editingSet != null) {
             onUpdateSet(editingSet.id, reps, weight, duration)
         } else {
-            onAddSet(reps, weight, duration)
+            onAddSet(reps, weight, duration, editorUnit)
         }
         resetInputs()
     }
@@ -433,7 +442,7 @@ internal fun SetEditorDialog(
                                     actionEnabled = hasRequiredValues,
                                     onAction = ::saveSet,
                                     onCancel = ::cancelEditing,
-                                    unitSystem = unitSystem,
+                                    unitSystem = editorUnit,
                                 )
                             } else {
                                 RecordedSetCard(
@@ -459,7 +468,7 @@ internal fun SetEditorDialog(
                                 actionEnabled = hasRequiredValues,
                                 onAction = ::saveSet,
                                 onCancel = ::cancelEditing,
-                                unitSystem = unitSystem,
+                                unitSystem = editorUnit,
                             )
                         } else {
                             AddSetCard(
@@ -724,7 +733,7 @@ private fun RecordedSetCard(
                             text = "${entry.reps ?: 0} reps",
                         )
                         RecordedSetValue(
-                            text = formatWeight(entry.weight, unitSystem),
+                            text = formatWeight(entry.weight, entry.unitSystem),
                         )
                     }
                 }

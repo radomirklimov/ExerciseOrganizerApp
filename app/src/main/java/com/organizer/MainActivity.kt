@@ -3,9 +3,11 @@ package com.organizer
 import android.app.Activity
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.core.tween
@@ -79,6 +81,17 @@ class MainActivity : ComponentActivity() {
         }
         setTheme(splashTheme)
         installSplashScreen()
+        // Android 15+ enforces edge-to-edge for targetSdk 35+ on a cold start,
+        // but that enforcement is lost when the activity is recreated (e.g.
+        // after onboarding or a language switch). Applying edge-to-edge
+        // explicitly keeps the scaffold spanning the system navigation bar, so
+        // the bottom navigation does not sit above it and look taller.
+        // Setting decor-fits before enableEdgeToEdge and before super.onCreate
+        // is what makes the setting survive the recreation.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            enableEdgeToEdge()
+        }
         super.onCreate(savedInstanceState)
         setContent {
             val showOnboarding = !OnboardingManager.isCompleted(this)

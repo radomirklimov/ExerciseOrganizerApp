@@ -62,4 +62,20 @@ data class UserSettings(
             .take(2)
             .joinToString("") { it.first().uppercase() }
             .ifBlank { "A" }
+
+    companion object {
+        /** One pound expressed in kilograms; used to re-base weights on unit switches. */
+        const val POUNDS_TO_KILOGRAMS = 0.45359237
+
+        /**
+         * Re-bases a body weight from [from] onto [to]. Switching the unit
+         * system must not just relabel stored numbers: the same real weight is
+         * re-expressed in the newly selected unit.
+         */
+        fun convertWeight(weight: Double?, from: UnitSystem, to: UnitSystem): Double? {
+            if (weight == null) return null
+            val kilograms = if (from == UnitSystem.IMPERIAL) weight * POUNDS_TO_KILOGRAMS else weight
+            return if (to == UnitSystem.IMPERIAL) kilograms / POUNDS_TO_KILOGRAMS else kilograms
+        }
+    }
 }

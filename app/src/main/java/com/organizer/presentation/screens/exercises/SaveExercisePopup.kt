@@ -107,6 +107,7 @@ fun SaveExercisePopup(
     onCreateWorkoutClick: () -> Unit,
     onOpenWorkoutsClick: () -> Unit,
     viewModel: OrganizerViewModel,
+    onExercisesAdded: (List<String>) -> Unit = {},
 ) {
     val workoutsState by viewModel.workoutsWithCountsUiState.collectAsState()
     val workouts = workoutsState.orEmpty()
@@ -216,6 +217,9 @@ fun SaveExercisePopup(
                     SaveFooter(
                         selectedCount = selectedWorkoutIds.size,
                         onSave = {
+                            val targets = workouts.filter {
+                                it.workoutId in selectedWorkoutIds
+                            }
                             selectedWorkoutIds.forEach { workoutId ->
                                 viewModel.addExerciseToWorkout(
                                     workoutId = workoutId,
@@ -223,6 +227,7 @@ fun SaveExercisePopup(
                                 )
                             }
                             onDismiss()
+                            onExercisesAdded(targets.map { it.name })
                         },
                     )
                 }

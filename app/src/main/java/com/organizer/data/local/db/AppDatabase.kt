@@ -31,7 +31,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 12,
+    version = 13,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -90,6 +90,14 @@ val PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11 = object : Migration(10, 11) {
             "CREATE INDEX IF NOT EXISTS index_exercise_progress_sessionId " +
                 "ON exercise_progress (sessionId)"
         )
+    }
+}
+
+val EXERCISE_PROGRESS_UNIT_MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Recorded weights keep the unit they were tracked in; new sets stamp
+        // their own unit when created.
+        db.execSQL("ALTER TABLE exercise_progress ADD COLUMN unitSystem TEXT NOT NULL DEFAULT 'METRIC'")
     }
 }
 

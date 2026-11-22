@@ -42,4 +42,14 @@ class UserSettingsTest {
         assertEquals(UnitSystem.METRIC, settings.unitSystem)
         assertEquals(LanguageOption.ENGLISH, settings.language)
     }
+
+    @Test
+    fun weightConversionRebasesBetweenUnits() {
+        assertEquals(null, UserSettings.convertWeight(null, UnitSystem.METRIC, UnitSystem.IMPERIAL))
+        assertEquals(80.0, UserSettings.convertWeight(80.0, UnitSystem.METRIC, UnitSystem.METRIC) ?: 0.0, 0.0001)
+        val pounds = UserSettings.convertWeight(80.0, UnitSystem.METRIC, UnitSystem.IMPERIAL) ?: 0.0
+        assertEquals(176.37, pounds, 0.01)
+        val kilograms = UserSettings.convertWeight(176.37, UnitSystem.IMPERIAL, UnitSystem.METRIC) ?: 0.0
+        assertEquals(80.0, kilograms, 0.01)
+    }
 }

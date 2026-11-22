@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.presentation.screens.general.CelebrationMessage
+import com.organizer.presentation.screens.general.CelebrationOverlay
 import com.organizer.ui.theme.AppTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +60,7 @@ fun ExerciseCard(
     val exercise by viewModel.observeExercise(exerciseId).collectAsState(initial = null)
     val favoriteIds by viewModel.favoriteExerciseIds.collectAsState()
     var showSavePopup by remember { mutableStateOf(false) }
+    var celebration by remember { mutableStateOf<CelebrationMessage?>(null) }
     val scrollState = rememberScrollState()
 
     // All images of the displayed exercise download first.
@@ -179,7 +182,13 @@ fun ExerciseCard(
                 },
                 onCreateWorkoutClick = { onCreateWorkoutClick(exerciseId) },
                 onOpenWorkoutsClick = onOpenWorkoutsClick,
-                viewModel = viewModel
+                viewModel = viewModel,
+                onExercisesAdded = { workoutNames ->
+                    celebration = CelebrationMessage(
+                        title = "Exercise Added! 🎉",
+                        subtitle = workoutNamesSubtitle(workoutNames),
+                    )
+                },
             )
         }
     }
@@ -216,7 +225,20 @@ fun ExerciseCard(
             }
         }
     }
+
+    // Above both the scrolled content and the floating button.
+    CelebrationOverlay(
+        message = celebration,
+        onDismiss = { celebration = null },
+    )
     }
+}
+
+/** Subtitle for the "added" toast, naming where the exercise went. */
+private fun workoutNamesSubtitle(workoutNames: List<String>): String = when {
+    workoutNames.isEmpty() -> "Added to your workout"
+    workoutNames.size == 1 -> "Added to ${workoutNames.first()}"
+    else -> "Added to ${workoutNames.first()} + ${workoutNames.size - 1} more"
 }
 
 /**

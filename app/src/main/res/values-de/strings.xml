@@ -13,7 +13,7 @@
     <string name="home_subtitle">Was möchtest du heute machen?</string>
 
     <!-- Profile -->
-    <string name="profile_title">Profil</string>
+    <string name="profile_title">Einstellungen</string>
     <string name="profile_back">Zurück</string>
     <string name="profile_change_photo">Foto ändern</string>
     <string name="profile_edit">Profil bearbeiten</string>

@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LockReset
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -100,23 +99,11 @@ fun ProfileScreen(
     val accountViewModel: AccountViewModel = hiltViewModel()
     val userState by accountViewModel.userState.collectAsState()
 
-    var showEditProfile by remember { mutableStateOf(false) }
     var showLanguageMenu by remember { mutableStateOf(false) }
-    var showLogOutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var infoDialog by remember { mutableStateOf<InfoDialogContent?>(null) }
 
     val version = remember(context) { appVersion(context) }
-
-    val avatarPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val path = withContext(Dispatchers.IO) { copyAvatar(context, uri) }
-            if (path != null) viewModel.updateAvatar(path)
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -131,16 +118,12 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                HeaderCard(
-                    settings = settings,
-                    onEditProfile = { showEditProfile = true },
-                    onAvatarClick = { avatarPicker.launch("image/*") },
-                    onChangePassword = {
-                        infoDialog = InfoDialogContent(
-                            title = context.getString(R.string.profile_password_title),
-                            message = context.getString(R.string.profile_password_message),
-                        )
+                AccountCard(
+                    userState = userState,
+                    onGoogleClick = {
+                        (context as? Activity)?.let { accountViewModel.signInWithGoogle(it) }
                     },
+                    onSignOutClick = { accountViewModel.signOut() },
                 )
             }
 
@@ -204,47 +187,11 @@ fun ProfileScreen(
             }
 
             item {
-                AccountCard(
-                    userState = userState,
-                    onGoogleClick = {
-                        (context as? Activity)?.let { accountViewModel.signInWithGoogle(it) }
-                    },
-                    onSignOutClick = { accountViewModel.signOut() },
-                )
-            }
-
-            item {
                 AccountActions(
-                    onLogOutClick = { showLogOutDialog = true },
                     onDeleteClick = { showDeleteDialog = true },
                 )
             }
         }
-    }
-
-    if (showEditProfile) {
-        EditProfileDialog(
-            settings = settings,
-            onDismiss = { showEditProfile = false },
-            onSave = { name, email ->
-                viewModel.updateProfile(name, email)
-                showEditProfile = false
-            },
-        )
-    }
-
-    if (showLogOutDialog) {
-        ConfirmDialog(
-            title = stringResource(R.string.profile_log_out_title),
-            message = stringResource(R.string.profile_log_out_message),
-            confirmLabel = stringResource(R.string.profile_log_out),
-            destructive = false,
-            onDismiss = { showLogOutDialog = false },
-            onConfirm = {
-                showLogOutDialog = false
-                onAccountClosed()
-            },
-        )
     }
 
     if (showDeleteDialog) {
@@ -904,7 +851,6 @@ private fun AboutDivider() {
 
 @Composable
 private fun AccountActions(
-    onLogOutClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -914,35 +860,6 @@ private fun AccountActions(
             .padding(top = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Surface(
-            onClick = onLogOutClick,
-            shape = CircleShape,
-            color = colors.surfaceMuted,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier = Modifier.padding(vertical = 14.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Logout,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.profile_log_out),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.primary,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(12.dp))

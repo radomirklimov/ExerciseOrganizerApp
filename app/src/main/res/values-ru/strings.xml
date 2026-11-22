@@ -30,7 +30,7 @@
     <string name="profile_app_language">Язык приложения</string>
     <string name="profile_change">Изменить</string>
     <string name="profile_unit_system">Система единиц</string>
-    <string name="profile_weight">Вес</string>
+    <string name="profile_unit_system_hint">Для веса в упражнениях</string>
     <string name="profile_preferences">Предпочтения</string>
     <string name="profile_workout_reminder">Напоминание о тренировке</string>
     <string name="profile_daily_at">Ежедневно в %1$s</string>

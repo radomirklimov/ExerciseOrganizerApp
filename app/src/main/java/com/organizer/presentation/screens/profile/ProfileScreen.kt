@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
@@ -68,7 +67,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.R
@@ -167,7 +165,6 @@ fun ProfileScreen(
                         (context as? android.app.Activity)?.recreate()
                     },
                     onUnitSelected = viewModel::setUnitSystem,
-                    onWeightChange = { value -> viewModel.setWeight(value) },
                 )
             }
 
@@ -591,10 +588,8 @@ private fun LanguageAndUnitsCard(
     onLanguageMenuChange: (Boolean) -> Unit,
     onLanguageSelected: (LanguageOption) -> Unit,
     onUnitSelected: (UnitSystem) -> Unit,
-    onWeightChange: (Double?) -> Unit,
 ) {
     val colors = AppTheme.colors
-    var weightInput by remember { mutableStateOf(settings.weight?.toString() ?: "") }
     ProfileCard {
         SectionTitle(
             icon = Icons.Outlined.Language,
@@ -688,7 +683,7 @@ private fun LanguageAndUnitsCard(
                     color = colors.textPrimary,
                 )
                 Text(
-                    text = stringResource(R.string.profile_weight),
+                    text = stringResource(R.string.profile_unit_system_hint),
                     fontSize = 12.sp,
                     color = colors.textSecondary,
                 )
@@ -719,20 +714,6 @@ private fun LanguageAndUnitsCard(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        OutlinedTextField(
-            value = weightInput,
-            onValueChange = { text ->
-                weightInput = text
-                text.toDoubleOrNull()?.let(onWeightChange)
-            },
-            label = { Text(stringResource(R.string.profile_weight)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 

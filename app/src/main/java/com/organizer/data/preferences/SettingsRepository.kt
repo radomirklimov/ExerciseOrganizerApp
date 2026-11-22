@@ -58,8 +58,6 @@ class SettingsRepository @Inject constructor(
         )
     }
 
-    fun setWeight(value: Double?) = update { it.copy(weight = value) }
-
     fun setWorkoutReminderEnabled(value: Boolean) =
         update { it.copy(workoutReminderEnabled = value) }
 
@@ -85,7 +83,7 @@ class SettingsRepository @Inject constructor(
         fontSize = enumOr(prefs.getString(KEY_FONT, null), FontSizeOption.MEDIUM),
         language = LanguageOption.fromTag(prefs.getString(KEY_LANGUAGE, null)),
         unitSystem = enumOr(prefs.getString(KEY_UNITS, null), UnitSystem.METRIC),
-        weight = prefs.getString(KEY_WEIGHT, null)?.toString()?.toDoubleOrNull(),
+        weight = prefs.getString(KEY_WEIGHT, null)?.toDoubleOrNull(),
         workoutReminderEnabled = prefs.getBoolean(KEY_REMINDER, true),
         notificationsEnabled = prefs.getBoolean(KEY_NOTIFICATIONS, true),
         reminderTime = prefs.getString(KEY_REMINDER_TIME, null) ?: "18:00",

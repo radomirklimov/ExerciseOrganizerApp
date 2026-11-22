@@ -29,8 +29,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setUnitSystem(units: UnitSystem) = repository.setUnitSystem(units)
 
-    fun setWeight(value: Double?) = repository.setWeight(value)
-
     fun setWorkoutReminderEnabled(enabled: Boolean) =
         repository.setWorkoutReminderEnabled(enabled)
 

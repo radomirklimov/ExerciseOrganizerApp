@@ -30,7 +30,7 @@
     <string name="profile_app_language">Idioma do app</string>
     <string name="profile_change">Alterar</string>
     <string name="profile_unit_system">Sistema de unidades</string>
-    <string name="profile_weight">Peso</string>
+    <string name="profile_unit_system_hint">Para o peso dos exercícios</string>
     <string name="profile_preferences">Preferências</string>
     <string name="profile_workout_reminder">Lembrete de treino</string>
     <string name="profile_daily_at">Diariamente às %1$s</string>

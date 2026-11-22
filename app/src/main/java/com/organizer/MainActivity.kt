@@ -264,14 +264,13 @@ private fun AppNavigationContent(
                 composable(Routes.OnboardingProfile.route) {
                     val context = LocalContext.current
                     OnboardingProfileScreen(
-                        onComplete = { name, language ->
+                        onComplete = { language, signedIn ->
                             val prefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
                             prefs.edit().apply {
-                                putString("profile_name", name.trim().ifBlank { "Alex Morgan" })
-                                putString("profile_email", "alex.morgan@fitflow.app")
                                 putString("profile_language", language.tag)
                                 putBoolean("onboarding_done", true)
                             }.commit()
+                            settingsViewModel.setLanguage(language)
                             settingsViewModel.reload()
                             navController.navigate(Routes.Sports.route) {
                                 popUpTo(Routes.OnboardingProfile.route) { inclusive = true }

@@ -30,6 +30,29 @@ enum class LanguageOption(
     companion object {
         fun fromTag(tag: String?): LanguageOption =
             entries.firstOrNull { it.tag == tag } ?: ENGLISH
+
+        /**
+         * Maps the device's current locale to a supported app language, or
+         * null when the device language is not supported (in which case the
+         * user is asked to pick one).
+         */
+        fun fromDeviceLocale(): LanguageOption? {
+            val locale = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                android.content.res.Resources.getSystem().configuration.locales[0]
+            } else {
+                @Suppress("DEPRECATION")
+                android.content.res.Resources.getSystem().configuration.locale
+            }
+            return when (locale.language) {
+                "en" -> ENGLISH
+                "ru" -> RUSSIAN
+                "de" -> GERMAN
+                "es" -> SPANISH
+                "fr" -> FRENCH
+                "pt" -> if (locale.country == "BR") PORTUGUESE_BRAZIL else null
+                else -> null
+            }
+        }
     }
 }
 

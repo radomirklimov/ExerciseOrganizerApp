@@ -140,5 +140,14 @@ class SettingsRepository @Inject constructor(
                 .getString(KEY_THEME, null)
             return ThemeMode.entries.firstOrNull { it.name == raw } ?: ThemeMode.LIGHT
         }
+
+        /**
+         * Reads the "Notification Alerts" switch without constructing the
+         * repository. Used by background components that need to know whether
+         * they are allowed to post anything.
+         */
+        fun areNotificationsEnabled(context: Context): Boolean =
+            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_NOTIFICATIONS, true)
     }
 }

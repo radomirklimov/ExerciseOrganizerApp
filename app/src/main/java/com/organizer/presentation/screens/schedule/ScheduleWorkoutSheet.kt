@@ -69,6 +69,10 @@ import androidx.compose.ui.window.Dialog
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.screens.general.CreateWorkoutFirstHint
 import com.organizer.presentation.model.ScheduledWorkoutItem
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 
 private const val DEFAULT_START_MINUTES = 18 * 60
@@ -197,7 +201,7 @@ internal fun ScheduleWorkoutSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (entry == null) "Schedule a Workout" else "Edit Schedule",
+                    text = if (entry == null) stringResource(R.string.schedule_schedule_workout) else stringResource(R.string.schedule_edit_schedule),
                     modifier = Modifier.weight(1f),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
@@ -206,7 +210,7 @@ internal fun ScheduleWorkoutSheet(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.profile_close),
                         tint = ScheduleInkMuted,
                         modifier = Modifier.size(22.dp),
                     )
@@ -218,7 +222,7 @@ internal fun ScheduleWorkoutSheet(
             if (workouts.isEmpty()) {
                 CreateWorkoutFirstHint(onOpenWorkouts = onOpenWorkouts)
             } else {
-                FieldLabel("Choose Workout")
+                FieldLabel(stringResource(R.string.schedule_choose_workout))
 
                 Box {
                     Row(
@@ -232,7 +236,7 @@ internal fun ScheduleWorkoutSheet(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = selectedWorkout?.name ?: "Select a workout",
+                            text = selectedWorkout?.name ?: stringResource(R.string.schedule_select_workout),
                             modifier = Modifier.weight(1f),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -268,8 +272,7 @@ internal fun ScheduleWorkoutSheet(
                                             color = ScheduleInk,
                                         )
                                         Text(
-                                            text = "${workout.exerciseCount} " +
-                                                "${if (workout.exerciseCount == 1) "exercise" else "exercises"}",
+                                            text = pluralStringResource(R.plurals.exercise_count, workout.exerciseCount, workout.exerciseCount),
                                             fontSize = 12.sp,
                                             color = ScheduleInkMuted,
                                         )
@@ -288,7 +291,7 @@ internal fun ScheduleWorkoutSheet(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        FieldLabel("Workout Time")
+                        FieldLabel(stringResource(R.string.schedule_workout_time))
                         CompactField(
                             onClick = { showTimePicker = true },
                         ) {
@@ -309,7 +312,7 @@ internal fun ScheduleWorkoutSheet(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        FieldLabel("Repeats")
+                        FieldLabel(stringResource(R.string.schedule_repeats))
 
                         Box {
                             CompactField(onClick = { repeatsMenuExpanded = true }) {
@@ -322,9 +325,9 @@ internal fun ScheduleWorkoutSheet(
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = if (repeatsWeekly) {
-                                        "Every ${isoDayName(dayOfWeek)}"
+                                        stringResource(R.string.schedule_every_day, isoDayName(dayOfWeek, appLocale(context)))
                                     } else {
-                                        "This ${isoDayName(dayOfWeek)} Only"
+                                        stringResource(R.string.schedule_this_day_only, isoDayName(dayOfWeek, appLocale(context)))
                                     },
                                     modifier = Modifier.weight(1f),
                                     fontSize = 12.sp,
@@ -350,13 +353,16 @@ internal fun ScheduleWorkoutSheet(
                                     text = {
                                         Column {
                                             Text(
-                                                text = "Every ${isoDayName(dayOfWeek)}",
+                                                text = stringResource(
+                                                    R.string.schedule_every_day,
+                                                    isoDayName(dayOfWeek, appLocale(context)),
+                                                ),
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = ScheduleInk,
                                             )
                                             Text(
-                                                text = "Repeats weekly",
+                                                text = stringResource(R.string.schedule_repeats_weekly),
                                                 fontSize = 12.sp,
                                                 color = ScheduleInkMuted,
                                             )
@@ -371,13 +377,16 @@ internal fun ScheduleWorkoutSheet(
                                     text = {
                                         Column {
                                             Text(
-                                                text = "This ${isoDayName(dayOfWeek)} Only",
+                                                text = stringResource(
+                                                    R.string.schedule_this_day_only,
+                                                    isoDayName(dayOfWeek, appLocale(context)),
+                                                ),
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = ScheduleInk,
                                             )
                                             Text(
-                                                text = "Only on ${formatDateKeyShort(targetDateKey)}",
+                                                text = stringResource(R.string.schedule_only_on, formatDateKeyShort(targetDateKey, appLocale(context))),
                                                 fontSize = 12.sp,
                                                 color = ScheduleInkMuted,
                                             )
@@ -425,7 +434,7 @@ internal fun ScheduleWorkoutSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Workout Reminder",
+                                text = stringResource(R.string.schedule_workout_reminder),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ScheduleInk,
@@ -433,9 +442,9 @@ internal fun ScheduleWorkoutSheet(
                             Text(
                                 text = when {
                                     notificationsEnabled ->
-                                        "Get an alert before workout begins"
-                                    notificationsDenied -> "Notifications are blocked"
-                                    else -> "You'll be asked to allow notifications on save"
+                                        stringResource(R.string.schedule_alert_before)
+                                    notificationsDenied -> stringResource(R.string.schedule_notifications_blocked)
+                                    else -> stringResource(R.string.schedule_notifications_ask)
                                 },
                                 fontSize = 12.sp,
                                 color = if (notificationsEnabled) {
@@ -482,7 +491,7 @@ internal fun ScheduleWorkoutSheet(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = "Notification Timing",
+                            text = stringResource(R.string.schedule_notification_timing),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (reminderEnabled) {
@@ -506,7 +515,7 @@ internal fun ScheduleWorkoutSheet(
                     )
 
                     FieldLabel(
-                        "Personal Note / Checklist",
+                        stringResource(R.string.schedule_personal_note),
                         modifier = Modifier.padding(top = 14.dp),
                     )
 
@@ -546,7 +555,7 @@ internal fun ScheduleWorkoutSheet(
                     )
 
                     Text(
-                        text = "Included in the notification",
+                        text = stringResource(R.string.schedule_included_notification),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 6.dp),
@@ -591,7 +600,7 @@ internal fun ScheduleWorkoutSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (entry == null) "Save to Schedule" else "Save Changes",
+                        text = if (entry == null) stringResource(R.string.schedule_save) else stringResource(R.string.schedule_save_changes),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -669,7 +678,7 @@ private fun WorkoutTimePickerDialog(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Workout Time",
+                text = stringResource(R.string.schedule_workout_time),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = ScheduleInk,
@@ -684,7 +693,7 @@ private fun WorkoutTimePickerDialog(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel", color = ScheduleInkSecondary)
+                    Text(stringResource(R.string.profile_cancel), color = ScheduleInkSecondary)
                 }
                 TextButton(
                     onClick = {
@@ -692,7 +701,7 @@ private fun WorkoutTimePickerDialog(
                     },
                 ) {
                     Text(
-                        text = "Set",
+                        text = stringResource(R.string.track_set_label),
                         fontWeight = FontWeight.Bold,
                         color = ScheduleBrand,
                     )

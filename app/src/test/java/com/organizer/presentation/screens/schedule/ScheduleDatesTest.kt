@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
+import java.util.Locale
 import java.util.TimeZone
 
 class ScheduleDatesTest {
@@ -22,6 +23,7 @@ class ScheduleDatesTest {
             selectedIsoDay = 1,
             nowMillis = monday16November2026,
             timeZone = utc,
+            locale = Locale.US,
         )
 
         assertEquals(listOf(16, 17, 18, 19, 20, 21, 22), week.days.map { it.dayOfMonth })
@@ -41,6 +43,7 @@ class ScheduleDatesTest {
             selectedIsoDay = 1,
             nowMillis = monday16November2026,
             timeZone = utc,
+            locale = Locale.US,
         )
 
         assertEquals(listOf(23, 24, 25, 26, 27, 28, 29), week.days.map { it.dayOfMonth })
@@ -55,6 +58,7 @@ class ScheduleDatesTest {
             selectedIsoDay = 3,
             nowMillis = monday16November2026,
             timeZone = utc,
+            locale = Locale.US,
         )
 
         assertEquals(listOf(9, 10, 11, 12, 13, 14, 15), week.days.map { it.dayOfMonth })
@@ -73,6 +77,7 @@ class ScheduleDatesTest {
             selectedIsoDay = 1,
             nowMillis = lateNovember,
             timeZone = utc,
+            locale = Locale.US,
         )
 
         assertEquals("Nov – Dec 2026", week.monthLabel)

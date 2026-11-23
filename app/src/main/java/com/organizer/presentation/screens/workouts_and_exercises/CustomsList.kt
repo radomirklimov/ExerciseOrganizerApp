@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
@@ -45,6 +46,7 @@ import com.organizer.presentation.screens.general.DeletionInfo
 import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.presentation.screens.workout.WorkoutListItem
 import com.organizer.ui.theme.darkerShade
+import com.organizer.R
 
 // Same edge on every floating bottom action button, coloured with the screen
 // background so it reads as a clean cut-out on all screens.
@@ -148,6 +150,15 @@ fun CustomsList(
                         if (customExercises.isEmpty()) {
                             item {
                                 EmptyExercisesState(
+                                    title = stringResource(R.string.empty_exercises_title),
+                                    description = stringResource(R.string.empty_exercises_desc),
+                                    capabilityPills = listOf(
+                                        stringResource(R.string.exercise_type_reps),
+                                        stringResource(R.string.capability_weight),
+                                        stringResource(R.string.exercise_type_duration),
+                                        stringResource(R.string.capability_instructions),
+                                        stringResource(R.string.capability_photo),
+                                    ),
                                     onCreateExerciseClick = onCreateExerciseClick,
                                     onBrowseStandardExercisesClick = onBrowseStandardExercisesClick,
                                 )
@@ -160,8 +171,8 @@ fun CustomsList(
                                 ExerciseListItem(
                                     exercise = exercise,
                                     deletionInfo = DeletionInfo(
-                                        title = "Delete Exercise?",
-                                        location = "your custom exercises",
+                                        title = stringResource(R.string.exercise_delete_title),
+                                        location = stringResource(R.string.exercise_custom_location),
                                         isPermanent = true,
                                     ),
                                     expanded = expandedExerciseId == exercise.exerciseId,
@@ -192,7 +203,7 @@ fun CustomsList(
             CustomsTab.WORKOUTS -> {
                 if (!isEmpty) {
                     CreateButton(
-                        text = "Create New Workout",
+                        text = stringResource(R.string.workout_create_new),
                         onClick = onCreateWorkoutClick,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -205,7 +216,7 @@ fun CustomsList(
             CustomsTab.EXERCISES -> {
                 if (!isEmpty) {
                     CreateButton(
-                        text = "Create New Exercise",
+                        text = stringResource(R.string.exercise_create_new),
                         onClick = onCreateExerciseClick,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)

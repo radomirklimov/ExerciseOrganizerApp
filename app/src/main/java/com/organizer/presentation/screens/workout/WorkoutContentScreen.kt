@@ -76,6 +76,9 @@ import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
@@ -193,11 +196,11 @@ fun WorkoutContentScreen(
                 Text(
                     text = if (isTemplate) {
                         listOfNotNull(
-                            "${exerciseList.size} exercises",
+                            pluralStringResource(R.plurals.exercise_count, exerciseList.size, exerciseList.size),
                             template?.categoryLabel?.takeIf { it.isNotBlank() }
                         ).joinToString(" · ")
                     } else {
-                        "${exerciseList.size} exercises"
+                        pluralStringResource(R.plurals.exercise_count, exerciseList.size, exerciseList.size)
                     },
                     fontSize = 12.sp,
                     color = AppTheme.colors.textMuted
@@ -222,14 +225,14 @@ fun WorkoutContentScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Add to My Workouts",
+                    text = stringResource(R.string.workout_add_to_my),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Add this starter routine to your workouts to edit it, track sets, and keep your own notes.",
+                text = stringResource(R.string.workout_starter_routine_hint),
                 fontSize = 12.sp,
                 color = AppTheme.colors.textMuted,
                 lineHeight = 16.sp,
@@ -270,7 +273,7 @@ fun WorkoutContentScreen(
                             {
                                 Icon(
                                     imageVector = Icons.Rounded.DragIndicator,
-                                    contentDescription = "Reorder exercise"
+                                    contentDescription = stringResource(R.string.workout_reorder_exercise)
                                 )
                             }
                         }
@@ -308,8 +311,8 @@ fun WorkoutContentScreen(
                             exercise = exercise,
                             displayExerciseType = effectiveExerciseType(exercise, sets),
                             deletionInfo = DeletionInfo(
-                                title = "Remove Exercise?",
-                                location = workoutName.ifBlank { "this workout" },
+                                title = stringResource(R.string.workout_remove_exercise_title),
+                                location = workoutName.ifBlank { stringResource(R.string.workout_this_workout) },
                                 isPermanent = false,
                             ),
                             expanded = expandedExerciseId == exercise.exerciseId,
@@ -386,7 +389,7 @@ fun WorkoutContentScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "+ Add Exercise to Routine",
+                                    text = stringResource(R.string.workout_add_exercise_to_routine),
                                     color = AppTheme.colors.primaryDark,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 15.sp,
@@ -414,14 +417,14 @@ fun WorkoutContentScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = if (isTemplate) "Template Notes" else "Session Notes",
+                                    text = if (isTemplate) stringResource(R.string.workout_template_notes) else stringResource(R.string.workout_session_notes),
                                     fontWeight = FontWeight.Bold,
                                     color = AppTheme.colors.textPrimary
                                 )
                             }
                             if (isTemplate) {
                                 Text(
-                                    text = notesText.ifBlank { "No notes for this template." },
+                                    text = notesText.ifBlank { stringResource(R.string.workout_no_notes_template) },
                                     fontSize = 14.sp,
                                     color = if (notesText.isBlank()) {
                                         AppTheme.colors.textMuted
@@ -440,7 +443,7 @@ fun WorkoutContentScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(120.dp),
-                                    placeholder = { Text("Add your thoughts, energy levels, or notes for this workout...") },
+                                    placeholder = { Text(stringResource(R.string.workout_notes_placeholder)) },
                                     minLines = 3
                                 )
                             }
@@ -457,7 +460,7 @@ fun WorkoutContentScreen(
                                 onClick = { showDeleteDialog = true }
                             ) {
                                 Text(
-                                    text = "Delete Workout",
+                                    text = stringResource(R.string.workout_delete_button),
                                     color = AppTheme.colors.danger,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -470,9 +473,9 @@ fun WorkoutContentScreen(
 
         if (showDeleteDialog) {
             DeleteConfirmationDialog(
-                title = "Delete Workout?",
-                itemName = workoutName.ifBlank { "this workout" },
-                location = "your workouts",
+                title = stringResource(R.string.workout_delete_title),
+                itemName = workoutName.ifBlank { stringResource(R.string.workout_this_workout) },
+                location = stringResource(R.string.workout_your_workouts),
                 isPermanent = true,
                 onConfirm = {
                     viewModel.deleteWorkout(workoutId)
@@ -563,7 +566,7 @@ private fun AddExerciseChoiceDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Add Exercise",
+                            text = stringResource(R.string.workout_add_exercise),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = onSurface,
@@ -571,7 +574,7 @@ private fun AddExerciseChoiceDialog(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Choose how you want to add exercises to this routine",
+                            text = stringResource(R.string.workout_add_exercise_choose),
                             fontSize = 12.sp,
                             color = onSurfaceVariant,
                             lineHeight = 16.sp,
@@ -580,7 +583,7 @@ private fun AddExerciseChoiceDialog(
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Filled.Close,
-                            contentDescription = "Close dialog",
+                            contentDescription = stringResource(R.string.profile_close),
                             tint = onSurfaceVariant,
                         )
                     }
@@ -590,15 +593,15 @@ private fun AddExerciseChoiceDialog(
                     AddExerciseOptionCard(
                         icon = Icons.Filled.FitnessCenter,
                         iconContainerColor = primaryContainer,
-                        title = "Standard exercises",
-                        subtitle = "Browse pre-built exercises",
+                        title = stringResource(R.string.workout_standard_exercises),
+                        subtitle = stringResource(R.string.workout_browse_prebuilt),
                         onClick = onStandard,
                     )
                     AddExerciseOptionCard(
                         icon = Icons.Filled.Add,
                         iconContainerColor = primaryContainer,
-                        title = "My own exercises",
-                        subtitle = "Select from custom exercises",
+                        title = stringResource(R.string.workout_my_own_exercises),
+                        subtitle = stringResource(R.string.workout_select_custom),
                         onClick = onCustom,
                     )
 
@@ -619,7 +622,7 @@ private fun AddExerciseChoiceDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Create brand new exercise",
+                                text = stringResource(R.string.workout_create_brand_new),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -644,7 +647,7 @@ private fun AddExerciseChoiceDialog(
                         contentPadding = PaddingValues(vertical = 14.dp),
                     ) {
                         Text(
-                            text = "Cancel",
+                            text = stringResource(R.string.profile_cancel),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -777,7 +780,7 @@ private fun ExerciseSetRow(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Set",
+                text = stringResource(R.string.track_set_label),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp
             )
@@ -800,7 +803,7 @@ private fun ExerciseSetRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "reps",
+                        text = stringResource(R.string.track_reps_unit),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -823,7 +826,7 @@ private fun ExerciseSetRow(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = setUnit.label,
+                                text = stringResource(setUnit.labelRes),
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -841,7 +844,7 @@ private fun ExerciseSetRow(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "reps",
+                            text = stringResource(R.string.track_reps_unit),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
 
 @Composable
 fun InstructionPager(
@@ -51,7 +53,7 @@ fun InstructionPager(
                         .padding(20.dp)
                 ) {
                     Text(
-                        text = "Step ${page + 1} of ${instructions.size}",
+                        text = stringResource(R.string.exercise_step_of, page + 1, instructions.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

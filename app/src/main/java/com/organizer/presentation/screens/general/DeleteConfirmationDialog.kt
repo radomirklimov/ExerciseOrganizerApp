@@ -52,10 +52,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
 import com.organizer.ui.theme.themedColor
 
 private val Danger: Color
@@ -207,7 +209,7 @@ fun DeleteConfirmationDialog(
                                     contentPadding = PaddingValues(0.dp),
                                 ) {
                                     Text(
-                                        text = "Cancel",
+                                        text = stringResource(R.string.profile_cancel),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                     )
@@ -233,7 +235,7 @@ fun DeleteConfirmationDialog(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = if (isPermanent) "Delete" else "Remove",
+                                        text = if (isPermanent) stringResource(R.string.common_delete) else stringResource(R.string.common_remove),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                     )
@@ -253,7 +255,7 @@ fun DeleteConfirmationDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Close,
-                                contentDescription = "Cancel",
+                                contentDescription = stringResource(R.string.profile_cancel),
                                 tint = SlateIcon,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -265,6 +267,7 @@ fun DeleteConfirmationDialog(
     }
 }
 
+@Composable
 private fun deletionMessage(
     itemName: String,
     location: String?,
@@ -272,12 +275,12 @@ private fun deletionMessage(
     strongColor: Color,
 ) =
     buildAnnotatedString {
-        append(if (isPermanent) "Are you sure you want to permanently delete " else "Are you sure you want to remove ")
+        append(if (isPermanent) stringResource(R.string.delete_confirm_permanent_lead) else stringResource(R.string.delete_confirm_remove_lead))
         withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
             append(itemName)
         }
         location?.takeIf { it.isNotBlank() }?.let { place ->
-            append(" from ")
+            append(stringResource(R.string.delete_confirm_from))
             withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = strongColor)) {
                 append(place)
             }

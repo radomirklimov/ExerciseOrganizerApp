@@ -34,6 +34,8 @@ import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun CategoryHeader(
@@ -62,7 +64,7 @@ fun CategoryHeader(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.profile_back),
                     modifier = Modifier.size(24.dp)
                 )
             }

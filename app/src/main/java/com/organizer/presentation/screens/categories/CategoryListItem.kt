@@ -46,6 +46,8 @@ import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -148,7 +150,7 @@ fun CategoryListItem(
                 }
                 if (subcategories?.isEmpty() == true && categoryExercises?.isNotEmpty() == true) {
                     Text(
-                        text = "${categoryExercises?.size ?: 0} Exercises",
+                        text = stringResource(R.string.category_exercises_count, categoryExercises?.size ?: 0),
                         fontSize = 13.sp,
                         color = AppTheme.colors.textSecondary,
                         maxLines = 1,
@@ -184,7 +186,7 @@ fun CategoryListItem(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Open ${category.name}",
+                        contentDescription = stringResource(R.string.category_open, category.name),
                         tint = arrowTint,
                         modifier = Modifier.size(22.dp),
                     )

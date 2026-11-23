@@ -17,19 +17,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.organizer.R
 
 internal val ReminderMinuteOptions = listOf(15, 30, 60)
 
+@Composable
 internal fun reminderTimingLabel(minutes: Int): String = when {
-    minutes == 60 -> "1 hour before"
-    minutes > 60 && minutes % 60 == 0 -> "${minutes / 60} hours before"
-    else -> "$minutes min before"
+    minutes == 60 -> stringResource(R.string.schedule_reminder_1_hour_before)
+    minutes > 60 && minutes % 60 == 0 -> stringResource(R.string.schedule_reminder_hours_before, minutes / 60)
+    else -> stringResource(R.string.schedule_reminder_min_before, minutes)
 }
 
+@Composable
 internal fun reminderTimingChipLabel(minutes: Int): String = when {
-    minutes == 60 -> "1 hour"
-    minutes > 60 && minutes % 60 == 0 -> "${minutes / 60} hours"
-    else -> "$minutes min"
+    minutes == 60 -> stringResource(R.string.schedule_reminder_1_hour)
+    minutes > 60 && minutes % 60 == 0 -> stringResource(R.string.schedule_reminder_hours, minutes / 60)
+    else -> stringResource(R.string.schedule_reminder_min, minutes)
 }
 
 /** 15 min / 30 min / 1 hour selector shared by the card and the sheet. */

@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.cos
@@ -230,7 +232,7 @@ private fun CelebrationToast(message: CelebrationMessage, onDismiss: () -> Unit)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.common_dismiss),
                     tint = colors.textMuted,
                     modifier = Modifier.size(18.dp),
                 )

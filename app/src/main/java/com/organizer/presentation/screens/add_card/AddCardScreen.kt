@@ -36,6 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import com.organizer.presentation.screens.general.SaveButton
 
 @Composable
@@ -75,14 +77,14 @@ fun AddCardScreen(
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = stringResource(R.string.profile_back)
                 )
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Create New Exercise",
+                text = stringResource(R.string.add_card_create_exercise),
                 fontSize = 26.sp
             )
 
@@ -100,13 +102,13 @@ fun AddCardScreen(
             },
             isError = showDuplicateNameError,
             placeholder = {
-                Text("Name Of Exercise")
+                Text(stringResource(R.string.add_card_name_of_exercise))
             },
             // Only reserve the supporting-text area while an error is shown,
             // otherwise the field keeps extra empty bottom padding.
             supportingText = if (showDuplicateNameError) {
                 {
-                    Text("An exercise with this name already exists. Please choose a different name.")
+                    Text(stringResource(R.string.add_card_duplicate_name))
                 }
             } else {
                 null
@@ -119,13 +121,13 @@ fun AddCardScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Exercise type
-        Text(text = "Exercise Type", fontWeight = FontWeight.Medium)
+        Text(text = stringResource(R.string.add_card_exercise_type), fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                "REPS" to "Reps",
-                "REPS_WEIGHT" to "Reps + Weight",
-                "DURATION" to "Duration",
+                "REPS" to stringResource(R.string.exercise_type_reps),
+                "REPS_WEIGHT" to stringResource(R.string.exercise_type_reps_weight),
+                "DURATION" to stringResource(R.string.exercise_type_duration),
             ).forEach { (value, label) ->
                 val buttonModifier = Modifier.height(36.dp)
                 val buttonPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
@@ -208,11 +210,11 @@ fun AddCardScreen(
                     TextButton(
                         onClick = { showImageError = false }
                     ) {
-                        Text("OK")
+                        Text(stringResource(R.string.common_ok))
                     }
                 },
-                title = { Text("Error") },
-                text = { Text("Image could not be saved") }
+                title = { Text(stringResource(R.string.add_card_error)) },
+                text = { Text(stringResource(R.string.add_card_image_save_error)) }
             )
         }
     }

@@ -14,7 +14,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.organizer.presentation.screens.schedule.ScheduleBrand
+import com.organizer.R
 import com.organizer.presentation.screens.schedule.ScheduleFieldBackground
 import com.organizer.presentation.screens.schedule.ScheduleInk
 import com.organizer.presentation.screens.schedule.ScheduleInkSecondary
@@ -30,7 +32,7 @@ import com.organizer.presentation.screens.schedule.ScheduleInkSecondary
 internal fun CreateWorkoutFirstHint(
     onOpenWorkouts: () -> Unit,
     modifier: Modifier = Modifier,
-    description: String = "You need at least one workout before you can put it on your schedule.",
+    description: String = "",
 ) {
     Column(
         modifier = modifier
@@ -41,20 +43,20 @@ internal fun CreateWorkoutFirstHint(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Create a workout first",
+            text = stringResource(R.string.workout_create_first_title),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = ScheduleInk,
         )
         Text(
-            text = description,
+            text = description.ifEmpty { stringResource(R.string.workout_create_first_desc_schedule) },
             modifier = Modifier.padding(top = 6.dp),
             fontSize = 14.sp,
             color = ScheduleInkSecondary,
         )
         TextButton(onClick = onOpenWorkouts) {
             Text(
-                text = "Create Workout",
+                text = stringResource(R.string.workout_create_first_button),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = ScheduleBrand,

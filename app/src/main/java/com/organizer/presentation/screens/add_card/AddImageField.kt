@@ -1,6 +1,8 @@
 package com.organizer.presentation.screens.add_card
 
 import android.graphics.drawable.BitmapDrawable
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -196,7 +198,7 @@ private fun ImageAdjustHint() {
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "Choose the visible part",
+            text = stringResource(R.string.add_image_choose_visible_part),
             color = Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -206,14 +208,14 @@ private fun ImageAdjustHint() {
 
         HintRow(
             icon = Icons.Default.OpenWith,
-            text = "Drag the photo to move it",
+            text = stringResource(R.string.add_image_drag),
         )
 
         Spacer(modifier = Modifier.height(4.dp))
 
         HintRow(
             icon = Icons.Default.ZoomIn,
-            text = "Pinch to zoom in or out",
+            text = stringResource(R.string.add_image_zoom),
         )
     }
 }
@@ -248,7 +250,7 @@ private fun AddImagePlaceholder() {
     ) {
         Icon(
             imageVector = Icons.Default.Add,
-            contentDescription = "Add image",
+            contentDescription = stringResource(R.string.add_image_add_cd),
             modifier = Modifier.size(42.dp),
             tint = MaterialTheme.colorScheme.primary
         )
@@ -256,7 +258,7 @@ private fun AddImagePlaceholder() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Add Image",
+            text = stringResource(R.string.add_image_add),
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.primary
         )

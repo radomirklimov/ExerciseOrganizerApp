@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -183,13 +184,14 @@ fun SportsScreen(
                 ) {
                     if (searching) {
                         item {
-                            ExerciseSectionHeading("Search Results")
+                            ExerciseSectionHeading(R.string.sports_search_results)
                         }
 
                         if (searchResults.isEmpty()) {
                             item {
                                 ExerciseSearchEmptyMessage(
                                     text = emptyExerciseSearchMessage(
+                                        context = LocalContext.current,
                                         query = displayQuery,
                                         filter = ExerciseFilter.Standard,
                                     )
@@ -236,10 +238,11 @@ fun SportsScreen(
     }
 }
 
+@Composable
 private fun sportSubtitle(name: String): String? = when (name) {
-    "Gym" -> "Weights & Machines"
-    "Calisthenics" -> "Bodyweight Strength & Skills"
-    "Street Workout" -> "Bars, Tricks & Freestyle"
-    "Home Workout" -> "Home Equipment & Bodyweight"
+    "Gym" -> stringResource(R.string.sports_gym)
+    "Calisthenics" -> stringResource(R.string.sports_calisthenics)
+    "Street Workout" -> stringResource(R.string.sports_street_workout)
+    "Home Workout" -> stringResource(R.string.sports_home_workout)
     else -> null
 }

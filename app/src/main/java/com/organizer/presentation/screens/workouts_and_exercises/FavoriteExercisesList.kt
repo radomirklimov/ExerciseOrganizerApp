@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -20,6 +21,7 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 import com.organizer.presentation.screens.general.LoadingState
+import com.organizer.R
 
 /**
  * "Favorites" tab of the Exercises page: every exercise the user liked,
@@ -46,8 +48,8 @@ fun FavoriteExercisesList(
         ) {
             item {
                 EmptyExercisesState(
-                    title = "No Favorite Exercises Yet",
-                    description = "Mark exercises as favorite to quickly access them here.",
+                    title = stringResource(R.string.empty_favorites_title),
+                    description = stringResource(R.string.empty_favorites_desc),
                     showCreateButton = false,
                     icon = Icons.Filled.Favorite,
                     capabilityPills = emptyList(),

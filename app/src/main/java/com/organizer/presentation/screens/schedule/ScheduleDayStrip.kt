@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.organizer.R
 
 /**
  * The seven-day selector. Selected days are solid purple, days with recurring
@@ -62,7 +64,7 @@ internal fun ScheduleDayStrip(
                         .padding(horizontal = 12.dp, vertical = 7.dp),
                 ) {
                     Text(
-                        text = "$dayCount ${if (dayCount == 1) "day" else "days"} / week",
+                        text = stringResource(R.string.schedule_day_count, dayCount, if (dayCount == 1) stringResource(R.string.schedule_day) else stringResource(R.string.schedule_days)),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = ScheduleBrand,
@@ -72,7 +74,7 @@ internal fun ScheduleDayStrip(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 WeekArrow(
-                    contentDescription = "Previous week",
+                    contentDescription = stringResource(R.string.schedule_previous_week),
                     icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     onClick = onPreviousWeek,
                 )
@@ -84,7 +86,7 @@ internal fun ScheduleDayStrip(
                     color = ScheduleBrand,
                 )
                 WeekArrow(
-                    contentDescription = "Next week",
+                    contentDescription = stringResource(R.string.schedule_next_week),
                     icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     onClick = onNextWeek,
                 )
@@ -215,7 +217,7 @@ private fun DayPill(
         ) {
             if (completionPercent != null) {
                 Text(
-                    text = "$completionPercent%",
+                    text = stringResource(R.string.schedule_completion_percent, completionPercent),
                     fontSize = 10.sp,
                     lineHeight = 10.sp,
                     fontWeight = FontWeight.Bold,

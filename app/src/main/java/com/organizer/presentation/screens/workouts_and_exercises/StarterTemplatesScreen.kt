@@ -38,6 +38,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
@@ -88,13 +91,13 @@ fun StarterTemplatesScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Starter Templates",
+                    text = stringResource(R.string.starter_templates_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = OnSurface,
                 )
                 Text(
-                    text = "Ready-made routines you can add to your workouts",
+                    text = stringResource(R.string.starter_templates_subtitle),
                     fontSize = 12.sp,
                     color = AppTheme.colors.textMuted,
                 )
@@ -111,7 +114,7 @@ fun StarterTemplatesScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No starter templates available yet.\nCheck your connection and try again.",
+                    text = stringResource(R.string.starter_templates_empty),
                     fontSize = 14.sp,
                     color = OnSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -214,7 +217,7 @@ private fun StarterTemplateListItem(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "${template.exerciseCount} exercises",
+                        text = pluralStringResource(R.plurals.exercise_count, template.exerciseCount, template.exerciseCount),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = OnSurfaceVariant,
@@ -238,7 +241,7 @@ private fun StarterTemplateListItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Use Routine",
+                    text = stringResource(R.string.starter_templates_use),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Primary,

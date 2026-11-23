@@ -64,7 +64,291 @@
     <string name="profile_version">Version %1$s</string>
     <string name="profile_close">Close</string>
 
-    <!-- Motivational phrases for automatically generated reminder notes. -->
+    <!-- Exercises -->
+    <string name="common_loading">Loading...</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_remove">Remove</string>
+
+    <string name="exercise_added_title">Exercise Added!</string>
+    <string name="exercise_added_to_your_workout">Added to your workout</string>
+    <string name="exercise_added_to_one">Added to %1$s</string>
+    <string name="exercise_added_to_multiple">Added to %1$s + %2$d more</string>
+    <string name="exercise_add_to_workout">Add to Workout</string>
+    <string name="exercise_add_to_favorites">Add to favorite exercises</string>
+    <string name="exercise_remove_from_favorites">Remove from favorite exercises</string>
+    <string name="exercise_collapse">Collapse exercise</string>
+    <string name="exercise_expand">Expand exercise</string>
+    <string name="exercise_open">Open</string>
+    <string name="exercise_track">Track</string>
+    <string name="exercise_type_duration">Duration</string>
+    <string name="exercise_type_reps">Reps</string>
+    <string name="exercise_type_reps_weight">Reps + Weight</string>
+    <string name="exercise_select_routine_or_create">Select existing routine or create a new one</string>
+    <string name="exercise_no_workouts_match">No workouts match \"%1$s\"</string>
+    <string name="exercise_search_workouts">Search workouts...</string>
+    <string name="exercise_create_new">Create New Exercise</string>
+    <string name="exercise_create_custom">Create Custom Exercise</string>
+    <string name="exercise_build_routine_include">Build routine and include this exercise</string>
+    <string name="exercise_select_a_workout">Select a Workout</string>
+    <string name="exercise_add_exercise">Add Exercise</string>
+    <string name="exercise_create_workout_first_desc">You need at least one workout before you can add this exercise to it.</string>
+    <string name="exercise_step_of">Step %1$d of %2$d</string>
+    <string name="exercise_pause_animation">Pause animation</string>
+    <string name="exercise_play_animation">Play animation</string>
+    <string name="exercise_clear_filter">Clear filter</string>
+
+    <string name="empty_exercises_title">No Custom Exercises Created</string>
+    <string name="empty_exercises_desc">Build your personal library of custom movements with specialized metrics:</string>
+    <string name="capability_weight">Weight</string>
+    <string name="capability_instructions">Instructions</string>
+    <string name="capability_photo">Photo</string>
+    <string name="empty_exercises_create_custom">Create Custom Exercise</string>
+    <string name="empty_exercises_browse_standard">Browse Standard Exercises</string>
+    <string name="empty_exercises_browse_hint">Explore 400+ built-in gym movements</string>
+
+    <string name="empty_favorites_title">No Favorite Exercises Yet</string>
+    <string name="empty_favorites_desc">Mark exercises as favorite to quickly access them here.</string>
+
+    <string name="exercises_tab_favorites">Favorites</string>
+    <string name="exercises_tab_custom">Custom</string>
+
+    <string name="exercise_delete_title">Delete Exercise?</string>
+    <string name="exercise_custom_location">your custom exercises</string>
+    <string name="workout_create_new">Create New Workout</string>
+
+    <string name="delete_confirm_permanent_lead">Are you sure you want to permanently delete </string>
+    <string name="delete_confirm_remove_lead">Are you sure you want to remove </string>
+    <string name="delete_confirm_from"> from </string>
+
+    <string name="workout_create_first_title">Create a workout first</string>
+    <string name="workout_create_first_button">Create Workout</string>
+    <string name="workout_create_first_desc_schedule">You need at least one workout before you can put it on your schedule.</string>
+    <string name="workout_create_first_desc_exercise">You need at least one workout before you can add this exercise to it.</string>
+
+    <plurals name="exercise_count">
+        <item quantity="one">%d exercise</item>
+        <item quantity="other">%d exercises</item>
+    </plurals>
+
+    <!-- Workout tracking -->
+    <string name="track_exercise_title">Track %1$s</string>
+    <string name="track_no_sets">No sets recorded yet.</string>
+    <string name="track_update_set">Update Set %1$d</string>
+    <string name="track_add_set">Add Set %1$d</string>
+    <string name="track_duration_min">Duration must be at least 1 second.</string>
+    <string name="track_reps_min">Reps must be at least 1.</string>
+    <string name="track_delete_set_title">Delete Set?</string>
+    <string name="track_set_number">Set %1$d</string>
+    <string name="track_close_editor">Close set editor</string>
+    <string name="track_set_label">Set</string>
+    <string name="track_reps_value">%1$d reps</string>
+    <string name="track_edit_set">Edit set %1$d</string>
+    <string name="track_delete_set">Delete set %1$d</string>
+    <string name="track_duration_label">DURATION (HH:MM:SS)</string>
+    <string name="track_repetitions_label">REPETITIONS</string>
+    <string name="track_reps_unit">reps</string>
+    <string name="track_load_label">LOAD (%1$s)</string>
+    <string name="track_decrease">Decrease %1$s</string>
+    <string name="track_increase">Increase %1$s</string>
+    <string name="track_drag">DRAG</string>
+
+    <!-- Workout execution -->
+    <string name="workout_default_name">Workout</string>
+    <string name="workout_complete_title">Workout Complete!</string>
+    <string name="workout_finished_in">Finished in %1$s</string>
+    <string name="workout_note_label">Workout Note</string>
+    <string name="workout_exit">Exit workout</string>
+    <string name="workout_exercise_of">Exercise %1$d of %2$d</string>
+    <string name="workout_hide_instructions">Hide instructions</string>
+    <string name="workout_instructions">Instructions</string>
+    <string name="workout_sets_label">SETS</string>
+    <string name="workout_no_sets">No sets</string>
+    <string name="workout_sets_done">%1$d / %2$d done</string>
+    <string name="workout_no_sets_defined">No sets defined for this exercise.</string>
+    <string name="timer_ready">Ready</string>
+    <string name="timer_running">Running</string>
+    <string name="timer_stopped">Stopped</string>
+    <string name="timer_paused">Paused</string>
+    <string name="workout_stopwatch">STOPWATCH</string>
+    <string name="workout_elapsed">ELAPSED</string>
+    <string name="workout_pause">Pause</string>
+    <string name="workout_stop">Stop</string>
+    <string name="workout_resume">Resume</string>
+    <string name="workout_start">Start</string>
+    <string name="workout_up_next">UP NEXT</string>
+    <string name="workout_complete">Workout Complete!</string>
+    <string name="workout_done">Done</string>
+    <string name="workout_skip_exercise">Skip Exercise</string>
+    <string name="workout_finished_all">You finished all %1$d exercises.</string>
+    <string name="workout_finished_some">You finished %1$d of %2$d exercises.</string>
+    <string name="workout_back_to_schedule">Back to Schedule</string>
+    <string name="workout_no_exercises">No exercises in this workout yet.</string>
+    <string name="workout_unavailable">This workout is no longer available.</string>
+    <string name="workout_exit_title">Exit workout?</string>
+    <string name="workout_exit_message">Your workout progress will be lost if you exit now.</string>
+    <string name="workout_exit_button">Exit</string>
+    <string name="workout_keep_going">Keep going</string>
+    <string name="workout_set_summary_reps">%1$d reps</string>
+    <string name="workout_set_summary_weighted">%1$s x %2$d reps</string>
+    <string name="encourage_beginner_1">Getting started is what counts!</string>
+    <string name="encourage_beginner_2">One step at a time!</string>
+    <string name="encourage_beginner_3">You are off to a start!</string>
+    <string name="encourage_beginner_4">Keep showing up!</string>
+    <string name="encourage_mid_1">You are finding your rhythm!</string>
+    <string name="encourage_mid_2">Nice progress! Keep going!</string>
+    <string name="encourage_mid_3">You are getting there!</string>
+    <string name="encourage_mid_4">Keep pushing forward!</string>
+    <string name="encourage_high_1">Outstanding effort!</string>
+    <string name="encourage_high_2">You are crushing it!</string>
+    <string name="encourage_high_3">Look at you go!</string>
+    <string name="encourage_high_4">You are on fire!</string>
+
+    <!-- Create workout -->
+    <string name="workout_name_of">Name Of Workout</string>
+    <string name="workout_name_duplicate">A workout with this name already exists. Please choose a different name.</string>
+    <string name="workout_notes_placeholder">Add your thoughts, energy levels, or notes for this workout...</string>
+    <string name="workout_create_button">Create Workout</string>
+    <string name="workout_create_button_one_exercise">Create Workout (1 exercise)</string>
+    <string name="workout_create_button_n_exercises">Create Workout (%1$d exercises)</string>
+
+    <!-- Workout content -->
+    <string name="workout_add_to_my">Add to My Workouts</string>
+    <string name="workout_reorder_exercise">Reorder exercise</string>
+    <string name="workout_remove_exercise_title">Remove Exercise?</string>
+    <string name="workout_this_workout">this workout</string>
+    <string name="workout_add_exercise_to_routine">+ Add Exercise to Routine</string>
+    <string name="workout_template_notes">Template Notes</string>
+    <string name="workout_session_notes">Session Notes</string>
+    <string name="workout_no_notes_template">No notes for this template.</string>
+    <string name="workout_starter_routine_hint">Add this starter routine to your workouts to edit it, track sets, and keep your own notes.</string>
+    <string name="workout_delete_button">Delete Workout</string>
+    <string name="workout_delete_title">Delete Workout?</string>
+    <string name="workout_your_workouts">your workouts</string>
+    <string name="workout_add_exercise">Add Exercise</string>
+    <string name="workout_add_exercise_choose">Choose how you want to add exercises to this routine</string>
+    <string name="workout_standard_exercises">Standard exercises</string>
+    <string name="workout_browse_prebuilt">Browse pre-built exercises</string>
+    <string name="workout_my_own_exercises">My own exercises</string>
+    <string name="workout_select_custom">Select from custom exercises</string>
+    <string name="workout_create_brand_new">Create brand new exercise</string>
+
+    <!-- Schedule -->
+    <string name="schedule_remove_title">Remove from Schedule?</string>
+    <string name="schedule_weekly_location">your weekly schedule</string>
+    <string name="schedule_today">Today</string>
+    <string name="schedule_rest_day_none">Rest day - no workouts scheduled</string>
+    <string name="schedule_one_workout">1 workout scheduled for this day</string>
+    <string name="schedule_n_workouts">%1$d workouts scheduled for this day</string>
+    <string name="schedule_rest_day">Rest day</string>
+    <string name="schedule_no_workouts_day">No workouts scheduled for this day. Add one to build your weekly routine.</string>
+    <string name="schedule_add_workout">Add Workout to Schedule</string>
+    <string name="schedule_every_day">Every %1$s</string>
+    <string name="schedule_this_day_only">This %1$s Only</string>
+    <string name="schedule_options">Schedule options</string>
+    <string name="schedule_edit">Edit schedule</string>
+    <string name="schedule_personal_note">Personal Note / Checklist</string>
+    <string name="schedule_included_alert">Included in alert</string>
+    <string name="schedule_add_note">Add a note for this reminder</string>
+    <string name="schedule_start_workout">Start Workout</string>
+    <string name="schedule_schedule_workout">Schedule a Workout</string>
+    <string name="schedule_edit_schedule">Edit Schedule</string>
+    <string name="schedule_choose_workout">Choose Workout</string>
+    <string name="schedule_select_workout">Select a workout</string>
+    <string name="schedule_workout_time">Workout Time</string>
+    <string name="schedule_repeats">Repeats</string>
+    <string name="schedule_repeats_weekly">Repeats weekly</string>
+    <string name="schedule_only_on">Only on %1$s</string>
+    <string name="schedule_workout_reminder">Workout Reminder</string>
+    <string name="schedule_alert_before">Get an alert before workout begins</string>
+    <string name="schedule_notifications_blocked">Notifications are blocked</string>
+    <string name="schedule_notifications_ask">You will be asked to allow notifications on save</string>
+    <string name="schedule_notification_timing">Notification Timing</string>
+    <string name="schedule_included_notification">Included in the notification</string>
+    <string name="schedule_save">Save to Schedule</string>
+    <string name="schedule_save_changes">Save Changes</string>
+    <string name="schedule_reminder_1_hour_before">1 hour before</string>
+    <string name="schedule_reminder_hours_before">%1$d hours before</string>
+    <string name="schedule_reminder_min_before">%1$d min before</string>
+    <string name="schedule_reminder_1_hour">1 hour</string>
+    <string name="schedule_reminder_hours">%1$d hours</string>
+    <string name="schedule_reminder_min">%1$d min</string>
+    <string name="schedule_day_count">%1$d %2$s / week</string>
+    <string name="schedule_day">day</string>
+    <string name="schedule_days">days</string>
+    <string name="schedule_previous_week">Previous week</string>
+    <string name="schedule_next_week">Next week</string>
+    <string name="schedule_completion_percent">%1$d%%</string>
+
+    <!-- Search -->
+    <string name="search_exercises_placeholder">Search exercises...</string>
+    <string name="search_in_scope">in: %1$s</string>
+    <string name="search_clear">Clear search</string>
+
+    <!-- Empty workouts -->
+    <string name="empty_workouts_title">No Workout Routines Yet</string>
+    <string name="empty_workouts_desc">Create structured workout routines to organize exercises, track sets, reps, and weights during your sessions.</string>
+    <string name="empty_workouts_explore_templates">Or explore starter templates</string>
+
+    <!-- Categories -->
+    <string name="category_open">Open %1$s</string>
+    <string name="category_suggest_exercise">Suggest an exercise</string>
+    <string name="category_suggest_placeholder">Describe the exercise you would like to see</string>
+    <string name="category_send">Send</string>
+    <string name="category_missing_exercise">Missing an exercise?</string>
+    <string name="category_add_custom">Add custom movement</string>
+    <string name="category_add_custom_desc">Create and track your own variation</string>
+    <string name="category_create">+ Create</string>
+    <string name="category_suggest_exercise_title">Suggest an exercise</string>
+    <string name="category_suggest_exercise_desc">Tell us what is missing in this category</string>
+    <string name="category_suggest">Suggest</string>
+    <string name="category_no_email_app">No email app available</string>
+    <string name="category_message_label">Message:</string>
+    <string name="category_suggestion_subject">Exercise suggestion: %1$s</string>
+    <string name="category_send_email">Send email</string>
+    <string name="category_exercises_count">%1$d Exercises</string>
+
+    <!-- Sports -->
+    <string name="sports_search_results">Search Results</string>
+    <string name="sports_gym">Weights and Machines</string>
+    <string name="sports_calisthenics">Bodyweight Strength and Skills</string>
+    <string name="sports_street_workout">Bars, Tricks and Freestyle</string>
+    <string name="sports_home_workout">Home Equipment and Bodyweight</string>
+
+    <!-- Loading / error -->
+    <string name="common_retry">Retry</string>
+    <string name="common_no_data">No data available</string>
+    <string name="common_load_data">Load data</string>
+
+    <!-- Add card -->
+    <string name="add_card_create_exercise">Create New Exercise</string>
+    <string name="add_card_name_of_exercise">Name Of Exercise</string>
+    <string name="add_card_duplicate_name">An exercise with this name already exists. Please choose a different name.</string>
+    <string name="add_card_exercise_type">Exercise Type</string>
+    <string name="add_card_error">Error</string>
+    <string name="add_card_image_save_error">Image could not be saved</string>
+
+    <!-- Add image -->
+    <string name="add_image_choose_visible_part">Choose the visible part</string>
+    <string name="add_image_drag">Drag the photo to move it</string>
+    <string name="add_image_zoom">Pinch to zoom in or out</string>
+    <string name="add_image_add">Add Image</string>
+    <string name="add_image_add_cd">Add image</string>
+
+    <!-- Instruction editor -->
+    <string name="instruction_optional">(optional)</string>
+    <string name="instruction_step">Step %1$d</string>
+    <string name="instruction_remove_step">Remove step</string>
+    <string name="instruction_add">Add instruction</string>
+
+    <!-- General / templates -->
+    <string name="common_dismiss">Dismiss</string>
+    <string name="common_create_exercise">Create Exercise</string>
+    <string name="starter_templates_title">Starter Templates</string>
+    <string name="starter_templates_subtitle">Ready-made routines you can add to your workouts</string>
+    <string name="starter_templates_empty">No starter templates available yet.\nCheck your connection and try again.</string>
+    <string name="starter_templates_use">Use Routine</string>
+
+    <!-- Motivational phrases -->
     <string name="motivational_1">You got this!</string>
     <string name="motivational_2">Do your best today!</string>
     <string name="motivational_3">Keep it up!</string>
@@ -95,4 +379,81 @@
     <string name="motivational_28">Challenge yourself and enjoy the journey!</string>
     <string name="motivational_29">Give it your all!</string>
     <string name="motivational_30">Another day, another opportunity to grow!</string>
+
+    <!-- Account / guest mode -->
+    <string name="profile_guest_mode">Guest Mode</string>
+    <string name="profile_guest_desc">Your workouts are currently stored only on this device.</string>
+    <string name="profile_continue_google">Continue with Google</string>
+    <string name="profile_authenticating">Authenticating...</string>
+    <string name="profile_signed_in">Signed in</string>
+
+    <!-- Units -->
+    <string name="unit_kg">kg</string>
+    <string name="unit_lb">lb</string>
+
+    <!-- Starter templates -->
+    <string name="starter_templates_all">All templates</string>
+    <string name="starter_templates_view_all">View all</string>
+    <string name="starter_templates_routines_count">%1$d routines</string>
+    <string name="starter_template_exercises_count">%1$d exercises</string>
+
+    <!-- Create workout / exercise picker -->
+    <string name="exercise_picker_add">Add Exercises</string>
+    <string name="exercise_picker_scope">SEARCH SCOPE</string>
+    <string name="exercise_filter_all">All</string>
+    <string name="exercise_filter_standard">Standard</string>
+    <string name="exercise_filter_favorites">Favorites</string>
+    <string name="exercise_filter_custom">Custom</string>
+    <string name="exercise_picker_recent_title">Recently Used in Other Workouts</string>
+    <string name="exercise_picker_search_title">Search Results</string>
+    <string name="exercise_search_limit_hint">Showing the first %1$d results. Refine your search.</string>
+    <string name="exercise_search_empty_no_recent">Exercises you use in other workouts will appear here.</string>
+    <string name="exercise_no_results_all">No exercises match &quot;%1$s&quot;</string>
+    <string name="exercise_no_results_standard">No standard exercises match &quot;%1$s&quot;</string>
+    <string name="exercise_no_results_favorites">No favorite exercises match &quot;%1$s&quot;</string>
+    <string name="exercise_no_results_custom">No custom exercises match &quot;%1$s&quot;</string>
+
+    <string name="starter_templates_routine">routine</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Welcome</string>
+    <string name="onboarding_setup_subtitle">Set up your app. You can change these later in Settings.</string>
+    <string name="onboarding_language_question">Which language would you like to use?</string>
+    <string name="onboarding_signin_failed">Sign-in failed. You can try again or continue as a guest.</string>
+    <string name="onboarding_continue_without_account">Continue without an account</string>
+    <string name="onboarding_guest_note_lead">If you continue without an account:</string>
+    <string name="onboarding_guest_note_storage">App data will be stored locally on this device.</string>
+    <string name="onboarding_guest_note_sync">Data will not be synchronized with the server.</string>
+    <string name="onboarding_guest_note_uninstall">Uninstalling the app may permanently delete locally stored data.</string>
+    <string name="onboarding_guest_note_transfer">Local data cannot automatically be transferred to another device.</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start_building">Start Building</string>
+    <string name="onboard_explore_title">Explore Exercises</string>
+    <string name="onboard_explore_description">Browse a growing library of exercises for strength, mobility, conditioning, and sports.</string>
+    <string name="onboard_build_title">Build Workouts</string>
+    <string name="onboard_build_description">Combine exercises into custom routines that fit your goals.</string>
+    <string name="onboard_create_title">Create Your Own</string>
+    <string name="onboard_create_description">Create personal exercises with your own images, descriptions, and details.</string>
+
+    <string name="common_ok">OK</string>
+    <string name="custom_tab_workouts">My Workouts</string>
+    <string name="custom_tab_exercises">My Exercises</string>
+
+    <!-- Notifications -->
+    <string name="notification_weekly_channel">Weekly reminders</string>
+    <string name="notification_weekly_channel_desc">A weekly nudge to keep you on track.</string>
+    <string name="notification_reminder_channel">Workout reminders</string>
+    <string name="notification_reminder_channel_desc">Alerts before your scheduled workouts</string>
+    <string name="notification_weekly_1">It\'s been a while! Your next workout is waiting for you.</string>
+    <string name="notification_weekly_2">Ready to pick up where you left off?</string>
+    <string name="notification_weekly_3">Your workout plan is waiting. Let\'s make this week count!</string>
+    <string name="notification_weekly_4">Your fitness goals called. They\'re wondering how you\'re doing!</string>
+    <string name="notification_weekly_5">One workout can be the start of a great week.</string>
+    <string name="notification_weekly_6">Your next achievement is waiting for you!</string>
+    <string name="notification_weekly_7">We\'ve saved your progress. Ready to keep building on it?</string>
+
+    <!-- Pre-workout countdown and completion success rate. -->
+    <string name="workout_countdown_get_ready">Get ready!</string>
+    <string name="workout_countdown_message">Your workout starts in %1$d...</string>
+    <string name="workout_success_label">SUCCESS</string>
 </resources>

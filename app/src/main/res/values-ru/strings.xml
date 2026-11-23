@@ -64,7 +64,242 @@
     <string name="profile_version">Версия %1$s</string>
     <string name="profile_close">Закрыть</string>
 
-    <!-- Motivational phrases for automatically generated reminder notes. -->
+    <!-- Exercises -->
+    <string name="common_loading">Загрузка...</string>
+    <string name="common_delete">Удалить</string>
+    <string name="common_remove">Убрать</string>
+
+    <string name="exercise_added_title">Упражнение добавлено!</string>
+    <string name="exercise_added_to_your_workout">Добавлено в твою тренировку</string>
+    <string name="exercise_added_to_one">Добавлено в %1$s</string>
+    <string name="exercise_added_to_multiple">Добавлено в %1$s + ещё %2$d</string>
+    <string name="exercise_add_to_workout">Добавить в тренировку</string>
+    <string name="exercise_add_to_favorites">Добавить в избранное</string>
+    <string name="exercise_remove_from_favorites">Убрать из избранного</string>
+    <string name="exercise_collapse">Свернуть упражнение</string>
+    <string name="exercise_expand">Развернуть упражнение</string>
+    <string name="exercise_open">Открыть</string>
+    <string name="exercise_track">Отслеживать</string>
+    <string name="exercise_type_duration">Длительность</string>
+    <string name="exercise_type_reps">Повторения</string>
+    <string name="exercise_type_reps_weight">Повт. + вес</string>
+    <string name="exercise_select_routine_or_create">Выбери существующую тренировку или создай новую</string>
+    <string name="exercise_no_workouts_match">Нет тренировок, подходящих к «%1$s»</string>
+    <string name="exercise_search_workouts">Поиск тренировок...</string>
+    <string name="exercise_create_new">Создать новое упражнение</string>
+    <string name="exercise_create_custom">Создать своё упражнение</string>
+    <string name="exercise_build_routine_include">Создай тренировку и включи это упражнение</string>
+    <string name="exercise_select_a_workout">Выбери тренировку</string>
+    <string name="exercise_add_exercise">Добавить упражнение</string>
+    <string name="exercise_create_workout_first_desc">Нужна хотя бы одна тренировка, чтобы добавить это упражнение.</string>
+    <string name="exercise_step_of">Шаг %1$d из %2$d</string>
+    <string name="exercise_pause_animation">Приостановить анимацию</string>
+    <string name="exercise_play_animation">Воспроизвести анимацию</string>
+    <string name="exercise_clear_filter">Очистить фильтр</string>
+
+    <string name="empty_exercises_title">Своих упражнений пока нет</string>
+    <string name="empty_exercises_desc">Собери личную библиотеку движений со специальными метриками:</string>
+    <string name="capability_weight">Вес</string>
+    <string name="capability_instructions">Инструкции</string>
+    <string name="capability_photo">Фото</string>
+    <string name="empty_exercises_create_custom">Создать своё упражнение</string>
+    <string name="empty_exercises_browse_standard">Смотреть стандартные упражнения</string>
+    <string name="empty_exercises_browse_hint">Исследуй более 400 встроенных движений</string>
+
+    <string name="empty_favorites_title">Избранных упражнений пока нет</string>
+    <string name="empty_favorites_desc">Отмечай упражнения как избранные, чтобы быстро их находить.</string>
+
+    <string name="exercises_tab_favorites">Избранные</string>
+    <string name="exercises_tab_custom">Свои</string>
+
+    <string name="exercise_delete_title">Удалить упражнение?</string>
+    <string name="exercise_custom_location">свои упражнения</string>
+    <string name="workout_create_new">Создать новую тренировку</string>
+
+    <string name="delete_confirm_permanent_lead">Ты уверен, что хочешь навсегда удалить </string>
+    <string name="delete_confirm_remove_lead">Ты уверен, что хочешь убрать </string>
+    <string name="delete_confirm_from"> из </string>
+
+    <string name="workout_create_first_title">Сначала создай тренировку</string>
+    <string name="workout_create_first_button">Создать тренировку</string>
+    <string name="workout_create_first_desc_schedule">Нужна хотя бы одна тренировка, чтобы добавить её в расписание.</string>
+    <string name="workout_create_first_desc_exercise">Нужна хотя бы одна тренировка, чтобы добавить это упражнение.</string>
+
+    <plurals name="exercise_count">
+        <item quantity="one">%d упражнение</item>
+        <item quantity="few">%d упражнения</item>
+        <item quantity="many">%d упражнений</item>
+        <item quantity="other">%d упражнения</item>
+    </plurals>
+
+    <!-- Workout tracking -->
+    <string name="track_exercise_title">Записать %1$s</string>
+    <string name="track_no_sets">Подходы ещё не записаны.</string>
+    <string name="track_update_set">Обновить подход %1$d</string>
+    <string name="track_add_set">Добавить подход %1$d</string>
+    <string name="track_duration_min">Длительность должна быть не менее 1 секунды.</string>
+    <string name="track_reps_min">Повторения должны быть не менее 1.</string>
+    <string name="track_delete_set_title">Удалить подход?</string>
+    <string name="track_set_number">Подход %1$d</string>
+    <string name="track_close_editor">Закрыть редактор подходов</string>
+    <string name="track_set_label">Подход</string>
+    <string name="track_reps_value">%1$d повтор.</string>
+    <string name="track_edit_set">Изменить подход %1$d</string>
+    <string name="track_delete_set">Удалить подход %1$d</string>
+    <string name="track_duration_label">ДЛИТЕЛЬНОСТЬ (ЧЧ:ММ:СС)</string>
+    <string name="track_repetitions_label">ПОВТОРЕНИЯ</string>
+    <string name="track_reps_unit">повтор.</string>
+    <string name="track_load_label">ВЕС (%1$s)</string>
+    <string name="track_decrease">Уменьшить %1$s</string>
+    <string name="track_increase">Увеличить %1$s</string>
+    <string name="track_drag">ПЕРЕТАЩИ</string>
+
+    <!-- Workout execution -->
+    <string name="workout_default_name">Тренировка</string>
+    <string name="workout_complete_title">Тренировка завершена!</string>
+    <string name="workout_finished_in">Завершено за %1$s</string>
+    <string name="workout_note_label">Заметка к тренировке</string>
+    <string name="workout_exit">Выйти из тренировки</string>
+    <string name="workout_exercise_of">Упражнение %1$d из %2$d</string>
+    <string name="workout_hide_instructions">Скрыть инструкции</string>
+    <string name="workout_instructions">Инструкции</string>
+    <string name="workout_sets_label">ПОДХОДЫ</string>
+    <string name="workout_no_sets">Нет подходов</string>
+    <string name="workout_sets_done">%1$d / %2$d выполнено</string>
+    <string name="workout_no_sets_defined">Для этого упражнения не заданы подходы.</string>
+    <string name="timer_ready">Готово</string>
+    <string name="timer_running">Идёт</string>
+    <string name="timer_stopped">Остановлено</string>
+    <string name="timer_paused">Пауза</string>
+    <string name="workout_stopwatch">СЕКУНДОМЕР</string>
+    <string name="workout_elapsed">ПРОШЛО</string>
+    <string name="workout_pause">Пауза</string>
+    <string name="workout_stop">Стоп</string>
+    <string name="workout_resume">Продолжить</string>
+    <string name="workout_start">Старт</string>
+    <string name="workout_up_next">ДАЛЕЕ</string>
+    <string name="workout_complete">Тренировка завершена!</string>
+    <string name="workout_done">Готово</string>
+    <string name="workout_skip_exercise">Пропустить упражнение</string>
+    <string name="workout_finished_all">Ты выполнил все %1$d упражнений.</string>
+    <string name="workout_finished_some">Ты выполнил %1$d из %2$d упражнений.</string>
+    <string name="workout_back_to_schedule">Назад в расписание</string>
+    <string name="workout_no_exercises">В этой тренировке пока нет упражнений.</string>
+    <string name="workout_unavailable">Эта тренировка больше недоступна.</string>
+    <string name="workout_exit_title">Выйти из тренировки?</string>
+    <string name="workout_exit_message">Твой прогресс будет потерян, если выйти сейчас.</string>
+    <string name="workout_exit_button">Выйти</string>
+    <string name="workout_keep_going">Продолжить</string>
+    <string name="workout_set_summary_reps">%1$d повтор.</string>
+    <string name="workout_set_summary_weighted">%1$s x %2$d повтор.</string>
+    <string name="encourage_beginner_1">Главное - начать!</string>
+    <string name="encourage_beginner_2">Шаг за шагом!</string>
+    <string name="encourage_beginner_3">Хорошее начало!</string>
+    <string name="encourage_beginner_4">Продолжай появляться!</string>
+    <string name="encourage_mid_1">Ты находишь свой ритм!</string>
+    <string name="encourage_mid_2">Отличный прогресс! Продолжай!</string>
+    <string name="encourage_mid_3">Ты почти у цели!</string>
+    <string name="encourage_mid_4">Двигайся вперёд!</string>
+    <string name="encourage_high_1">Выдающееся усилие!</string>
+    <string name="encourage_high_2">Ты жжёшь!</string>
+    <string name="encourage_high_3">Смотри, как ты идёшь!</string>
+    <string name="encourage_high_4">Ты в огне!</string>
+
+    <!-- Create workout -->
+    <string name="workout_name_of">Название тренировки</string>
+    <string name="workout_name_duplicate">Тренировка с таким названием уже существует. Выбери другое название.</string>
+    <string name="workout_notes_placeholder">Добавь свои мысли, уровень энергии или заметки к этой тренировке...</string>
+    <string name="workout_create_button">Создать тренировку</string>
+    <string name="workout_create_button_one_exercise">Создать тренировку (1 упражнение)</string>
+    <string name="workout_create_button_n_exercises">Создать тренировку (%1$d упражнений)</string>
+
+    <!-- Workout content -->
+    <string name="workout_add_to_my">Добавить в мои тренировки</string>
+    <string name="workout_reorder_exercise">Переупорядочить упражнение</string>
+    <string name="workout_remove_exercise_title">Убрать упражнение?</string>
+    <string name="workout_this_workout">эта тренировка</string>
+    <string name="workout_add_exercise_to_routine">+ Добавить упражнение в программу</string>
+    <string name="workout_template_notes">Заметки шаблона</string>
+    <string name="workout_session_notes">Заметки сессии</string>
+    <string name="workout_no_notes_template">Нет заметок для этого шаблона.</string>
+    <string name="workout_starter_routine_hint">Добавь эту стартовую программу в свои тренировки, чтобы редактировать её, записывать подходы и вести свои заметки.</string>
+    <string name="workout_delete_button">Удалить тренировку</string>
+    <string name="workout_delete_title">Удалить тренировку?</string>
+    <string name="workout_your_workouts">твои тренировки</string>
+    <string name="workout_add_exercise">Добавить упражнение</string>
+    <string name="workout_add_exercise_choose">Выбери, как добавить упражнения в эту программу</string>
+    <string name="workout_standard_exercises">Стандартные упражнения</string>
+    <string name="workout_browse_prebuilt">Смотреть готовые упражнения</string>
+    <string name="workout_my_own_exercises">Мои собственные упражнения</string>
+    <string name="workout_select_custom">Выбрать из своих упражнений</string>
+    <string name="workout_create_brand_new">Создать совершенно новое упражнение</string>
+
+    <!-- Schedule -->
+    <string name="schedule_remove_title">Убрать из расписания?</string>
+    <string name="schedule_weekly_location">твоему недельному расписанию</string>
+    <string name="schedule_today">Сегодня</string>
+    <string name="schedule_rest_day_none">День отдыха - тренировок не запланировано</string>
+    <string name="schedule_one_workout">1 тренировка запланирована на этот день</string>
+    <string name="schedule_n_workouts">%1$d тренировок запланировано на этот день</string>
+    <string name="schedule_rest_day">День отдыха</string>
+    <string name="schedule_no_workouts_day">На этот день нет тренировок. Добавь одну, чтобы собрать недельную программу.</string>
+    <string name="schedule_add_workout">Добавить тренировку в расписание</string>
+    <string name="schedule_every_day">Каждый %1$s</string>
+    <string name="schedule_this_day_only">Только этот %1$s</string>
+    <string name="schedule_options">Опции расписания</string>
+    <string name="schedule_edit">Редактировать расписание</string>
+    <string name="schedule_personal_note">Личная заметка / чек-лист</string>
+    <string name="schedule_included_alert">Включено в оповещение</string>
+    <string name="schedule_add_note">Добавить заметку к этому напоминанию</string>
+    <string name="schedule_start_workout">Начать тренировку</string>
+    <string name="schedule_schedule_workout">Запланировать тренировку</string>
+    <string name="schedule_edit_schedule">Редактировать расписание</string>
+    <string name="schedule_choose_workout">Выбрать тренировку</string>
+    <string name="schedule_select_workout">Выбери тренировку</string>
+    <string name="schedule_workout_time">Время тренировки</string>
+    <string name="schedule_repeats">Повторяется</string>
+    <string name="schedule_repeats_weekly">Еженедельно</string>
+    <string name="schedule_only_on">Только %1$s</string>
+    <string name="schedule_workout_reminder">Напоминание о тренировке</string>
+    <string name="schedule_alert_before">Получать оповещение до начала тренировки</string>
+    <string name="schedule_notifications_blocked">Уведомления заблокированы</string>
+    <string name="schedule_notifications_ask">При сохранении попросят разрешить уведомления</string>
+    <string name="schedule_notification_timing">Время уведомления</string>
+    <string name="schedule_included_notification">Включено в уведомление</string>
+    <string name="schedule_save">Сохранить в расписание</string>
+    <string name="schedule_save_changes">Сохранить изменения</string>
+    <string name="schedule_reminder_1_hour_before">За 1 час</string>
+    <string name="schedule_reminder_hours_before">За %1$d ч</string>
+    <string name="schedule_reminder_min_before">За %1$d мин</string>
+    <string name="schedule_reminder_1_hour">1 час</string>
+    <string name="schedule_reminder_hours">%1$d ч</string>
+    <string name="schedule_reminder_min">%1$d мин</string>
+    <string name="schedule_day_count">%1$d %2$s / неделя</string>
+    <string name="schedule_day">день</string>
+    <string name="schedule_days">дней</string>
+    <string name="schedule_previous_week">Предыдущая неделя</string>
+    <string name="schedule_next_week">Следующая неделя</string>
+    <string name="schedule_completion_percent">%1$d%%</string>
+
+    <!-- Search -->
+    <string name="search_exercises_placeholder">Поиск упражнений...</string>
+    <string name="search_in_scope">в: %1$s</string>
+    <string name="search_clear">Очистить поиск</string>
+
+    <!-- Empty workouts -->
+    <string name="empty_workouts_title">Тренировочных программ пока нет</string>
+    <string name="empty_workouts_desc">Создавай структурированные программы, чтобы организовать упражнения, подходы, повторения и вес.</string>
+    <string name="empty_workouts_explore_templates">Или посмотри стартовые шаблоны</string>
+
+    <!-- General / templates -->
+    <string name="common_dismiss">Закрыть</string>
+    <string name="common_create_exercise">Создать упражнение</string>
+    <string name="starter_templates_title">Стартовые шаблоны</string>
+    <string name="starter_templates_subtitle">Готовые программы, которые можно добавить в тренировки</string>
+    <string name="starter_templates_empty">Стартовых шаблонов пока нет.\nПроверь соединение и попробуй снова.</string>
+    <string name="starter_templates_use">Использовать программу</string>
+
+    <!-- Motivational phrases -->
     <string name="motivational_1">Ты справишься!</string>
     <string name="motivational_2">Сделай сегодня всё возможное!</string>
     <string name="motivational_3">Так держать!</string>
@@ -95,4 +330,136 @@
     <string name="motivational_28">Бросай себе вызов и наслаждайся путём!</string>
     <string name="motivational_29">Выложись на полную!</string>
     <string name="motivational_30">Ещё один день - ещё одна возможность вырасти!</string>
+
+    <!-- Categories -->
+    <string name="category_open">Открыть %1$s</string>
+    <string name="category_suggest_exercise">Предложить упражнение</string>
+    <string name="category_suggest_placeholder">Опиши упражнение, которое ты хочешь увидеть</string>
+    <string name="category_send">Отправить</string>
+    <string name="category_missing_exercise">Не хватает упражнения?</string>
+    <string name="category_add_custom">Добавить свой вариант</string>
+    <string name="category_add_custom_desc">Создай и отслеживай свой вариант</string>
+    <string name="category_create">+ Создать</string>
+    <string name="category_suggest_exercise_title">Предложить упражнение</string>
+    <string name="category_suggest_exercise_desc">Расскажи, чего не хватает в этой категории</string>
+    <string name="category_suggest">Предложить</string>
+    <string name="category_no_email_app">Нет приложения для электронной почты</string>
+    <string name="category_exercises_count">%1$d упражнений</string>
+
+    <!-- Sports -->
+    <string name="sports_search_results">Результаты поиска</string>
+    <string name="sports_gym">Снаряды и тренажёры</string>
+    <string name="sports_calisthenics">Сила и навыки без веса</string>
+    <string name="sports_street_workout">Бары, трюки и фристайл</string>
+    <string name="sports_home_workout">Домашнее оборудование и вес тела</string>
+
+    <!-- Loading / error -->
+    <string name="common_retry">Повторить</string>
+    <string name="common_no_data">Нет данных</string>
+    <string name="common_load_data">Загрузить данные</string>
+
+    <!-- Add card -->
+    <string name="add_card_create_exercise">Создать новое упражнение</string>
+    <string name="add_card_name_of_exercise">Название упражнения</string>
+    <string name="add_card_duplicate_name">Упражнение с таким именем уже существует. Выбери другое имя.</string>
+    <string name="add_card_exercise_type">Тип упражнения</string>
+    <string name="add_card_error">Ошибка</string>
+    <string name="add_card_image_save_error">Не удалось сохранить изображение</string>
+
+    <!-- Add image -->
+    <string name="add_image_choose_visible_part">Выбери видимую часть</string>
+    <string name="add_image_drag">Перетащи фото, чтобы сдвинуть его</string>
+    <string name="add_image_zoom">Сожми, чтобы увеличить или уменьшить</string>
+    <string name="add_image_add">Добавить изображение</string>
+    <string name="add_image_add_cd">Добавить изображение</string>
+
+    <!-- Instruction editor -->
+    <string name="instruction_optional">(необязательно)</string>
+    <string name="instruction_step">Шаг %1$d</string>
+    <string name="instruction_remove_step">Удалить шаг</string>
+    <string name="instruction_add">Добавить инструкцию</string>
+
+    <!-- Account / guest mode -->
+    <string name="profile_guest_mode">Режим гостя</string>
+    <string name="profile_guest_desc">Твои тренировки в данный момент хранятся только на этом устройстве.</string>
+    <string name="profile_continue_google">Продолжить с Google</string>
+    <string name="profile_authenticating">Идёт аутентификация...</string>
+    <string name="profile_signed_in">Войдена</string>
+
+    <!-- Units -->
+    <string name="unit_kg">кг</string>
+    <string name="unit_lb">фунт</string>
+
+    <!-- Category suggestions -->
+    <string name="category_message_label">Сообщение:</string>
+    <string name="category_send_email">Отправить письмо</string>
+    <string name="category_suggestion_subject">Предложение упражнения: %1$s</string>
+
+    <!-- Exercise filters -->
+    <string name="exercise_filter_all">Все</string>
+    <string name="exercise_filter_standard">Стандарт</string>
+    <string name="exercise_filter_favorites">Избранные</string>
+    <string name="exercise_filter_custom">Свои</string>
+
+    <!-- Create workout / exercise picker -->
+    <string name="exercise_picker_add">Добавить упражнения</string>
+    <string name="exercise_picker_recent_title">Использовались в других тренировках</string>
+    <string name="exercise_picker_scope">ОБЛАСТЬ ПОИСКА</string>
+    <string name="exercise_picker_search_title">Результаты поиска</string>
+    <string name="exercise_search_empty_no_recent">Упражнения, которые ты используешь в других тренировках, появятся здесь.</string>
+    <string name="exercise_search_limit_hint">Показаны первые %1$d результатов. Уточни поиск.</string>
+    <string name="starter_template_exercises_count">%1$d упражнений</string>
+    <string name="starter_templates_all">Все шаблоны</string>
+    <string name="starter_templates_routines_count">%1$d программ</string>
+    <string name="starter_templates_view_all">Смотреть все</string>
+
+    <!-- Exercise search results -->
+    <string name="exercise_no_results_all">Нет упражнений, подходящих под &quot;%1$s&quot;</string>
+    <string name="exercise_no_results_standard">Нет стандартных упражнений, подходящих под &quot;%1$s&quot;</string>
+    <string name="exercise_no_results_favorites">Нет избранных упражнений, подходящих под &quot;%1$s&quot;</string>
+    <string name="exercise_no_results_custom">Нет своих упражнений, подходящих под &quot;%1$s&quot;</string>
+
+    <string name="starter_templates_routine">Программа</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Добро пожаловать</string>
+    <string name="onboarding_setup_subtitle">Настрой приложение. Можешь изменить это позже в настройках.</string>
+    <string name="onboarding_language_question">Какую язык ты хочешь использовать?</string>
+    <string name="onboarding_signin_failed">Вход не удался. Попробуй ещё раз или продолжи как гость.</string>
+    <string name="onboarding_continue_without_account">Продолжить без аккаунта</string>
+    <string name="onboarding_guest_note_lead">Если ты продолжишь без аккаунта:</string>
+    <string name="onboarding_guest_note_storage">Данные приложения хранятся локально на этом устройстве.</string>
+    <string name="onboarding_guest_note_sync">Данные не синхронизируются с сервером.</string>
+    <string name="onboarding_guest_note_uninstall">Удаление приложения может навсегда удалить локальные данные.</string>
+    <string name="onboarding_guest_note_transfer">Локальные данные нельзя автоматически перенести на другое устройство.</string>
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_start_building">Начать тренировку</string>
+    <string name="onboard_explore_title">Исследовать упражнения</string>
+    <string name="onboard_explore_description">Ищешь новое упражнение? Библиотека силы, гибкости, выносливости и спорта.</string>
+    <string name="onboard_build_title">Создать тренировку</string>
+    <string name="onboard_build_description">Собери свою программу из упражнений под свои цели.</string>
+    <string name="onboard_create_title">Своё</string>
+    <string name="onboard_create_description">Создай личные упражнения с собственными изображениями, описаниями и деталями.</string>
+
+    <string name="common_ok">ОК</string>
+    <string name="custom_tab_workouts">Мои тренировки</string>
+    <string name="custom_tab_exercises">Мои упражнения</string>
+
+    <!-- Notifications -->
+    <string name="notification_weekly_channel">Еженедельные напоминания</string>
+    <string name="notification_weekly_channel_desc">Еженедельный толчок, чтобы не сбиться с пути.</string>
+    <string name="notification_reminder_channel">Напоминания о тренировках</string>
+    <string name="notification_reminder_channel_desc">Уведомления перед запланированными тренировками</string>
+    <string name="notification_weekly_1">Давно не виделись! Твоя следующая тренировка ждёт.</string>
+    <string name="notification_weekly_2">Готов продолжить с того места, где остановился?</string>
+    <string name="notification_weekly_3">Твой план тренировок ждёт. Сделай эту неделю результативной!</string>
+    <string name="notification_weekly_4">Твои фитнес-цели позвонили. Им интересно, как ты!</string>
+    <string name="notification_weekly_5">Одна тренировка может стать началом отличной недели.</string>
+    <string name="notification_weekly_6">Твоё следующее достижение ждёт!</string>
+    <string name="notification_weekly_7">Мы сохранили твой прогресс. Готов продолжить?</string>
+
+    <!-- Pre-workout countdown and completion success rate. -->
+    <string name="workout_countdown_get_ready">Приготовьтесь!</string>
+    <string name="workout_countdown_message">Тренировка начнётся через %1$d...</string>
+    <string name="workout_success_label">УСПЕХ</string>
 </resources>

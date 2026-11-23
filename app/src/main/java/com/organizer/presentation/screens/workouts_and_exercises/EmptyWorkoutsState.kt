@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun EmptyWorkoutsState(
@@ -89,7 +91,7 @@ fun EmptyWorkoutsState(
         }
 
         Text(
-            text = "No Workout Routines Yet",
+            text = stringResource(R.string.empty_workouts_title),
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = AppTheme.colors.textPrimary,
@@ -99,7 +101,7 @@ fun EmptyWorkoutsState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Create structured workout routines to organize exercises, track sets, reps, and weights during your sessions.",
+            text = stringResource(R.string.empty_workouts_desc),
             fontSize = 14.sp,
             color = AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
@@ -123,7 +125,7 @@ fun EmptyWorkoutsState(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Create New Workout",
+                text = stringResource(R.string.workout_create_new),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -135,7 +137,7 @@ fun EmptyWorkoutsState(
                 templates = templates,
                 onTemplateClick = onTemplateClick,
                 onViewAllClick = onViewAllTemplatesClick,
-                title = "Or explore starter templates",
+                titleRes = R.string.empty_workouts_explore_templates,
                 viewModel = viewModel,
             )
         }

@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SearchBar(
@@ -41,7 +43,7 @@ fun SearchBar(
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth(),
         placeholder = {
-            Text("Search exercises...")
+            Text(stringResource(R.string.search_exercises_placeholder))
         },
         shape = RoundedCornerShape(18.dp),
         colors = OutlinedTextFieldDefaults.colors(
@@ -77,7 +79,7 @@ fun SearchBar(
                             .padding(horizontal = 9.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = "in: $scopeLabel",
+                            text = stringResource(R.string.search_in_scope, scopeLabel),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = scopeColor,
@@ -93,7 +95,7 @@ fun SearchBar(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "Clear search"
+                        contentDescription = stringResource(R.string.search_clear)
                     )
                 }
             }

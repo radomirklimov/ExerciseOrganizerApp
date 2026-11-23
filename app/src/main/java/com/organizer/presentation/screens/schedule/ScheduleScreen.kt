@@ -60,6 +60,8 @@ import com.organizer.presentation.model.ScheduledWorkoutItem
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.ui.theme.darkerShade
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun ScheduleScreen(
@@ -171,7 +173,7 @@ fun ScheduleScreen(
     val entries = entriesState.orEmpty()
     val workouts = workoutsState.orEmpty()
     val week = remember(weekOffset, selectedDay) {
-        buildWeek(weekOffset, selectedDay)
+        buildWeek(weekOffset, selectedDay, locale = appLocale(context))
     }
     val selectedDateKey = week.days.first { it.isoDay == selectedDay }.dateKey
     // Recurring entries mark their weekday in every week; one-time entries
@@ -372,9 +374,9 @@ fun ScheduleScreen(
 
     pendingRemoval?.let { item ->
         DeleteConfirmationDialog(
-            title = "Remove from Schedule?",
+            title = stringResource(R.string.schedule_remove_title),
             itemName = item.workoutName,
-            location = "your weekly schedule",
+            location = stringResource(R.string.schedule_weekly_location),
             isPermanent = false,
             onConfirm = {
                 viewModel.removeEntry(item)
@@ -402,7 +404,7 @@ private fun SelectedDayHeader(
             )
             if (isToday) {
                 Text(
-                    text = "Today",
+                    text = stringResource(R.string.schedule_today),
                     modifier = Modifier
                         .padding(start = 10.dp)
                         .clip(RoundedCornerShape(50))
@@ -417,9 +419,9 @@ private fun SelectedDayHeader(
 
         Text(
             text = when (workoutCount) {
-                0 -> "Rest day — no workouts scheduled"
-                1 -> "1 workout scheduled for this day"
-                else -> "$workoutCount workouts scheduled for this day"
+                0 -> stringResource(R.string.schedule_rest_day_none)
+                1 -> stringResource(R.string.schedule_one_workout)
+                else -> stringResource(R.string.schedule_n_workouts, workoutCount)
             },
             modifier = Modifier.padding(top = 2.dp),
             fontSize = 14.sp,
@@ -439,13 +441,13 @@ private fun EmptyDayCard() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Rest day",
+            text = stringResource(R.string.schedule_rest_day),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = ScheduleInk,
         )
         Text(
-            text = "No workouts scheduled for this day. Add one to build your weekly routine.",
+            text = stringResource(R.string.schedule_no_workouts_day),
             modifier = Modifier.padding(top = 6.dp),
             fontSize = 14.sp,
             lineHeight = 20.sp,
@@ -475,7 +477,7 @@ private fun AddToScheduleButton(
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "Add Workout to Schedule",
+            text = stringResource(R.string.schedule_add_workout),
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
         )

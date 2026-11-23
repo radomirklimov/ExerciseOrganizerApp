@@ -66,8 +66,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.R
 import com.organizer.presentation.screens.general.CreateWorkoutFirstHint
 import com.organizer.presentation.screens.general.LoadingState
 import com.organizer.ui.theme.themedColor
@@ -187,7 +190,7 @@ fun SaveExercisePopup(
                         modifier = Modifier
                             .padding(horizontal = 24.dp)
                             .padding(top = 22.dp, bottom = 24.dp),
-                        description = "You need at least one workout before you can add this exercise to it.",
+                        description = stringResource(R.string.exercise_create_workout_first_desc),
                     )
                 } else {
                     WorkoutFilterField(
@@ -227,7 +230,7 @@ fun SaveExercisePopup(
 
                         if (visibleWorkouts.isEmpty()) {
                             Text(
-                                text = "No workouts match \"${query.trim()}\"",
+                                text = stringResource(R.string.exercise_no_workouts_match, query.trim()),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 24.dp),
@@ -276,7 +279,7 @@ private fun SheetHeader(onClose: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Add to Workout",
+                    text = stringResource(R.string.exercise_add_to_workout),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -284,7 +287,7 @@ private fun SheetHeader(onClose: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = "Select existing routine or create a new one",
+                    text = stringResource(R.string.exercise_select_routine_or_create),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextSecondary,
@@ -305,7 +308,7 @@ private fun SheetHeader(onClose: () -> Unit) {
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.profile_close),
                         tint = AppTheme.colors.textMuted,
                         modifier = Modifier.size(22.dp),
                     )
@@ -361,7 +364,7 @@ private fun WorkoutFilterField(
                 ) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search workouts...",
+                            text = stringResource(R.string.exercise_search_workouts),
                             fontSize = 14.sp,
                             color = AppTheme.colors.textMuted,
                         )
@@ -379,7 +382,7 @@ private fun WorkoutFilterField(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
-                            contentDescription = "Clear filter",
+                            contentDescription = stringResource(R.string.exercise_clear_filter),
                             tint = AppTheme.colors.textMuted,
                             modifier = Modifier.size(18.dp),
                         )
@@ -444,14 +447,14 @@ private fun CreateWorkoutCard(onClick: () -> Unit) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Create New Workout",
+                text = stringResource(R.string.workout_create_new),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = BrandDark,
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Build routine and include this exercise",
+                text = stringResource(R.string.exercise_build_routine_include),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = Brand.copy(alpha = 0.65f),
@@ -598,8 +601,10 @@ private fun SaveFooter(
     }
 }
 
+@Composable
 private fun saveLabel(selectedCount: Int): String =
-    if (selectedCount == 0) "Select a Workout" else "Add Exercise"
+    if (selectedCount == 0) stringResource(R.string.exercise_select_a_workout) else stringResource(R.string.exercise_add_exercise)
 
+@Composable
 private fun exerciseCountLabel(count: Int): String =
-    "$count ${if (count == 1) "exercise" else "exercises"}"
+    pluralStringResource(R.plurals.exercise_count, count, count)

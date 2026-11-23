@@ -31,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.organizer.R
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.organizer.data.preferences.LanguageOption
 import com.organizer.presentation.account.AccountViewModel
@@ -78,7 +80,7 @@ fun OnboardingProfileScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Welcome",
+            text = stringResource(R.string.onboarding_welcome),
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = colors.textPrimary,
@@ -88,7 +90,7 @@ fun OnboardingProfileScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Set up your app. You can change these later in Settings.",
+            text = stringResource(R.string.onboarding_setup_subtitle),
             fontSize = 14.sp,
             color = colors.textSecondary,
             textAlign = TextAlign.Center,
@@ -98,7 +100,7 @@ fun OnboardingProfileScreen(
 
         if (askLanguage) {
             Text(
-                text = "Which language would you like to use?",
+                text = stringResource(R.string.onboarding_language_question),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.textPrimary,
@@ -160,7 +162,7 @@ fun OnboardingProfileScreen(
                 shape = RoundedCornerShape(26.dp),
             ) {
                 Text(
-                    text = "Continue with Google",
+                    text = stringResource(R.string.profile_continue_google),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -170,7 +172,7 @@ fun OnboardingProfileScreen(
         if (attemptedSignIn && userState == UserState.Guest) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Sign-in failed. You can try again or continue as a guest.",
+                text = stringResource(R.string.onboarding_signin_failed),
                 fontSize = 12.sp,
                 color = colors.danger,
                 textAlign = TextAlign.Center,
@@ -187,7 +189,7 @@ fun OnboardingProfileScreen(
             shape = RoundedCornerShape(26.dp),
         ) {
             Text(
-                text = "Continue without an account",
+                text = stringResource(R.string.onboarding_continue_without_account),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -201,15 +203,15 @@ fun OnboardingProfileScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "If you continue without an account:",
+                text = stringResource(R.string.onboarding_guest_note_lead),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.textSecondary,
             )
-            Text("• App data will be stored locally on this device.", fontSize = 12.sp, color = colors.textSecondary)
-            Text("• Data will not be synchronized with the server.", fontSize = 12.sp, color = colors.textSecondary)
-            Text("• Uninstalling the app may permanently delete locally stored data.", fontSize = 12.sp, color = colors.textSecondary)
-            Text("• Local data cannot automatically be transferred to another device.", fontSize = 12.sp, color = colors.textSecondary)
+            Text("• " + stringResource(R.string.onboarding_guest_note_storage), fontSize = 12.sp, color = colors.textSecondary)
+            Text("• " + stringResource(R.string.onboarding_guest_note_sync), fontSize = 12.sp, color = colors.textSecondary)
+            Text("• " + stringResource(R.string.onboarding_guest_note_uninstall), fontSize = 12.sp, color = colors.textSecondary)
+            Text("• " + stringResource(R.string.onboarding_guest_note_transfer), fontSize = 12.sp, color = colors.textSecondary)
         }
     }
 }

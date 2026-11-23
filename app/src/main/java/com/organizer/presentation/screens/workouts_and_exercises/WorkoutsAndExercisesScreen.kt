@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +37,7 @@ import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
 
 @Composable
 fun CustomWorkoutsAndExercisesScreen(
@@ -127,7 +129,7 @@ fun ExercisesScreen(
                 .background(AppTheme.colors.surfaceMuted)
                 .padding(4.dp),
         ) {
-            listOf(ExercisesTab.FAVORITES to "Favorites", ExercisesTab.CUSTOM to "Custom").forEach { (tab, label) ->
+            listOf(ExercisesTab.FAVORITES to stringResource(R.string.exercises_tab_favorites), ExercisesTab.CUSTOM to stringResource(R.string.exercises_tab_custom)).forEach { (tab, label) ->
                 val selected = selectedTab == tab
                 Box(
                     modifier = Modifier

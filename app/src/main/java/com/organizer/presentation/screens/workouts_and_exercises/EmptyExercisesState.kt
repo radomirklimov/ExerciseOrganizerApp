@@ -41,17 +41,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
 
 @Composable
 fun EmptyExercisesState(
     onCreateExerciseClick: () -> Unit = {},
     onBrowseStandardExercisesClick: () -> Unit = {},
-    title: String = "No Custom Exercises Created",
-    description: String = "Build your personal library of custom movements with specialized metrics:",
+    title: String = "",
+    description: String = "",
     showCreateButton: Boolean = true,
     icon: ImageVector = Icons.Outlined.List,
-    capabilityPills: List<String> = listOf("Reps", "Weight", "Duration", "Instructions", "Photo"),
+    capabilityPills: List<String> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -100,7 +102,7 @@ fun EmptyExercisesState(
         }
 
         Text(
-            text = title,
+            text = title.ifEmpty { stringResource(R.string.empty_exercises_title) },
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.colors.textPrimary,
@@ -110,7 +112,7 @@ fun EmptyExercisesState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = description,
+            text = description.ifEmpty { stringResource(R.string.empty_exercises_desc) },
             fontSize = 14.sp,
             color = AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
@@ -183,7 +185,7 @@ fun EmptyExercisesState(
                             modifier = Modifier.size(20.dp),
                         )
                         Text(
-                            text = "Create Custom Exercise",
+                            text = stringResource(R.string.empty_exercises_create_custom),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -233,13 +235,13 @@ fun EmptyExercisesState(
                         }
                         Column(horizontalAlignment = Alignment.Start) {
                             Text(
-                                text = "Browse Standard Exercises",
+                                text = stringResource(R.string.empty_exercises_browse_standard),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = AppTheme.colors.textPrimary,
                             )
                             Text(
-                                text = "Explore 400+ built-in gym movements",
+                                text = stringResource(R.string.empty_exercises_browse_hint),
                                 fontSize = 12.sp,
                                 color = AppTheme.colors.textMuted,
                             )

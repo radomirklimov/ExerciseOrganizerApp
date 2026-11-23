@@ -55,9 +55,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.R
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
 import com.organizer.presentation.screens.general.DeletionInfo
 import kotlinx.coroutines.delay
@@ -197,7 +199,7 @@ fun ExerciseListItem(
                     )
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowRight,
-                        contentDescription = if (expanded) "Collapse exercise" else "Expand exercise",
+                        contentDescription = if (expanded) stringResource(R.string.exercise_collapse) else stringResource(R.string.exercise_expand),
                         modifier = Modifier
                             .size(20.dp)
                             .graphicsLayer { rotationZ = arrowRotation },
@@ -243,7 +245,7 @@ fun ExerciseListItem(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Open", maxLines = 1, softWrap = false)
+                    Text(stringResource(R.string.exercise_open), maxLines = 1, softWrap = false)
                 }
 
                 if (onTrackClick != null) {
@@ -266,7 +268,7 @@ fun ExerciseListItem(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Track", maxLines = 1, softWrap = false)
+                        Text(stringResource(R.string.exercise_track), maxLines = 1, softWrap = false)
                     }
                 }
 
@@ -294,7 +296,7 @@ fun ExerciseListItem(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isPermanent) "Delete" else "Remove",
+                            text = if (isPermanent) stringResource(R.string.common_delete) else stringResource(R.string.common_remove),
                             maxLines = 1,
                             softWrap = false,
                         )
@@ -340,9 +342,9 @@ private fun FavoriteHeart(
                 Icons.Outlined.FavoriteBorder
             },
             contentDescription = if (isFavorite) {
-                "Remove from favorite exercises"
+                stringResource(R.string.exercise_remove_from_favorites)
             } else {
-                "Add to favorite exercises"
+                stringResource(R.string.exercise_add_to_favorites)
             },
             tint = if (isFavorite) {
                 Color(0xFFFFB1C8)
@@ -357,9 +359,9 @@ private fun FavoriteHeart(
 @Composable
 private fun ExerciseTypePill(exerciseType: String) {
     val label = when (exerciseType) {
-        "DURATION" -> "Duration"
-        "REPS" -> "Reps"
-        else -> "Reps + Weight"
+        "DURATION" -> stringResource(R.string.exercise_type_duration)
+        "REPS" -> stringResource(R.string.exercise_type_reps)
+        else -> stringResource(R.string.exercise_type_reps_weight)
     }
     Box(
         modifier = Modifier

@@ -13,7 +13,7 @@
     <string name="home_subtitle">Was möchtest du heute machen?</string>
 
     <!-- Profile -->
-    <string name="profile_title">Profil</string>
+    <string name="profile_title">Einstellungen</string>
     <string name="profile_back">Zurück</string>
     <string name="profile_change_photo">Foto ändern</string>
     <string name="profile_edit">Profil bearbeiten</string>
@@ -30,7 +30,7 @@
     <string name="profile_app_language">App-Sprache</string>
     <string name="profile_change">Ändern</string>
     <string name="profile_unit_system">Einheitensystem</string>
-    <string name="profile_weight">Gewicht</string>
+    <string name="profile_unit_system_hint">Für Übungsgewichte</string>
     <string name="profile_preferences">Einstellungen</string>
     <string name="profile_workout_reminder">Trainingserinnerung</string>
     <string name="profile_daily_at">Täglich um %1$s</string>

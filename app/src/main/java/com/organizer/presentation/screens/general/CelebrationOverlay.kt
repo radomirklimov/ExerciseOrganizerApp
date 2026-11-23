@@ -34,9 +34,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -63,8 +65,15 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-/** Text shown by [CelebrationOverlay]. */
-data class CelebrationMessage(
+/**
+ * Text shown by [CelebrationOverlay].
+ *
+ * Deliberately not a data class: every instance is a separate celebration
+ * event. With value equality Compose would drop a second trigger whose title
+ * and subtitle match the previous one (adding the same exercise to the same
+ * workout twice), so the effect would only play once.
+ */
+class CelebrationMessage(
     val title: String,
     val subtitle: String? = null,
 )
@@ -102,8 +111,11 @@ fun CelebrationOverlay(
     // Kept while the card slides out, when `message` is already null.
     var visibleMessage by remember { mutableStateOf<CelebrationMessage?>(null) }
     // Compared by identity, not by value: adding the same exercise to the same
-    // workout twice produces an equal message but is still a new event.
-    var lastTrigger by remember { mutableStateOf<CelebrationMessage?>(null) }
+    // workout twice is still a new event. The referential policy is what makes
+    // the new instance stick even if its text is unchanged.
+    var lastTrigger by remember {
+        mutableStateOf<CelebrationMessage?>(null, referentialEqualityPolicy())
+    }
 
     SideEffect {
         val incoming = message
@@ -271,38 +283,76 @@ private data class ConfettiParticle(
     val shape: ConfettiShape,
 )
 
+/** One shower of confetti, started by one celebration trigger. */
+private class ConfettiBurst(
+    val particles: List<ConfettiParticle>,
+) {
+    /** Frame time of the first frame this shower was drawn on; 0 until then. */
+    var startNanos: Long = 0L
+
+    fun ageSeconds(nowNanos: Long): Float =
+        if (startNanos == 0L) -1f
+        else (nowNanos - startNanos) / 1_000_000_000f
+
+    fun isRunning(nowNanos: Long): Boolean =
+        startNanos != 0L && ageSeconds(nowNanos) < ConfettiDurationSeconds
+}
+
+/** Upper bound for showers falling at the same time. */
+private const val MaxConcurrentBursts = 3
+
 @Composable
 private fun ConfettiLayer(token: Int, modifier: Modifier = Modifier) {
-    val particles = remember(token) {
-        if (token == 0) emptyList() else createConfetti(Random(token * 7919 + 17))
+    // Every trigger adds a shower instead of replacing the one that is still in
+    // the air. A repeated celebration therefore starts over smoothly: the old
+    // pieces keep drifting down while the new ones enter from the top.
+    val bursts = remember { mutableStateListOf<ConfettiBurst>() }
+
+    // Absolute frame time. Restarting the frame loop for a new trigger must not
+    // reset the age of showers that are already falling.
+    var clockNanos by remember { mutableLongStateOf(0L) }
+
+    val burst = remember(token) {
+        if (token == 0) null
+        else ConfettiBurst(createConfetti(Random(token * 7919 + 17)))
     }
 
-    // Negative means "not running". Set in the effect below; reading it in the
-    // draw lambda only invalidates the draw phase, not the composition.
-    var elapsed by remember(token) { mutableFloatStateOf(-1f) }
-
     LaunchedEffect(token) {
-        if (token == 0) return@LaunchedEffect
-        elapsed = 0f
-        var startNanos = 0L
+        val newBurst = burst ?: return@LaunchedEffect
+        bursts += newBurst
+        while (bursts.size > MaxConcurrentBursts) {
+            bursts.removeAt(0)
+        }
+
         while (true) {
             val frameNanos = withFrameNanos { it }
-            if (startNanos == 0L) startNanos = frameNanos
-            elapsed = (frameNanos - startNanos) / 1_000_000_000f
-            if (elapsed >= ConfettiDurationSeconds) break
+            clockNanos = frameNanos
+            if (newBurst.startNanos == 0L) {
+                newBurst.startNanos = frameNanos
+            }
+            if (bursts.none { it.isRunning(frameNanos) }) break
         }
+
+        // All showers have finished. A new trigger restarts this effect before
+        // it gets here, in which case the older bursts are kept.
+        bursts.clear()
     }
 
     Canvas(modifier = modifier.fillMaxSize()) {
-        val time = elapsed
-        if (time < 0f || time >= ConfettiDurationSeconds) return@Canvas
+        val now = clockNanos
+        if (now == 0L) return@Canvas
 
-        val globalAlpha = (
-            (ConfettiDurationSeconds - time) /
-                (ConfettiDurationSeconds - ConfettiGlobalFadeStartSeconds)
-            ).coerceIn(0f, 1f)
+        bursts.forEach { burst ->
+            val time = burst.ageSeconds(now)
+            if (time < 0f || time >= ConfettiDurationSeconds) return@forEach
 
-        drawConfetti(particles = particles, elapsed = time, globalAlpha = globalAlpha)
+            val globalAlpha = (
+                (ConfettiDurationSeconds - time) /
+                    (ConfettiDurationSeconds - ConfettiGlobalFadeStartSeconds)
+                ).coerceIn(0f, 1f)
+
+            drawConfetti(particles = burst.particles, elapsed = time, globalAlpha = globalAlpha)
+        }
     }
 }
 

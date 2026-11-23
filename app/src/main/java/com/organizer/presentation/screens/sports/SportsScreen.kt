@@ -12,7 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -34,7 +40,6 @@ import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.categories.CategoryListItem
-import com.organizer.presentation.screens.general.ProfileAvatar
 import com.organizer.presentation.screens.general.SearchBar
 import com.organizer.presentation.screens.workout.ExerciseFilter
 import com.organizer.presentation.screens.workout.ExerciseOptionRow
@@ -109,15 +114,22 @@ fun SportsScreen(
                 HeaderText()
             }
             Spacer(modifier = Modifier.width(12.dp))
-            ProfileAvatar(
-                avatarPath = avatarPath,
-                initials = initials,
-                size = 48.dp,
+            Box(
                 modifier = Modifier
-                    .padding(top = 4.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(AppTheme.colors.surfaceMuted)
                     .clickable(onClick = onProfileClick)
                     .semantics { contentDescription = profileLabel },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = profileLabel,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
 
         SearchBar(

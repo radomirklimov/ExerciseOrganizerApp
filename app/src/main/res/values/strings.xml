@@ -13,7 +13,7 @@
     <string name="home_subtitle">What Would You Like To Do Today?</string>
 
     <!-- Profile -->
-    <string name="profile_title">Profile</string>
+    <string name="profile_title">Settings</string>
     <string name="profile_back">Back</string>
     <string name="profile_change_photo">Change photo</string>
     <string name="profile_edit">Edit Profile</string>
@@ -30,7 +30,7 @@
     <string name="profile_app_language">App Language</string>
     <string name="profile_change">Change</string>
     <string name="profile_unit_system">Unit System</string>
-    <string name="profile_weight">Weight</string>
+    <string name="profile_unit_system_hint">Used for exercise weights</string>
     <string name="profile_preferences">Preferences</string>
     <string name="profile_workout_reminder">Workout Reminder</string>
     <string name="profile_daily_at">Daily at %1$s</string>

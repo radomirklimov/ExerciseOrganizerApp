@@ -62,6 +62,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -156,7 +157,9 @@ fun WorkoutExecutionScreen(
 
     // One-shot finish celebration. The flag survives process death, so
     // restoring a finished session does not replay the toast.
-    var celebration by remember { mutableStateOf<CelebrationMessage?>(null) }
+    var celebration by remember {
+        mutableStateOf<CelebrationMessage?>(null, referentialEqualityPolicy())
+    }
     var completionCelebrated by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(finished) {
         if (finished && !completionCelebrated) {

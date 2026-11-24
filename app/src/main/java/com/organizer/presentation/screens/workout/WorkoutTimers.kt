@@ -10,6 +10,26 @@ import androidx.compose.runtime.saveable.listSaver
  */
 internal const val NO_TIMER_ANCHOR: Long = Long.MIN_VALUE
 
+/** Length of the pause before a freshly opened workout starts. */
+internal const val START_COUNTDOWN_SECONDS: Int = 3
+
+/**
+ * Whole seconds left in the start countdown.
+ *
+ * Like the workout timer this is derived from a monotonic clock anchor rather
+ * than a tick count, so a stalled ticker (background app, doze) cannot stretch
+ * the countdown. Returns 0 once it has elapsed.
+ */
+internal fun countdownRemaining(
+    startRealtime: Long,
+    nowRealtime: Long,
+    durationSeconds: Int = START_COUNTDOWN_SECONDS,
+): Int {
+    if (startRealtime == NO_TIMER_ANCHOR) return 0
+    val elapsedSeconds = (nowRealtime - startRealtime).coerceAtLeast(0L) / 1000L
+    return (durationSeconds - elapsedSeconds).coerceAtLeast(0L).toInt()
+}
+
 /**
  * Seconds elapsed between [startRealtime] and [endRealtime].
  *
@@ -25,6 +45,9 @@ internal fun elapsedSecondsSince(
     endRealtime: Long,
     nowRealtime: Long,
 ): Int {
+    // A timer that has not been started yet (e.g. while the start countdown is
+    // still running) reports zero instead of overflowing from the sentinel.
+    if (startRealtime == NO_TIMER_ANCHOR) return 0
     val until = if (endRealtime == NO_TIMER_ANCHOR) nowRealtime else endRealtime
     return ((until - startRealtime).coerceAtLeast(0L) / 1000L).toInt()
 }

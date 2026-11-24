@@ -4,17 +4,22 @@ import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.SyncCursorDao
 import com.organizer.data.local.dao.SyncOutboxDao
+import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
+import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.data.local.storage.FileStore
 import com.organizer.data.remote.ApiService
+import com.organizer.sync.SyncOutboxStatus
 import com.organizer.sync.SyncOutboxWriter
 import com.organizer.sync.SyncPayloadFactory
 import com.organizer.sync.SyncTransactionRunner
@@ -205,6 +210,42 @@ class FakeExerciseDao : ExerciseDao {
     override suspend fun getByIdOnce(owner: String, id: Long): ExerciseEntity? =
         data.value.find { it.exerciseId == id }
 
+    override suspend fun findCustomBySyncId(owner: String, syncId: String): ExerciseEntity? =
+        data.value.firstOrNull { it.syncId == syncId && it.ownerFirebaseUid == owner && it.isCustom }
+
+    override suspend fun applyRemoteUpsert(
+        owner: String,
+        syncId: String,
+        name: String,
+        instructions: List<String>,
+        imageUrls: List<String>,
+        exerciseType: String,
+        serverVersion: Long,
+        updatedAt: Long,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.syncId == syncId && it.ownerFirebaseUid == owner && it.isCustom) {
+                    it.copy(
+                        name = name, instructions = instructions, imageUrls = imageUrls,
+                        exerciseType = exerciseType, serverVersion = serverVersion,
+                        updatedAt = updatedAt, deletedAt = null, syncStatus = "SYNCED",
+                    )
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyRemoteDelete(owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long) {
+        data.update { current ->
+            current.map {
+                if (it.syncId == syncId && it.ownerFirebaseUid == owner && it.isCustom) {
+                    it.copy(deletedAt = deletedAt, serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = "SYNCED")
+                } else it
+            }
+        }
+    }
+
     override suspend fun softDeleteCustom(owner: String, id: Long, deletedAt: Long, updatedAt: Long): Int {
         var changed = 0
         data.update { current ->
@@ -360,6 +401,16 @@ class FakeSyncOutboxDao : SyncOutboxDao {
             current.filterNot { it.ownerFirebaseUid == owner && it.mutationId == mutationId }
         }
     }
+
+    override suspend fun hasBlockingMutationForRecord(
+        owner: String,
+        entityType: String,
+        syncId: String,
+        blockingStatuses: Set<String>,
+    ): Boolean = entries.value.any {
+        it.ownerFirebaseUid == owner && it.entityType == entityType &&
+            it.recordSyncId == syncId && it.syncStatus in blockingStatuses
+    }
 }
 
 class ImmediateSyncTransactionRunner : SyncTransactionRunner {
@@ -407,6 +458,44 @@ class FakeWorkoutDao : WorkoutDao {
     override suspend fun getByIdOnce(owner: String, id: Long): WorkoutEntity? =
         data.value.firstOrNull { it.workoutId == id && it.ownerFirebaseUid == owner && it.deletedAt == null }
 
+    override suspend fun findBySyncId(owner: String, syncId: String): WorkoutEntity? =
+        data.value.firstOrNull { it.syncId == syncId && it.ownerFirebaseUid == owner }
+
+    override suspend fun applyRemoteUpsert(
+        owner: String,
+        syncId: String,
+        name: String,
+        notes: String,
+        normalizedName: String,
+        serverVersion: Long,
+        updatedAt: Long,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.syncId == syncId && it.ownerFirebaseUid == owner) {
+                    it.copy(
+                        name = name, notes = notes, normalizedName = normalizedName,
+                        serverVersion = serverVersion, updatedAt = updatedAt,
+                        deletedAt = null, syncStatus = "SYNCED",
+                    )
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyRemoteDelete(owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long) {
+        data.update { current ->
+            current.map {
+                if (it.syncId == syncId && it.ownerFirebaseUid == owner) {
+                    it.copy(
+                        deletedAt = deletedAt, normalizedName = null, serverVersion = serverVersion,
+                        updatedAt = updatedAt, syncStatus = "SYNCED",
+                    )
+                } else it
+            }
+        }
+    }
+
     override suspend fun softDelete(owner: String, id: Long, deletedAt: Long) {
         data.update { current ->
             current.map {
@@ -426,4 +515,81 @@ class FakeWorkoutDao : WorkoutDao {
             }
         }
     }
+}
+
+class FakeSyncStagedDao : SyncStagedDao {
+    val records = MutableStateFlow<List<SyncStagedRecordEntity>>(emptyList())
+
+    override suspend fun upsertIfNewer(
+        owner: String,
+        entityType: String,
+        syncId: String,
+        serverVersion: Long,
+        serverUpdatedAt: Long,
+        deleted: Boolean,
+        payload: String?,
+        processingStatus: String,
+        createdAt: Long,
+    ) {
+        records.update { current ->
+            val index = current.indexOfFirst {
+                it.ownerFirebaseUid == owner && it.entityType == entityType && it.syncId == syncId
+            }
+            if (index >= 0 && current[index].serverVersion >= serverVersion) {
+                current
+            } else {
+                val newRecord = SyncStagedRecordEntity(
+                    stagedId = if (index >= 0) current[index].stagedId else (current.maxOfOrNull { it.stagedId } ?: 0L) + 1L,
+                    ownerFirebaseUid = owner,
+                    entityType = entityType,
+                    syncId = syncId,
+                    serverVersion = serverVersion,
+                    serverUpdatedAt = serverUpdatedAt,
+                    deleted = deleted,
+                    payload = payload,
+                    processingStatus = processingStatus,
+                    createdAt = createdAt,
+                )
+                if (index >= 0) current.toMutableList().also { it[index] = newRecord }
+                else current + newRecord
+            }
+        }
+    }
+
+    override suspend fun getAll(owner: String): List<SyncStagedRecordEntity> =
+        records.value.filter { it.ownerFirebaseUid == owner }
+
+    override suspend fun getByStatus(owner: String, status: String): List<SyncStagedRecordEntity> =
+        getAll(owner).filter { it.processingStatus == status }
+
+    override suspend fun find(owner: String, entityType: String, syncId: String): SyncStagedRecordEntity? =
+        records.value.firstOrNull {
+            it.ownerFirebaseUid == owner && it.entityType == entityType && it.syncId == syncId
+        }
+
+    override suspend fun updateStatus(owner: String, stagedId: Long, status: String, retryCount: Int, error: String?, attemptAt: Long) {
+        records.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.stagedId == stagedId) {
+                    it.copy(processingStatus = status, retryCount = retryCount, lastError = error, lastAttemptAt = attemptAt)
+                } else it
+            }
+        }
+    }
+}
+
+class FakeSyncCursorDao : SyncCursorDao {
+    val cursors = MutableStateFlow<List<SyncCursorEntity>>(emptyList())
+
+    override suspend fun upsert(cursor: SyncCursorEntity) {
+        cursors.update { current ->
+            current.filterNot { it.ownerFirebaseUid == cursor.ownerFirebaseUid } + cursor
+        }
+    }
+
+    override suspend fun get(owner: String): SyncCursorEntity? =
+        cursors.value.firstOrNull { it.ownerFirebaseUid == owner }
+
+    override fun observe(owner: String): Flow<SyncCursorEntity?> =
+        cursors.map { list -> list.firstOrNull { it.ownerFirebaseUid == owner } }
 }

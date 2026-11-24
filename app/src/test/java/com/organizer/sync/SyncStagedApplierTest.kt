@@ -1,0 +1,256 @@
+package com.organizer.sync
+
+import com.organizer.data.local.db.entities.SyncOutboxEntity
+import com.organizer.data.local.db.entities.SyncStagedRecordEntity
+import com.organizer.data.local.db.entities.SyncStagedStatus
+import com.organizer.fakes.FakeExerciseDao
+import com.organizer.fakes.FakeSyncOutboxDao
+import com.organizer.fakes.FakeSyncStagedDao
+import com.organizer.fakes.FakeWorkoutDao
+import com.organizer.fakes.ImmediateSyncTransactionRunner
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.util.UUID
+
+class SyncStagedApplierTest {
+
+    private val owner = "user-a"
+
+    private class Fixture {
+        val workouts = FakeWorkoutDao()
+        val exercises = FakeExerciseDao()
+        val outbox = FakeSyncOutboxDao()
+        val staged = FakeSyncStagedDao()
+        val applier = SyncStagedApplier(
+            workouts, exercises, outbox, staged,
+            ImmediateSyncTransactionRunner(), Json { ignoreUnknownKeys = true },
+        )
+
+        suspend fun stage(record: SyncStagedRecordEntity) {
+            staged.upsertIfNewer(
+                owner = record.ownerFirebaseUid,
+                entityType = record.entityType,
+                syncId = record.syncId,
+                serverVersion = record.serverVersion,
+                serverUpdatedAt = record.serverUpdatedAt,
+                deleted = record.deleted,
+                payload = record.payload,
+                processingStatus = record.processingStatus,
+                createdAt = record.createdAt,
+            )
+        }
+
+        suspend fun process(record: SyncStagedRecordEntity): StagedApplyResult {
+            stage(record)
+            val stored = staged.find(record.ownerFirebaseUid, record.entityType, record.syncId)!!
+            return applier.process(record.ownerFirebaseUid, stored)
+        }
+    }
+
+    private fun staged(
+        entityType: String,
+        syncId: String,
+        version: Long = 1,
+        deleted: Boolean = false,
+        payload: String? = """{"schemaVersion":1,"name":"Push Day","notes":""}""",
+        ownerUid: String = owner,
+    ) = SyncStagedRecordEntity(
+        stagedId = 1L,
+        ownerFirebaseUid = ownerUid,
+        entityType = entityType,
+        syncId = syncId,
+        serverVersion = version,
+        serverUpdatedAt = 1_700_000_000_000L,
+        deleted = deleted,
+        payload = payload,
+        processingStatus = SyncStagedStatus.PENDING,
+    )
+
+    @Test
+    fun `workout upsert is applied without creating outbox mutation`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+
+        val result = f.process(staged(SyncEntityTypes.WORKOUT, syncId))
+
+        assertEquals(StagedApplyResult.APPLIED, result)
+        val workout = f.workouts.findBySyncId(owner, syncId)!!
+        assertEquals("Push Day", workout.name)
+        assertEquals("SYNCED", workout.syncStatus)
+        assertEquals(1L, workout.serverVersion)
+        assertTrue(f.outbox.entries.value.isEmpty())
+        assertEquals(SyncStagedStatus.APPLIED, f.staged.records.value.single().processingStatus)
+    }
+
+    @Test
+    fun `workout delete clears normalized name and preserves row`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+        f.process(staged(SyncEntityTypes.WORKOUT, syncId))
+
+        val result = f.process(staged(SyncEntityTypes.WORKOUT, syncId, version = 2, deleted = true))
+
+        assertEquals(StagedApplyResult.APPLIED, result)
+        val workout = f.workouts.findBySyncId(owner, syncId)!!
+        assertNotNull(workout.deletedAt)
+        assertNull(workout.normalizedName)
+        assertEquals(2L, workout.serverVersion)
+    }
+
+    @Test
+    fun `custom exercise upsert and delete are applied`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+        val payload = """{"schemaVersion":1,"name":"My Lift","instructions":["do it"],"imageUrls":[],"exerciseType":"REPS_WEIGHT","isCustom":true}"""
+
+        assertEquals(StagedApplyResult.APPLIED, f.process(staged(SyncEntityTypes.CUSTOM_EXERCISE, syncId, payload = payload)))
+        val exercise = f.exercises.findCustomBySyncId(owner, syncId)!!
+        assertEquals("My Lift", exercise.name)
+        assertEquals("SYNCED", exercise.syncStatus)
+
+        assertEquals(
+            StagedApplyResult.APPLIED,
+            f.process(staged(SyncEntityTypes.CUSTOM_EXERCISE, syncId, version = 2, deleted = true, payload = payload)),
+        )
+        assertNotNull(f.exercises.findCustomBySyncId(owner, syncId)!!.deletedAt)
+    }
+
+    @Test
+    fun `unsupported schema and invalid payload are retained`() = runTest {
+        val f = Fixture()
+
+        assertEquals(
+            StagedApplyResult.UNSUPPORTED_SCHEMA,
+            f.process(staged(SyncEntityTypes.WORKOUT, UUID.randomUUID().toString(), payload = """{"schemaVersion":2,"name":"X"}""")),
+        )
+        assertEquals(
+            StagedApplyResult.FAILED,
+            f.process(staged(SyncEntityTypes.WORKOUT, UUID.randomUUID().toString(), payload = "not json")),
+        )
+        assertEquals(2, f.staged.records.value.size)
+    }
+
+    @Test
+    fun `local pending mutation blocks application`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+        f.outbox.insert(
+            SyncOutboxEntity(
+                mutationId = UUID.randomUUID().toString(),
+                ownerFirebaseUid = owner,
+                entityType = SyncEntityTypes.WORKOUT,
+                recordSyncId = syncId,
+                operation = "UPSERT",
+            )
+        )
+
+        val result = f.process(staged(SyncEntityTypes.WORKOUT, syncId))
+
+        assertEquals(StagedApplyResult.LOCAL_PENDING, result)
+        assertNull(f.workouts.findBySyncId(owner, syncId))
+        assertEquals(SyncStagedStatus.LOCAL_PENDING, f.staged.records.value.single().processingStatus)
+    }
+
+    @Test
+    fun `only active outbox statuses block remote application`() = runTest {
+        val syncId = UUID.randomUUID().toString()
+        listOf(SyncOutboxStatus.PENDING_UPLOAD, SyncOutboxStatus.IN_FLIGHT, SyncOutboxStatus.FAILED).forEach { status ->
+            val f = Fixture()
+            f.outbox.insert(
+                SyncOutboxEntity(
+                    mutationId = UUID.randomUUID().toString(),
+                    ownerFirebaseUid = owner,
+                    entityType = SyncEntityTypes.WORKOUT,
+                    recordSyncId = syncId,
+                    operation = "UPSERT",
+                    syncStatus = status,
+                )
+            )
+            assertEquals(StagedApplyResult.LOCAL_PENDING, f.process(staged(SyncEntityTypes.WORKOUT, syncId)))
+        }
+
+        val terminal = Fixture()
+        terminal.outbox.insert(
+            SyncOutboxEntity(
+                mutationId = UUID.randomUUID().toString(),
+                ownerFirebaseUid = owner,
+                entityType = SyncEntityTypes.WORKOUT,
+                recordSyncId = syncId,
+                operation = "UPSERT",
+                syncStatus = SyncOutboxStatus.ACKNOWLEDGED,
+            )
+        )
+        assertEquals(StagedApplyResult.APPLIED, terminal.process(staged(SyncEntityTypes.WORKOUT, syncId)))
+    }
+
+    @Test
+    fun `outbox entries for other owner entity or record do not block`() = runTest {
+        val syncId = UUID.randomUUID().toString()
+        val cases = listOf(
+            Triple("user-b", SyncEntityTypes.WORKOUT, syncId),
+            Triple(owner, SyncEntityTypes.CUSTOM_EXERCISE, syncId),
+            Triple(owner, SyncEntityTypes.WORKOUT, UUID.randomUUID().toString()),
+        )
+        cases.forEach { (outboxOwner, entityType, recordId) ->
+            val f = Fixture()
+            f.outbox.insert(
+                SyncOutboxEntity(
+                    mutationId = UUID.randomUUID().toString(),
+                    ownerFirebaseUid = outboxOwner,
+                    entityType = entityType,
+                    recordSyncId = recordId,
+                    operation = "UPSERT",
+                )
+            )
+            assertEquals(StagedApplyResult.APPLIED, f.process(staged(SyncEntityTypes.WORKOUT, syncId)))
+        }
+    }
+
+    @Test
+    fun `older server version cannot overwrite newer local state`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+        f.process(staged(SyncEntityTypes.WORKOUT, syncId, version = 5))
+
+        f.process(staged(SyncEntityTypes.WORKOUT, syncId, version = 3, payload = """{"schemaVersion":1,"name":"Old"}"""))
+
+        assertEquals("Push Day", f.workouts.findBySyncId(owner, syncId)!!.name)
+        assertEquals(5L, f.workouts.findBySyncId(owner, syncId)!!.serverVersion)
+    }
+
+    @Test
+    fun `tombstone prevents stale upsert resurrection`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+        val tombstone = staged(SyncEntityTypes.WORKOUT, syncId, version = 4, deleted = true, payload = null)
+        f.stage(tombstone)
+        assertEquals(StagedApplyResult.TOMBSTONE_ONLY, f.applier.process(owner, tombstone))
+
+        // Do not replace the tombstone staging row; process an incoming stale UPSERT directly.
+        val stale = staged(SyncEntityTypes.WORKOUT, syncId, version = 3)
+        val result = f.applier.process(owner, stale)
+
+        assertEquals(StagedApplyResult.APPLIED, result)
+        assertNull(f.workouts.findBySyncId(owner, syncId))
+    }
+
+    @Test
+    fun `cross owner and unsupported entity are rejected`() = runTest {
+        val f = Fixture()
+        val syncId = UUID.randomUUID().toString()
+
+        val foreign = staged(SyncEntityTypes.WORKOUT, syncId, ownerUid = "user-b")
+        f.stage(foreign)
+        assertEquals(StagedApplyResult.FAILED, f.applier.process(owner, foreign))
+        assertEquals(SyncStagedStatus.PENDING, f.staged.records.value.single().processingStatus)
+
+        val unsupported = staged("WORKOUT_EXERCISE", syncId)
+        assertEquals(StagedApplyResult.UNSUPPORTED, f.process(unsupported))
+        assertEquals(SyncStagedStatus.UNSUPPORTED, f.staged.records.value.first { it.entityType == "WORKOUT_EXERCISE" }.processingStatus)
+    }
+}

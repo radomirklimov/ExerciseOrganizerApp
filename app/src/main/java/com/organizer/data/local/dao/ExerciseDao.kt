@@ -55,6 +55,41 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercise WHERE exerciseId = :id AND (ownerFirebaseUid = 'public' OR ownerFirebaseUid = :owner)")
     suspend fun getByIdOnce(owner: String, id: Long): ExerciseEntity?
 
+    @Query("SELECT * FROM exercise WHERE syncId = :syncId AND ownerFirebaseUid = :owner AND isCustom = 1")
+    suspend fun findCustomBySyncId(owner: String, syncId: String): ExerciseEntity?
+
+    @Query(
+        """UPDATE exercise
+           SET name = :name, instructions = :instructions, imageUrls = :imageUrls,
+               exerciseType = :exerciseType, serverVersion = :serverVersion,
+               updatedAt = :updatedAt, deletedAt = NULL, syncStatus = 'SYNCED'
+           WHERE syncId = :syncId AND ownerFirebaseUid = :owner AND isCustom = 1"""
+    )
+    suspend fun applyRemoteUpsert(
+        owner: String,
+        syncId: String,
+        name: String,
+        instructions: List<String>,
+        imageUrls: List<String>,
+        exerciseType: String,
+        serverVersion: Long,
+        updatedAt: Long,
+    )
+
+    @Query(
+        """UPDATE exercise
+           SET deletedAt = :deletedAt, serverVersion = :serverVersion,
+               updatedAt = :updatedAt, syncStatus = 'SYNCED'
+           WHERE syncId = :syncId AND ownerFirebaseUid = :owner AND isCustom = 1"""
+    )
+    suspend fun applyRemoteDelete(
+        owner: String,
+        syncId: String,
+        deletedAt: Long,
+        serverVersion: Long,
+        updatedAt: Long,
+    )
+
     /** Idempotent soft delete; only owner-scoped custom exercises are affected. */
     @Query(
         """UPDATE exercise

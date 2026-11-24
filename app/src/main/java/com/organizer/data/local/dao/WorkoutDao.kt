@@ -38,6 +38,40 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
     suspend fun getByIdOnce(owner: String, id: Long): WorkoutEntity?
 
+    @Query("SELECT * FROM workout WHERE syncId = :syncId AND ownerFirebaseUid = :owner")
+    suspend fun findBySyncId(owner: String, syncId: String): WorkoutEntity?
+
+    @Query(
+        """UPDATE workout
+           SET name = :name, notes = :notes, normalizedName = :normalizedName,
+               serverVersion = :serverVersion, updatedAt = :updatedAt, deletedAt = NULL,
+               syncStatus = 'SYNCED'
+           WHERE syncId = :syncId AND ownerFirebaseUid = :owner"""
+    )
+    suspend fun applyRemoteUpsert(
+        owner: String,
+        syncId: String,
+        name: String,
+        notes: String,
+        normalizedName: String,
+        serverVersion: Long,
+        updatedAt: Long,
+    )
+
+    @Query(
+        """UPDATE workout
+           SET deletedAt = :deletedAt, normalizedName = NULL, serverVersion = :serverVersion,
+               updatedAt = :updatedAt, syncStatus = 'SYNCED'
+           WHERE syncId = :syncId AND ownerFirebaseUid = :owner"""
+    )
+    suspend fun applyRemoteDelete(
+        owner: String,
+        syncId: String,
+        deletedAt: Long,
+        serverVersion: Long,
+        updatedAt: Long,
+    )
+
     @Query("UPDATE workout SET deletedAt = :deletedAt, normalizedName = NULL, syncStatus = 'PENDING_DELETE' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
     suspend fun softDelete(owner: String, id: Long, deletedAt: Long)
 

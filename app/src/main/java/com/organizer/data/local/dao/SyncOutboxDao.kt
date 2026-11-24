@@ -65,4 +65,18 @@ interface SyncOutboxDao {
 
     @Query("DELETE FROM sync_outbox WHERE mutationId = :mutationId AND ownerFirebaseUid = :owner")
     suspend fun delete(mutationId: String, owner: String)
+
+    @Query(
+        """SELECT EXISTS(SELECT 1 FROM sync_outbox
+           WHERE ownerFirebaseUid = :owner
+           AND entityType = :entityType
+           AND recordSyncId = :syncId
+           AND syncStatus IN (:blockingStatuses))"""
+    )
+    suspend fun hasBlockingMutationForRecord(
+        owner: String,
+        entityType: String,
+        syncId: String,
+        blockingStatuses: Set<String>,
+    ): Boolean
 }

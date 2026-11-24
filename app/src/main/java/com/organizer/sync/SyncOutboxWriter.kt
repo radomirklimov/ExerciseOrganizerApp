@@ -75,7 +75,7 @@ class SyncOutboxWriter @Inject constructor(
                 payload = payload(),
                 baseVersion = baseVersion,
                 createdAt = now,
-                syncStatus = STATUS_PENDING,
+                syncStatus = SyncOutboxStatus.PENDING_UPLOAD,
             )
         )
     }
@@ -83,6 +83,5 @@ class SyncOutboxWriter @Inject constructor(
     companion object {
         const val OPERATION_UPSERT = "UPSERT"
         const val OPERATION_DELETE = "DELETE"
-        const val STATUS_PENDING = "PENDING_UPLOAD"
     }
 }

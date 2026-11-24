@@ -58,6 +58,19 @@ data class SyncChanges(
     val serverTimeMillis: Long,
 )
 
+data class PullResult(
+    val received: Int = 0,
+    val staged: Int = 0,
+    val applied: Int = 0,
+    val waitingForDependency: Int = 0,
+    val unsupported: Int = 0,
+    val unsupportedSchema: Int = 0,
+    val localPending: Int = 0,
+    val failed: Int = 0,
+    val hasMore: Boolean = false,
+    val error: String? = null,
+)
+
 sealed interface OutboxMappingResult {
     data class Success(val request: com.organizer.data.remote.model.SyncMutationRequestDto) : OutboxMappingResult
     data class Failure(val reason: String) : OutboxMappingResult

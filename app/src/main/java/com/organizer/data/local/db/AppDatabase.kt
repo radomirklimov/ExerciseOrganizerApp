@@ -9,6 +9,7 @@ import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.SyncCursorDao
 import com.organizer.data.local.dao.SyncOutboxDao
+import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
@@ -27,6 +28,7 @@ import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
+import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutCompletionEntity
@@ -35,7 +37,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 15,
+    version = 16,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -50,7 +52,8 @@ import com.organizer.data.mapper.ListConverters
         PlannedSetEntity::class,
         WorkoutCompletionEntity::class,
         SyncCursorEntity::class,
-        SyncOutboxEntity::class
+        SyncOutboxEntity::class,
+        SyncStagedRecordEntity::class
     ],
     exportSchema = false
 )
@@ -69,12 +72,45 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val workoutCompletionDao: WorkoutCompletionDao
     abstract val syncCursorDao: SyncCursorDao
     abstract val syncOutboxDao: SyncOutboxDao
+    abstract val syncStagedDao: SyncStagedDao
 }
 
 /**
  * Milestone 1: owner isolation, stable sync IDs and sync metadata.
  * Existing rows are preserved; UUIDs are generated only for rows that lack one.
  */
+/** Adds durable staging for pulled records and pagination metadata for cursors. */
+val PULL_STAGING_MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sync_cursor ADD COLUMN hasMore INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE sync_cursor ADD COLUMN lastServerTimeMillis INTEGER")
+        db.execSQL("ALTER TABLE sync_cursor ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sync_staged_record (
+                stagedId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                entityType TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                serverUpdatedAt INTEGER NOT NULL,
+                deleted INTEGER NOT NULL,
+                payload TEXT,
+                processingStatus TEXT NOT NULL,
+                retryCount INTEGER NOT NULL,
+                lastError TEXT,
+                createdAt INTEGER NOT NULL,
+                lastAttemptAt INTEGER
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_staged_record_ownerFirebaseUid ON sync_staged_record (ownerFirebaseUid)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_staged_record_ownerFirebaseUid_processingStatus ON sync_staged_record (ownerFirebaseUid, processingStatus)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_sync_staged_record_ownerFirebaseUid_entityType_syncId ON sync_staged_record (ownerFirebaseUid, entityType, syncId)")
+    }
+}
+
 /**
  * Active workout names are unique by owner using the app's normalisation rule
  * (trim + lowercase). Tombstones get a NULL normalised name, so they no longer

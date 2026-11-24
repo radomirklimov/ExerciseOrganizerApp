@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.organizer.MainActivity
 import com.organizer.R
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
+import com.organizer.presentation.screens.schedule.MotivationalPhrases
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -55,7 +56,7 @@ class WorkoutReminderNotifier @Inject constructor(
 
         val text = ReminderTextFormatter.format(
             workoutStartMillis = workoutStartMillis,
-            note = entry.reminderNote,
+            note = MotivationalPhrases.resolve(context, entry.reminderNote),
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

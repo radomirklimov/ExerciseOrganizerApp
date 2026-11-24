@@ -47,6 +47,41 @@ class WorkoutTimersTest {
     }
 
     @Test
+    fun `elapsed timer reports zero before its start anchor is set`() {
+        assertEquals(
+            0,
+            elapsedSecondsSince(
+                startRealtime = NO_TIMER_ANCHOR,
+                endRealtime = NO_TIMER_ANCHOR,
+                nowRealtime = 10_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun `start countdown shows three then two then one then zero`() {
+        val start = 5_000L
+        assertEquals(3, countdownRemaining(start, start))
+        assertEquals(3, countdownRemaining(start, start + 999L))
+        assertEquals(2, countdownRemaining(start, start + 1_000L))
+        assertEquals(1, countdownRemaining(start, start + 2_500L))
+        assertEquals(0, countdownRemaining(start, start + 3_000L))
+    }
+
+    @Test
+    fun `start countdown cannot be extended by a frozen ticker`() {
+        // The ticker did not run for a minute; the monotonic anchor still says
+        // the countdown is over, so the workout must start immediately.
+        assertEquals(0, countdownRemaining(1_000L, 61_000L))
+    }
+
+    @Test
+    fun `start countdown survives a clock reset and a missing anchor`() {
+        assertEquals(3, countdownRemaining(500_000L, 1_000L))
+        assertEquals(0, countdownRemaining(NO_TIMER_ANCHOR, 1_000L))
+    }
+
+    @Test
     fun `stopwatch measures only the running segments`() {
         var timer = StopwatchState()
 

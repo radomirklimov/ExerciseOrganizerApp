@@ -35,7 +35,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandMore
@@ -131,11 +130,13 @@ fun WorkoutExecutionScreen(
     // monotonic clock reading of its start instead of counting ticks: while
     // the app is in the background, the screen is off or the process is
     // frozen the ticker does not fire, but the displayed value is always
-    // recomputed from the anchor, so that time is not lost.
-    val elapsedStartRealtime = rememberSaveable { SystemClock.elapsedRealtime() }
+    // recomputed from the anchor, so that time is not lost. The anchor stays
+    // unset until the pre-workout countdown has finished.
+    var elapsedStartRealtime by rememberSaveable { mutableLongStateOf(NO_TIMER_ANCHOR) }
     var elapsedEndRealtime by rememberSaveable { mutableLongStateOf(NO_TIMER_ANCHOR) }
     var elapsedTickRealtime by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
-    val elapsedRunning = elapsedEndRealtime == NO_TIMER_ANCHOR
+    val elapsedRunning = elapsedStartRealtime != NO_TIMER_ANCHOR &&
+        elapsedEndRealtime == NO_TIMER_ANCHOR
     LaunchedEffect(elapsedRunning) {
         while (elapsedRunning) {
             elapsedTickRealtime = SystemClock.elapsedRealtime()
@@ -143,7 +144,12 @@ fun WorkoutExecutionScreen(
         }
     }
     LaunchedEffect(finished) {
-        if (finished && elapsedEndRealtime == NO_TIMER_ANCHOR) {
+        if (!finished) return@LaunchedEffect
+        // A session restored from an older build may have no start anchor.
+        if (elapsedStartRealtime == NO_TIMER_ANCHOR) {
+            elapsedStartRealtime = SystemClock.elapsedRealtime()
+        }
+        if (elapsedEndRealtime == NO_TIMER_ANCHOR) {
             val now = SystemClock.elapsedRealtime()
             elapsedTickRealtime = now
             elapsedEndRealtime = now
@@ -166,7 +172,7 @@ fun WorkoutExecutionScreen(
             completionCelebrated = true
             val finishedIn = elapsedSecondsSince(
                 startRealtime = elapsedStartRealtime,
-                endRealtime = NO_TIMER_ANCHOR,
+                endRealtime = elapsedEndRealtime,
                 nowRealtime = SystemClock.elapsedRealtime(),
             )
             celebration = CelebrationMessage(
@@ -304,6 +310,34 @@ fun WorkoutExecutionScreen(
         delay(3.seconds)
         if (workout == null && exercises.isEmpty()) unavailable = true
     }
+
+    // A freshly opened workout counts down before the timer starts. Both the
+    // countdown and workout anchors are saved, so rotation, background time and
+    // process death cannot replay the countdown or lose the elapsed time.
+    // Restored, already running and finished sessions skip it entirely.
+    val needsCountdown = total > 0 && !finished && !unavailable &&
+        elapsedStartRealtime == NO_TIMER_ANCHOR
+    var countdownAnchor by rememberSaveable { mutableLongStateOf(NO_TIMER_ANCHOR) }
+    var countdownTickRealtime by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(needsCountdown) {
+        if (!needsCountdown) return@LaunchedEffect
+        val anchor = if (countdownAnchor == NO_TIMER_ANCHOR) {
+            SystemClock.elapsedRealtime().also { countdownAnchor = it }
+        } else {
+            countdownAnchor
+        }
+        while (true) {
+            val now = SystemClock.elapsedRealtime()
+            countdownTickRealtime = now
+            if (countdownRemaining(anchor, now) == 0) {
+                elapsedStartRealtime = now
+                return@LaunchedEffect
+            }
+            delay(100.milliseconds)
+        }
+    }
+    val countdownSeconds = countdownRemaining(countdownAnchor, countdownTickRealtime)
+    val showCountdown = needsCountdown && countdownSeconds > 0
 
     var showExitDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -447,7 +481,7 @@ fun WorkoutExecutionScreen(
                 }
             }
 
-            if (!finished && !unavailable && total > 0) {
+            if (!finished && !unavailable && !showCountdown && total > 0) {
                 ExecutionActionBar(
                     doneEnabled = allSetsChecked,
                     onDone = {
@@ -457,6 +491,10 @@ fun WorkoutExecutionScreen(
                     onSkip = { currentIndex++ },
                 )
             }
+        }
+
+        if (showCountdown) {
+            StartCountdownOverlay(seconds = countdownSeconds)
         }
 
         if (finished) {
@@ -1329,13 +1367,65 @@ private fun completionMessages(percent: Int): List<String> = when {
     else -> HighCompletionMessages
 }
 
+/** Blocks the player until the pre-workout countdown reaches zero. */
+@Composable
+private fun StartCountdownOverlay(seconds: Int) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ExecutionBrand900.copy(alpha = 0.94f))
+            // Swallow taps: sets must not be ticked before the timer starts.
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {},
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Get ready!",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = ExecutionBrand100,
+            )
+            Spacer(Modifier.height(20.dp))
+            // `key` restarts the number on each second so the countdown reads
+            // as three distinct steps rather than a slowly changing value.
+            key(seconds) {
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                        .background(ExecutionBrand),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = seconds.toString(),
+                        fontSize = 72.sp,
+                        fontWeight = FontWeight.Black,
+                        color = AppTheme.colors.onPrimary,
+                    )
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = "Your workout starts in $seconds...",
+                fontSize = 14.sp,
+                color = ExecutionBrand100,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
 @Composable
 private fun CompletionOverlay(
     completed: Int,
     total: Int,
     onBackClick: () -> Unit,
 ) {
-    val percent = if (total > 0) (completed * 100 + total / 2) / total else 0
+    val percent = completionPercent(completed, total)
     // Stable while the overlay is visible (and across rotation), so the
     // encouragement does not change on every recomposition.
     val encouragement = rememberSaveable(completed, total) {
@@ -1368,19 +1458,34 @@ private fun CompletionOverlay(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Success rate at a glance: the ring fills to the share of
+                // exercises actually completed, with the rounded value inside.
                 Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(ExecutionGreenLight),
+                    modifier = Modifier.size(112.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(36.dp),
-                        tint = ExecutionGreenDark,
+                    CircularProgressIndicator(
+                        progress = { percent / 100f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = if (percent >= 50) ExecutionGreenDark else ExecutionBrand,
+                        trackColor = ExecutionGreenLight,
+                        strokeWidth = 9.dp,
                     )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$percent%",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            color = ExecutionInk,
+                        )
+                        Text(
+                            text = "SUCCESS",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ExecutionInkSecondary,
+                            letterSpacing = 1.sp,
+                        )
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(

@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -55,6 +57,7 @@ import com.organizer.ui.theme.themedColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -92,8 +95,11 @@ internal fun ScheduleWorkoutSheet(
     onOpenWorkouts: () -> Unit,
     onRequestNotifications: () -> Unit,
 ) {
+    val context = LocalContext.current
     val storedEntry = entry?.entry
     val stateKey = storedEntry?.scheduleId ?: -1L
+    val storedNote = storedEntry?.reminderNote.orEmpty()
+    val storedAutoIndex = MotivationalPhrases.autoIndex(storedNote)
 
     var selectedWorkoutId by remember(stateKey) {
         mutableStateOf(storedEntry?.workoutId)
@@ -114,12 +120,22 @@ internal fun ScheduleWorkoutSheet(
     var reminderMinutesBefore by remember(stateKey) {
         mutableIntStateOf(storedEntry?.reminderMinutesBefore ?: 30)
     }
-    var reminderNote by remember(stateKey) {
-        mutableStateOf(storedEntry?.reminderNote.orEmpty())
+    // Automatic notes persist only a phrase index. The text is resolved for the
+    // current language whenever the sheet is shown.
+    var autoNoteIndex by remember(stateKey) {
+        mutableIntStateOf(storedAutoIndex ?: MotivationalPhrases.randomIndex())
     }
-    // Offered as the note placeholder and stored when the user leaves the note
-    // empty, so every new reminder starts with an encouraging line.
-    val defaultNote = remember(stateKey) { MotivationalPhrases.random() }
+    // null keeps the automatic note; any typed value becomes a custom note.
+    var customNote by remember(stateKey) {
+        mutableStateOf<String?>(if (storedAutoIndex == null) storedNote else null)
+    }
+    val defaultNote = remember(context, autoNoteIndex) {
+        MotivationalPhrases.resolve(
+            context,
+            MotivationalPhrases.tokenFor(autoNoteIndex),
+        )
+    }
+    val noteText = customNote ?: if (storedEntry == null) "" else defaultNote
     var repeatsWeekly by remember(stateKey) {
         mutableStateOf(storedEntry?.scheduledDateKey == null)
     }
@@ -162,11 +178,16 @@ internal fun ScheduleWorkoutSheet(
         containerColor = ScheduleSurface,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         dragHandle = { BottomSheetDefaults.DragHandle() },
+        // Material 3 1.4 allocates the default insets while the sheet settles,
+        // which feeds back into its bouncy animation and makes a drag-down /
+        // fling-up gesture jump. Insets are applied to the content below.
+        contentWindowInsets = { WindowInsets(0.dp) },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
                 .imePadding()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 24.dp),
@@ -490,8 +511,8 @@ internal fun ScheduleWorkoutSheet(
                     )
 
                     OutlinedTextField(
-                        value = reminderNote,
-                        onValueChange = { reminderNote = it },
+                        value = noteText,
+                        onValueChange = { customNote = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = {
                             Text(
@@ -547,7 +568,8 @@ internal fun ScheduleWorkoutSheet(
                             startMinutes,
                             reminderEnabled,
                             reminderMinutesBefore,
-                            reminderNote.ifBlank { defaultNote },
+                            customNote?.takeIf { it.isNotBlank() }
+                                ?: MotivationalPhrases.tokenFor(autoNoteIndex),
                         )
                     },
                     enabled = selectedWorkoutId != null,

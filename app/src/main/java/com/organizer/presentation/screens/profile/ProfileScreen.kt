@@ -1,10 +1,14 @@
 package com.organizer.presentation.screens.profile
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -96,6 +100,13 @@ fun ProfileScreen(
     val colors = AppTheme.colors
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Ask for notification access only when the user opts in here. Onboarding
+    // must not interrupt with a permission that is not relevant yet.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) viewModel.setNotificationsEnabled(true)
+    }
     val accountViewModel: AccountViewModel = hiltViewModel()
     val userState by accountViewModel.userState.collectAsState()
 
@@ -155,7 +166,21 @@ fun ProfileScreen(
                 PreferencesCard(
                     settings = settings,
                     onReminderChange = viewModel::setWorkoutReminderEnabled,
-                    onNotificationsChange = viewModel::setNotificationsEnabled,
+                    onNotificationsChange = { enabled ->
+                        val needsPermission = enabled &&
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) != PackageManager.PERMISSION_GRANTED
+                        if (needsPermission) {
+                            notificationPermissionLauncher.launch(
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            )
+                        } else {
+                            viewModel.setNotificationsEnabled(enabled)
+                        }
+                    },
                 )
             }
 

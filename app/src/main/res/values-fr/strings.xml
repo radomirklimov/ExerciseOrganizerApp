@@ -63,4 +63,36 @@
     <string name="profile_about_title">À propos d’IndiSport</string>
     <string name="profile_version">Version %1$s</string>
     <string name="profile_close">Fermer</string>
+
+    <!-- Motivational phrases for automatically generated reminder notes. -->
+    <string name="motivational_1">Tu peux le faire !</string>
+    <string name="motivational_2">Fais de ton mieux aujourd\'hui !</string>
+    <string name="motivational_3">Continue comme ça !</string>
+    <string name="motivational_4">Un pas de plus vers ton objectif !</string>
+    <string name="motivational_5">Tu as ça en toi !</string>
+    <string name="motivational_6">Fais en sorte que ça compte aujourd\'hui !</string>
+    <string name="motivational_7">Sois fort et continue !</string>
+    <string name="motivational_8">Ton futur toi te remerciera !</string>
+    <string name="motivational_9">Chaque répétition fait la différence !</string>
+    <string name="motivational_10">Faisons-le !</string>
+    <string name="motivational_11">Pas d\'excuse, que du progrès !</string>
+    <string name="motivational_12">Tu es plus fort que tu crois !</string>
+    <string name="motivational_13">Petits pas, grands résultats !</string>
+    <string name="motivational_14">C\'est le moment de réussir tes objectifs !</string>
+    <string name="motivational_15">Croyez en toi !</string>
+    <string name="motivational_16">Viens et donne le meilleur !</string>
+    <string name="motivational_17">Le progrès, pas la perfection !</string>
+    <string name="motivational_18">Reste concentré !</string>
+    <string name="motivational_19">Fais-toi sentir fier aujourd\'hui !</string>
+    <string name="motivational_20">Reste concentré et reste fort !</string>
+    <string name="motivational_21">Le seul mauvais entraînement, c\'est celui que tu saute !</string>
+    <string name="motivational_22">Pousse tes limites !</string>
+    <string name="motivational_23">Tu fais un super travail !</string>
+    <string name="motivational_24">Faisons nous plus forts ensemble !</string>
+    <string name="motivational_25">La constance est la clé du succès !</string>
+    <string name="motivational_26">Aujourd\'hui est une autre chance de progresser !</string>
+    <string name="motivational_27">Continue d\'avancer !</string>
+    <string name="motivational_28">Défie-toi et profite du voyage !</string>
+    <string name="motivational_29">Donne tout !</string>
+    <string name="motivational_30">Un autre jour, une autre chance de grandir !</string>
 </resources>

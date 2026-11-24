@@ -227,6 +227,13 @@ fun WorkoutContentScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Add this starter routine to your workouts to edit it, track sets, and keep your own notes.",
+                fontSize = 12.sp,
+                color = AppTheme.colors.textMuted,
+                lineHeight = 16.sp,
+            )
             Spacer(modifier = Modifier.height(12.dp))
         }
 
@@ -440,14 +447,7 @@ fun WorkoutContentScreen(
                         }
                     }
 
-                    if (isTemplate) {
-                        Text(
-                            text = "Add this starter routine to your workouts to edit it, track sets, and keep your own notes.",
-                            fontSize = 12.sp,
-                            color = AppTheme.colors.textMuted,
-                            lineHeight = 16.sp,
-                        )
-                    } else {
+                    if (!isTemplate) {
                         // Delete workout
                         Box(
                             modifier = Modifier.fillMaxWidth(),

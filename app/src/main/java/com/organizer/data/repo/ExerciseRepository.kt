@@ -99,10 +99,13 @@ class ExerciseRepository @Inject constructor(
         )
     }
 
+    /**
+     * Soft-deletes a custom exercise only. The row and all of its relationships
+     * are preserved so workout history, planned sets and favorites can still
+     * resolve the exercise.
+     */
     suspend fun deleteCustomExercise(id: Long) {
-        val exercise = exerciseDao.getByIdOnce(ownerProvider.currentOwner(), id)
-        if (exercise?.isCustom == true && exercise.ownerFirebaseUid == ownerProvider.currentOwner()) {
-            exerciseDao.delete(exercise)
-        }
+        val now = System.currentTimeMillis()
+        exerciseDao.softDeleteCustom(ownerProvider.currentOwner(), id, now, now)
     }
 }

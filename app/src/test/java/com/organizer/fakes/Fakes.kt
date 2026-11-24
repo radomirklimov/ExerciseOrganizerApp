@@ -177,12 +177,12 @@ class FakeExerciseDao : ExerciseDao {
         }
     }
 
-    override suspend fun getAllOnce(owner: String): List<ExerciseEntity> = data.value
+    override suspend fun getAllOnce(owner: String): List<ExerciseEntity> = activeFor(owner)
 
-    override fun getAll(owner: String): Flow<List<ExerciseEntity>> = data
+    override fun getAll(owner: String): Flow<List<ExerciseEntity>> = data.map { activeFor(owner) }
 
     override fun getCustomExercises(owner: String): Flow<List<ExerciseEntity>> =
-        data.map { it.filter { e -> e.isCustom && e.ownerFirebaseUid == owner } }
+        data.map { it.filter { e -> e.isCustom && e.ownerFirebaseUid == owner && e.deletedAt == null } }
 
     override fun observeExercisesByCategory(categoryId: Long, owner: String): Flow<List<ExerciseEntity>> =
         throw UnsupportedOperationException("join tested via ExerciseCategoryRepositoryTest")
@@ -196,8 +196,29 @@ class FakeExerciseDao : ExerciseDao {
     override suspend fun getByIdOnce(owner: String, id: Long): ExerciseEntity? =
         data.value.find { it.exerciseId == id }
 
+    override suspend fun softDeleteCustom(owner: String, id: Long, deletedAt: Long, updatedAt: Long): Int {
+        var changed = 0
+        data.update { current ->
+            current.map { exercise ->
+                if (exercise.exerciseId == id &&
+                    exercise.isCustom &&
+                    exercise.ownerFirebaseUid == owner &&
+                    exercise.deletedAt == null
+                ) {
+                    changed++
+                    exercise.copy(deletedAt = deletedAt, updatedAt = updatedAt, syncStatus = "PENDING_DELETE")
+                } else exercise
+            }
+        }
+        return changed
+    }
+
     override suspend fun delete(exercise: ExerciseEntity) {
         data.update { it.filter { e -> e.exerciseId != exercise.exerciseId } }
+    }
+
+    private fun activeFor(owner: String): List<ExerciseEntity> = data.value.filter {
+        it.ownerFirebaseUid == "public" || (it.ownerFirebaseUid == owner && it.deletedAt == null)
     }
 }
 

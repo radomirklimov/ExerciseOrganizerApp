@@ -13,6 +13,7 @@ import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
+import com.organizer.auth.OwnerProvider
 import com.organizer.data.mapper.asEntity
 import com.organizer.data.remote.model.WorkoutTemplateExercise
 import com.organizer.data.remote.repo.StarterTemplateRemoteDataSource
@@ -28,6 +29,7 @@ class StarterTemplateRepository @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val workoutExerciseDao: WorkoutExerciseDao,
     private val fileRepository: FileRepository,
+    private val ownerProvider: OwnerProvider,
 ) {
 
     fun observeTemplates(): Flow<List<StarterTemplateEntity>> = templateDao.observeAll()
@@ -48,7 +50,7 @@ class StarterTemplateRepository @Inject constructor(
         // Templates can arrive before an exercise refresh has stored a newly
         // added exercise; upsert the included exercise payloads so the foreign
         // keys in starter_template_exercise always resolve.
-        val existingIds = exerciseDao.getAllOnce().map { it.exerciseId }.toSet()
+        val existingIds = exerciseDao.getAllOnce(ownerProvider.currentOwner()).map { it.exerciseId }.toSet()
         val missingExercises = remoteTemplates
             .flatMap { it.exercises }
             .mapNotNull { it.exercise }
@@ -111,10 +113,12 @@ class StarterTemplateRepository @Inject constructor(
         val template = templateDao.getByIdOnce(templateId) ?: return null
         val exerciseIds = templateDao.getExerciseIdsOnce(templateId)
 
+        val owner = ownerProvider.currentOwner()
         val workoutId = workoutDao.insert(
             WorkoutEntity(
                 name = uniqueWorkoutName(template.name),
                 notes = template.notes,
+                ownerFirebaseUid = owner,
             )
         )
         if (exerciseIds.isNotEmpty()) {
@@ -124,6 +128,7 @@ class StarterTemplateRepository @Inject constructor(
                         workoutId = workoutId,
                         exerciseId = exerciseId,
                         orderIndex = index,
+                        ownerFirebaseUid = owner,
                     )
                 }
             )
@@ -132,9 +137,10 @@ class StarterTemplateRepository @Inject constructor(
     }
 
     private suspend fun uniqueWorkoutName(baseName: String): String {
-        if (!workoutDao.nameExists(baseName)) return baseName
+        val owner = ownerProvider.currentOwner()
+        if (!workoutDao.nameExists(baseName, owner)) return baseName
         var suffix = 2
-        while (workoutDao.nameExists("$baseName ($suffix)")) {
+        while (workoutDao.nameExists("$baseName ($suffix)", owner)) {
             suffix++
         }
         return "$baseName ($suffix)"

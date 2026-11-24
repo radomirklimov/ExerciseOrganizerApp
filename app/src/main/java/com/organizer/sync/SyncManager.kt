@@ -28,7 +28,7 @@ class SyncManager @Inject constructor(
         val workouts = workoutRepository.observeWorkouts().first()
         val records = workouts.map { w ->
             SyncRecordRequestDto(
-                entityType = "workout",
+                entityType = SyncEntityTypes.WORKOUT,
                 clientId = w.workoutId.toString(),
                 payload = buildJsonObject {
                     put("name", w.name)

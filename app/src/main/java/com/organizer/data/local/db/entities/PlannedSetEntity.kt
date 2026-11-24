@@ -3,14 +3,9 @@ package com.organizer.data.local.db.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.organizer.auth.OwnerProvider
+import java.util.UUID
 
-/**
- * A target set that belongs to a workout routine, e.g. "Set 3: 80 kg x 8 reps".
- *
- * A workout is a reusable routine, so its plan lives here instead of in the
- * logged progress. Progress rows record what the user actually did in a
- * session; planned rows describe what the routine asks for.
- */
 @Entity(
     tableName = "planned_set",
     primaryKeys = ["workoutId", "exerciseId", "setNumber"],
@@ -30,7 +25,9 @@ import androidx.room.Index
     ],
     indices = [
         Index("workoutId"),
-        Index("exerciseId")
+        Index("exerciseId"),
+        Index("syncId", unique = true),
+        Index("ownerFirebaseUid"),
     ]
 )
 data class PlannedSetEntity(
@@ -40,4 +37,10 @@ data class PlannedSetEntity(
     val reps: Int? = null,
     val weight: Double? = null,
     val durationSeconds: Int? = null,
+    val ownerFirebaseUid: String = OwnerProvider.GUEST,
+    val syncId: String = UUID.randomUUID().toString(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
+    val syncStatus: String = "LOCAL_ONLY",
+    val serverVersion: Long = 0,
 )

@@ -10,26 +10,26 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FavoriteExerciseDao {
-
-    @Query("SELECT exerciseId FROM favorite_exercise")
-    fun observeFavoriteIds(): Flow<List<Long>>
+    @Query("SELECT exerciseId FROM favorite_exercise WHERE ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    fun observeFavoriteIds(owner: String): Flow<List<Long>>
 
     @Query(
         """SELECT e.* FROM exercise e
-        JOIN favorite_exercise f ON e.exerciseId = f.exerciseId
-        ORDER BY f.addedAt DESC, e.exerciseId DESC"""
+        INNER JOIN favorite_exercise f ON e.exerciseId = f.exerciseId
+        WHERE f.ownerFirebaseUid = :owner AND f.deletedAt IS NULL
+        ORDER BY f.addedAt DESC"""
     )
-    fun observeFavoriteExercises(): Flow<List<ExerciseEntity>>
+    fun observeFavoriteExercises(owner: String): Flow<List<ExerciseEntity>>
 
-    @Query("SELECT EXISTS(SELECT 1 FROM favorite_exercise WHERE exerciseId = :exerciseId)")
-    fun observeIsFavorite(exerciseId: Long): Flow<Boolean>
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_exercise WHERE ownerFirebaseUid = :owner AND exerciseId = :exerciseId AND deletedAt IS NULL)")
+    fun observeIsFavorite(owner: String, exerciseId: Long): Flow<Boolean>
 
-    @Query("SELECT EXISTS(SELECT 1 FROM favorite_exercise WHERE exerciseId = :exerciseId)")
-    suspend fun isFavorite(exerciseId: Long): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_exercise WHERE ownerFirebaseUid = :owner AND exerciseId = :exerciseId AND deletedAt IS NULL)")
+    suspend fun isFavorite(owner: String, exerciseId: Long): Boolean
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(favorite: FavoriteExerciseEntity)
 
-    @Query("DELETE FROM favorite_exercise WHERE exerciseId = :exerciseId")
-    suspend fun deleteById(exerciseId: Long)
+    @Query("UPDATE favorite_exercise SET deletedAt = :deletedAt, syncStatus = 'PENDING_DELETE' WHERE ownerFirebaseUid = :owner AND exerciseId = :exerciseId")
+    suspend fun softDelete(owner: String, exerciseId: Long, deletedAt: Long)
 }

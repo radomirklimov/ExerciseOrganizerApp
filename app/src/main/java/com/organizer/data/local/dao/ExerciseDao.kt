@@ -20,32 +20,35 @@ interface ExerciseDao {
     @Update
     suspend fun updateAll(exercises: List<ExerciseEntity>)
 
-    @Query("SELECT * FROM exercise")
-    suspend fun getAllOnce(): List<ExerciseEntity>
+    @Query("SELECT * FROM exercise WHERE ownerFirebaseUid = 'public' OR ownerFirebaseUid = :owner")
+    suspend fun getAllOnce(owner: String): List<ExerciseEntity>
 
-    @Query("SELECT * FROM exercise")
-    fun getAll(): Flow<List<ExerciseEntity>>
+    @Query("SELECT * FROM exercise WHERE ownerFirebaseUid = 'public' OR ownerFirebaseUid = :owner")
+    fun getAll(owner: String): Flow<List<ExerciseEntity>>
 
-    @Query("SELECT * FROM exercise WHERE isCustom = 1 ORDER BY exerciseId DESC")
-    fun getCustomExercises(): Flow<List<ExerciseEntity>>
+    @Query("SELECT * FROM exercise WHERE isCustom = 1 AND ownerFirebaseUid = :owner AND deletedAt IS NULL ORDER BY exerciseId DESC")
+    fun getCustomExercises(owner: String): Flow<List<ExerciseEntity>>
 
     @Query("""SELECT e.* FROM exercise e 
         JOIN exercise_category ec ON e.exerciseId = ec.exerciseId
         WHERE ec.categoryId = :categoryId
+        AND (e.ownerFirebaseUid = 'public' OR e.ownerFirebaseUid = :owner)
+        AND e.deletedAt IS NULL
         ORDER BY ec.sortOrder, ec.exerciseCategoryId""")
-    fun observeExercisesByCategory(categoryId: Long): Flow<List<ExerciseEntity>>
+    fun observeExercisesByCategory(categoryId: Long, owner: String): Flow<List<ExerciseEntity>>
 
     @Query("""SELECT e.* FROM exercise e
         JOIN workout_exercise we ON e.exerciseId = we.exerciseId
-        WHERE we.workoutId = :workoutId
+        WHERE we.workoutId = :workoutId AND we.ownerFirebaseUid = :owner
+        AND e.deletedAt IS NULL
         ORDER BY we.orderIndex ASC""")
-    fun observeExercisesByWorkout(workoutId: Long): Flow<List<ExerciseEntity>>
+    fun observeExercisesByWorkout(workoutId: Long, owner: String): Flow<List<ExerciseEntity>>
 
-    @Query("SELECT * FROM exercise WHERE exerciseId = :id")
-    fun getById(id: Long): Flow<ExerciseEntity?>
+    @Query("SELECT * FROM exercise WHERE exerciseId = :id AND (ownerFirebaseUid = 'public' OR ownerFirebaseUid = :owner)")
+    fun getById(owner: String, id: Long): Flow<ExerciseEntity?>
 
-    @Query("SELECT * FROM exercise WHERE exerciseId = :id")
-    suspend fun getByIdOnce(id: Long): ExerciseEntity?
+    @Query("SELECT * FROM exercise WHERE exerciseId = :id AND (ownerFirebaseUid = 'public' OR ownerFirebaseUid = :owner)")
+    suspend fun getByIdOnce(owner: String, id: Long): ExerciseEntity?
 
     @Delete
     suspend fun delete(exercise: ExerciseEntity)

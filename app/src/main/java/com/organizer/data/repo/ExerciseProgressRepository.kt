@@ -1,5 +1,6 @@
 package com.organizer.data.repo
 
+import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import kotlinx.coroutines.flow.Flow
@@ -7,19 +8,14 @@ import javax.inject.Inject
 
 class ExerciseProgressRepository @Inject constructor(
     private val dao: ExerciseProgressDao,
+    private val ownerProvider: OwnerProvider,
 ) {
-    /** Every set ever recorded for the exercise, across sessions. */
     fun observeSets(workoutId: Long, exerciseId: Long): Flow<List<ExerciseProgressEntity>> {
-        return dao.observeSets(workoutId, exerciseId)
+        return dao.observeSets(ownerProvider.currentOwner(), workoutId, exerciseId)
     }
 
-    /** Only the sets logged while the given session is running. */
-    fun observeSessionSets(
-        workoutId: Long,
-        exerciseId: Long,
-        sessionId: Long,
-    ): Flow<List<ExerciseProgressEntity>> {
-        return dao.observeSessionSets(workoutId, exerciseId, sessionId)
+    fun observeSessionSets(workoutId: Long, exerciseId: Long, sessionId: Long): Flow<List<ExerciseProgressEntity>> {
+        return dao.observeSessionSets(ownerProvider.currentOwner(), workoutId, exerciseId, sessionId)
     }
 
     suspend fun addSet(
@@ -42,6 +38,7 @@ class ExerciseProgressRepository @Inject constructor(
                 durationSeconds = durationSeconds,
                 sessionId = sessionId,
                 unitSystem = unitSystem,
+                ownerFirebaseUid = ownerProvider.currentOwner(),
             )
         )
     }
@@ -52,10 +49,10 @@ class ExerciseProgressRepository @Inject constructor(
         weight: Double? = null,
         durationSeconds: Int? = null,
     ) {
-        dao.updateMetrics(progressId, reps, weight, durationSeconds)
+        dao.updateMetrics(ownerProvider.currentOwner(), progressId, reps, weight, durationSeconds, System.currentTimeMillis())
     }
 
     suspend fun deleteSet(progressId: Long) {
-        dao.deleteAndRenumber(progressId)
+        dao.deleteAndRenumber(ownerProvider.currentOwner(), progressId, System.currentTimeMillis(), System.currentTimeMillis())
     }
 }

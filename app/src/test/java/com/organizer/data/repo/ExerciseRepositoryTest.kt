@@ -1,5 +1,6 @@
 package com.organizer.data.repo
 
+import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.media.MediaDownloadQueue
 import com.organizer.data.remote.model.Exercise
@@ -36,7 +37,7 @@ class ExerciseRepositoryTest {
     private fun repo(scope: kotlinx.coroutines.test.TestScope): ExerciseRepository {
         val queue = MediaDownloadQueue(store, remote, scope.backgroundScope, 3)
         files = FileRepository(store, queue)
-        return ExerciseRepository(dao, ExerciseRemoteDataSource(api), files)
+        return ExerciseRepository(dao, ExerciseRemoteDataSource(api), files, OwnerProvider())
     }
 
     private fun exercise(
@@ -75,10 +76,10 @@ class ExerciseRepositoryTest {
         advanceUntilIdle()
 
         // Data: updated, inserted, deleted — custom survives untouched.
-        assertEquals("New name", dao.getByIdOnce(1)?.name)
-        assertEquals("Fresh", dao.getByIdOnce(3)?.name)
-        assertNull(dao.getByIdOnce(2))
-        assertEquals("Mine", dao.getByIdOnce(900)?.name)
+        assertEquals("New name", dao.getByIdOnce(OwnerProvider.GUEST,1)?.name)
+        assertEquals("Fresh", dao.getByIdOnce(OwnerProvider.GUEST,3)?.name)
+        assertNull(dao.getByIdOnce(OwnerProvider.GUEST,2))
+        assertEquals("Mine", dao.getByIdOnce(OwnerProvider.GUEST,900)?.name)
         // Files: obsolete images removed, custom image kept.
         assertTrue(!store.exists("images", "old.webp"))
         assertTrue(!store.exists("images", "gone.webp"))
@@ -105,7 +106,7 @@ class ExerciseRepositoryTest {
         runCurrent()
         advanceUntilIdle()
 
-        assertNull(dao.getByIdOnce(1))
+        assertNull(dao.getByIdOnce(OwnerProvider.GUEST,1))
         assertTrue(store.exists("images", "shared.webp"))
         // Already cached: no download attempted.
         assertTrue(remote.attempts.isEmpty())
@@ -125,7 +126,7 @@ class ExerciseRepositoryTest {
         runCurrent()
         advanceUntilIdle()
 
-        assertEquals("New", dao.getByIdOnce(1)?.name)
+        assertEquals("New", dao.getByIdOnce(OwnerProvider.GUEST,1)?.name)
         assertTrue(!store.exists("images", "new.webp"))
         // Retryable later: a re-request downloads once the failure is gone.
         remote.failures.remove("images/new.webp")
@@ -148,7 +149,7 @@ class ExerciseRepositoryTest {
 
         repo.refreshExercises()
 
-        assertEquals("Big", dao.getByIdOnce(1)?.name)
+        assertEquals("Big", dao.getByIdOnce(OwnerProvider.GUEST,1)?.name)
         assertTrue(!store.exists("images", "big.webp"))
 
         gate.complete(Unit)

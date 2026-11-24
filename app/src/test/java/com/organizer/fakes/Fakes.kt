@@ -177,23 +177,23 @@ class FakeExerciseDao : ExerciseDao {
         }
     }
 
-    override suspend fun getAllOnce(): List<ExerciseEntity> = data.value
+    override suspend fun getAllOnce(owner: String): List<ExerciseEntity> = data.value
 
-    override fun getAll(): Flow<List<ExerciseEntity>> = data
+    override fun getAll(owner: String): Flow<List<ExerciseEntity>> = data
 
-    override fun getCustomExercises(): Flow<List<ExerciseEntity>> =
-        data.map { it.filter { e -> e.isCustom } }
+    override fun getCustomExercises(owner: String): Flow<List<ExerciseEntity>> =
+        data.map { it.filter { e -> e.isCustom && e.ownerFirebaseUid == owner } }
 
-    override fun observeExercisesByCategory(categoryId: Long): Flow<List<ExerciseEntity>> =
+    override fun observeExercisesByCategory(categoryId: Long, owner: String): Flow<List<ExerciseEntity>> =
         throw UnsupportedOperationException("join tested via ExerciseCategoryRepositoryTest")
 
-    override fun observeExercisesByWorkout(workoutId: Long): Flow<List<ExerciseEntity>> =
+    override fun observeExercisesByWorkout(workoutId: Long, owner: String): Flow<List<ExerciseEntity>> =
         throw UnsupportedOperationException("not used in tests")
 
-    override fun getById(id: Long): Flow<ExerciseEntity?> =
+    override fun getById(owner: String, id: Long): Flow<ExerciseEntity?> =
         data.map { it.find { e -> e.exerciseId == id } }
 
-    override suspend fun getByIdOnce(id: Long): ExerciseEntity? =
+    override suspend fun getByIdOnce(owner: String, id: Long): ExerciseEntity? =
         data.value.find { it.exerciseId == id }
 
     override suspend fun delete(exercise: ExerciseEntity) {
@@ -243,25 +243,31 @@ class FakeExerciseCategoryDao : ExerciseCategoryDao {
 class FakeFavoriteExerciseDao : FavoriteExerciseDao {
     val favorites = MutableStateFlow<List<FavoriteExerciseEntity>>(emptyList())
 
-    override fun observeFavoriteIds(): Flow<List<Long>> =
-        favorites.map { list -> list.map { it.exerciseId } }
+    override fun observeFavoriteIds(owner: String): Flow<List<Long>> =
+        favorites.map { list -> list.filter { it.ownerFirebaseUid == owner && it.deletedAt == null }.map { it.exerciseId } }
 
-    override fun observeFavoriteExercises(): Flow<List<ExerciseEntity>> =
+    override fun observeFavoriteExercises(owner: String): Flow<List<ExerciseEntity>> =
         throw UnsupportedOperationException("join tested via the real database")
 
-    override fun observeIsFavorite(exerciseId: Long): Flow<Boolean> =
-        favorites.map { list -> list.any { it.exerciseId == exerciseId } }
+    override fun observeIsFavorite(owner: String, exerciseId: Long): Flow<Boolean> =
+        favorites.map { list -> list.any { it.ownerFirebaseUid == owner && it.exerciseId == exerciseId && it.deletedAt == null } }
 
-    override suspend fun isFavorite(exerciseId: Long): Boolean =
-        favorites.value.any { it.exerciseId == exerciseId }
+    override suspend fun isFavorite(owner: String, exerciseId: Long): Boolean =
+        favorites.value.any { it.ownerFirebaseUid == owner && it.exerciseId == exerciseId && it.deletedAt == null }
 
     override suspend fun insert(favorite: FavoriteExerciseEntity) {
         favorites.update { current ->
-            current.filterNot { it.exerciseId == favorite.exerciseId } + favorite
+            current.filterNot { it.exerciseId == favorite.exerciseId && it.ownerFirebaseUid == favorite.ownerFirebaseUid } + favorite
         }
     }
 
-    override suspend fun deleteById(exerciseId: Long) {
-        favorites.update { current -> current.filterNot { it.exerciseId == exerciseId } }
+    override suspend fun softDelete(owner: String, exerciseId: Long, deletedAt: Long) {
+        favorites.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.exerciseId == exerciseId) {
+                    it.copy(deletedAt = deletedAt, syncStatus = "PENDING_DELETE")
+                } else it
+            }
+        }
     }
 }

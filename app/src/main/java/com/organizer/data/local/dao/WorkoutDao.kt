@@ -14,11 +14,11 @@ interface WorkoutDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(workoutEntity: WorkoutEntity): Long
 
-    @Query("SELECT EXISTS(SELECT 1 FROM workout WHERE name = :name)")
-    suspend fun nameExists(name: String): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM workout WHERE name = :name AND ownerFirebaseUid = :owner AND deletedAt IS NULL)")
+    suspend fun nameExists(name: String, owner: String): Boolean
 
-    @Query("SELECT * FROM workout ORDER BY workoutId DESC")
-    fun getAll(): Flow<List<WorkoutEntity>>
+    @Query("SELECT * FROM workout WHERE ownerFirebaseUid = :owner AND deletedAt IS NULL ORDER BY workoutId DESC")
+    fun getAll(owner: String): Flow<List<WorkoutEntity>>
 
     @Query(
         """SELECT w.workoutId AS workoutId,
@@ -26,20 +26,21 @@ interface WorkoutDao {
                COUNT(we.exerciseId) AS exerciseCount
         FROM workout w
         LEFT JOIN workout_exercise we ON we.workoutId = w.workoutId
+        WHERE w.ownerFirebaseUid = :owner AND w.deletedAt IS NULL
         GROUP BY w.workoutId, w.name
         ORDER BY w.workoutId DESC"""
     )
-    fun getWorkoutsWithExerciseCount(): Flow<List<WorkoutWithExerciseCount>>
+    fun getWorkoutsWithExerciseCount(owner: String): Flow<List<WorkoutWithExerciseCount>>
 
-    @Query("SELECT * FROM workout WHERE workoutId = :id")
-    fun getById(id: Long): Flow<WorkoutEntity?>
+    @Query("SELECT * FROM workout WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    fun getById(owner: String, id: Long): Flow<WorkoutEntity?>
 
-    @Query("SELECT * FROM workout WHERE workoutId = :id")
-    suspend fun getByIdOnce(id: Long): WorkoutEntity?
+    @Query("SELECT * FROM workout WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    suspend fun getByIdOnce(owner: String, id: Long): WorkoutEntity?
 
-    @Query("DELETE FROM workout WHERE workoutId = :id")
-    suspend fun delete(id: Long)
+    @Query("UPDATE workout SET deletedAt = :deletedAt, syncStatus = 'PENDING_DELETE' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
+    suspend fun softDelete(owner: String, id: Long, deletedAt: Long)
 
-    @Query("UPDATE workout SET notes = :notes WHERE workoutId = :id")
-    suspend fun updateNotes(id: Long, notes: String)
+    @Query("UPDATE workout SET notes = :notes, updatedAt = :updatedAt, syncStatus = 'PENDING_UPLOAD' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
+    suspend fun updateNotes(owner: String, id: Long, notes: String, updatedAt: Long)
 }

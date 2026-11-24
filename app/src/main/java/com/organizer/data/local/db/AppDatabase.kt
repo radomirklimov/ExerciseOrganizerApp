@@ -7,6 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
+import com.organizer.data.local.dao.SyncCursorDao
+import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.ExerciseProgressDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
@@ -23,6 +25,8 @@ import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
+import com.organizer.data.local.db.entities.SyncCursorEntity
+import com.organizer.data.local.db.entities.SyncOutboxEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutCompletionEntity
@@ -31,7 +35,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 13,
+    version = 14,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -44,7 +48,9 @@ import com.organizer.data.mapper.ListConverters
         StarterTemplateExerciseEntity::class,
         ScheduledWorkoutEntity::class,
         PlannedSetEntity::class,
-        WorkoutCompletionEntity::class
+        WorkoutCompletionEntity::class,
+        SyncCursorEntity::class,
+        SyncOutboxEntity::class
     ],
     exportSchema = false
 )
@@ -61,6 +67,378 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val scheduledWorkoutDao: ScheduledWorkoutDao
     abstract val plannedSetDao: PlannedSetDao
     abstract val workoutCompletionDao: WorkoutCompletionDao
+    abstract val syncCursorDao: SyncCursorDao
+    abstract val syncOutboxDao: SyncOutboxDao
+}
+
+/**
+ * Milestone 1: owner isolation, stable sync IDs and sync metadata.
+ * Existing rows are preserved; UUIDs are generated only for rows that lack one.
+ */
+val OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val now = System.currentTimeMillis()
+        db.execSQL("PRAGMA foreign_keys = OFF")
+
+        createFinalTables(db)
+        copyLegacyRows(db, now)
+
+        listOf(
+            "favorite_exercise", "workout_completion", "scheduled_workout",
+            "planned_set", "exercise_progress", "workout_exercise",
+            "workout", "exercise",
+        ).forEach { table ->
+            db.execSQL("DROP TABLE $table")
+            db.execSQL("ALTER TABLE ${table}_new RENAME TO $table")
+        }
+
+        createIndexes(db)
+        createSyncTables(db)
+
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            if (cursor.moveToFirst()) {
+                throw IllegalStateException("Foreign key violation after v13 -> v14 migration")
+            }
+        }
+        db.execSQL("PRAGMA foreign_keys = ON")
+    }
+
+    /** Final schemas match Room's generated v14 expectations: no SQL defaults,
+     *  non-null syncId for user-owned tables, nullable syncId only for the
+     *  mixed public/custom exercise table. */
+    private fun createFinalTables(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE workout_new (
+                workoutId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE exercise_new (
+                exerciseId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                instructions TEXT NOT NULL,
+                imageUrls TEXT NOT NULL,
+                isCustom INTEGER NOT NULL,
+                exerciseType TEXT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE workout_exercise_new (
+                workoutId INTEGER NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                orderIndex INTEGER NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                PRIMARY KEY (workoutId, exerciseId),
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE exercise_progress_new (
+                progressId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                workoutId INTEGER NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                setNumber INTEGER NOT NULL,
+                reps INTEGER,
+                weight REAL,
+                durationSeconds INTEGER,
+                recordedAt INTEGER NOT NULL,
+                sessionId INTEGER NOT NULL,
+                unitSystem TEXT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE planned_set_new (
+                workoutId INTEGER NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                setNumber INTEGER NOT NULL,
+                reps INTEGER,
+                weight REAL,
+                durationSeconds INTEGER,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                PRIMARY KEY (workoutId, exerciseId, setNumber),
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE scheduled_workout_new (
+                scheduleId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                workoutId INTEGER NOT NULL,
+                dayOfWeek INTEGER NOT NULL,
+                scheduledDateKey INTEGER,
+                startMinutes INTEGER NOT NULL,
+                reminderEnabled INTEGER NOT NULL,
+                reminderMinutesBefore INTEGER NOT NULL,
+                reminderNote TEXT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE workout_completion_new (
+                dateKey INTEGER NOT NULL,
+                workoutId INTEGER NOT NULL,
+                completedExercises INTEGER NOT NULL,
+                totalExercises INTEGER NOT NULL,
+                completedAt INTEGER NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                PRIMARY KEY (dateKey, workoutId),
+                FOREIGN KEY (workoutId) REFERENCES workout (workoutId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE favorite_exercise_new (
+                favoriteId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                exerciseId INTEGER NOT NULL,
+                addedAt INTEGER NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                syncId TEXT NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                deletedAt INTEGER,
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER NOT NULL,
+                FOREIGN KEY (exerciseId) REFERENCES exercise (exerciseId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+    }
+
+    private fun copyLegacyRows(db: SupportSQLiteDatabase, now: Long) {
+        db.query("SELECT workoutId, name, notes FROM workout").use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO workout_new VALUES (?, ?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(c.getLong(0), c.getString(1), c.getString(2), newId(), now)
+                )
+            }
+        }
+
+        db.query("SELECT exerciseId, name, instructions, imageUrls, isCustom, exerciseType FROM exercise").use { c ->
+            while (c.moveToNext()) {
+                val custom = c.getInt(4) == 1
+                db.execSQL(
+                    "INSERT INTO exercise_new VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(
+                        c.getLong(0), c.getString(1), c.getString(2), c.getString(3), c.getInt(4),
+                        c.getString(5), if (custom) "guest" else "public",
+                        if (custom) newId() else null, now,
+                    )
+                )
+            }
+        }
+
+        db.query("SELECT workoutId, exerciseId, orderIndex FROM workout_exercise").use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO workout_exercise_new VALUES (?, ?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(c.getLong(0), c.getLong(1), c.getInt(2), newId(), now)
+                )
+            }
+        }
+
+        db.query(
+            "SELECT progressId, workoutId, exerciseId, setNumber, reps, weight, durationSeconds, recordedAt, sessionId, unitSystem FROM exercise_progress"
+        ).use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO exercise_progress_new VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(
+                        c.getLong(0), c.getLong(1), c.getLong(2), c.getInt(3),
+                        if (c.isNull(4)) null else c.getInt(4),
+                        if (c.isNull(5)) null else c.getDouble(5),
+                        if (c.isNull(6)) null else c.getInt(6),
+                        c.getLong(7), c.getLong(8), c.getString(9), newId(), now,
+                    )
+                )
+            }
+        }
+
+        db.query("SELECT workoutId, exerciseId, setNumber, reps, weight, durationSeconds FROM planned_set").use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO planned_set_new VALUES (?, ?, ?, ?, ?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(
+                        c.getLong(0), c.getLong(1), c.getInt(2),
+                        if (c.isNull(3)) null else c.getInt(3),
+                        if (c.isNull(4)) null else c.getDouble(4),
+                        if (c.isNull(5)) null else c.getInt(5),
+                        newId(), now,
+                    )
+                )
+            }
+        }
+
+        db.query(
+            "SELECT scheduleId, workoutId, dayOfWeek, scheduledDateKey, startMinutes, reminderEnabled, reminderMinutesBefore, reminderNote FROM scheduled_workout"
+        ).use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO scheduled_workout_new VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(
+                        c.getLong(0), c.getLong(1), c.getInt(2),
+                        if (c.isNull(3)) null else c.getInt(3),
+                        c.getInt(4), c.getInt(5), c.getInt(6), c.getString(7), newId(), now,
+                    )
+                )
+            }
+        }
+
+        db.query("SELECT dateKey, workoutId, completedExercises, totalExercises, completedAt FROM workout_completion").use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO workout_completion_new VALUES (?, ?, ?, ?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(
+                        c.getInt(0), c.getLong(1), c.getInt(2), c.getInt(3), c.getLong(4), newId(), now,
+                    )
+                )
+            }
+        }
+
+        db.query("SELECT exerciseId, addedAt FROM favorite_exercise").use { c ->
+            while (c.moveToNext()) {
+                db.execSQL(
+                    "INSERT INTO favorite_exercise_new (exerciseId, addedAt, ownerFirebaseUid, syncId, updatedAt, deletedAt, syncStatus, serverVersion) VALUES (?, ?, 'guest', ?, ?, NULL, 'LOCAL_ONLY', 0)",
+                    arrayOf<Any?>(c.getLong(0), c.getLong(1), newId(), now)
+                )
+            }
+        }
+    }
+
+    private fun createIndexes(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_workout_ownerFirebaseUid_name ON workout (ownerFirebaseUid, name)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_workout_syncId ON workout (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_workout_ownerFirebaseUid ON workout (ownerFirebaseUid)")
+
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercise_name ON exercise (name)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_isCustom ON exercise (isCustom)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercise_syncId ON exercise (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_ownerFirebaseUid ON exercise (ownerFirebaseUid)")
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_workout_exercise_workoutId ON workout_exercise (workoutId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_workout_exercise_exerciseId ON workout_exercise (exerciseId)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_workout_exercise_syncId ON workout_exercise (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_workout_exercise_ownerFirebaseUid ON workout_exercise (ownerFirebaseUid)")
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_workoutId ON exercise_progress (workoutId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_exerciseId ON exercise_progress (exerciseId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_recordedAt ON exercise_progress (recordedAt)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_sessionId ON exercise_progress (sessionId)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercise_progress_syncId ON exercise_progress (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_progress_ownerFirebaseUid ON exercise_progress (ownerFirebaseUid)")
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_set_workoutId ON planned_set (workoutId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_set_exerciseId ON planned_set (exerciseId)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_planned_set_syncId ON planned_set (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_planned_set_ownerFirebaseUid ON planned_set (ownerFirebaseUid)")
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_scheduled_workout_workoutId ON scheduled_workout (workoutId)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_scheduled_workout_syncId ON scheduled_workout (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_scheduled_workout_ownerFirebaseUid ON scheduled_workout (ownerFirebaseUid)")
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_workout_completion_workoutId ON workout_completion (workoutId)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_workout_completion_syncId ON workout_completion (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_workout_completion_ownerFirebaseUid ON workout_completion (ownerFirebaseUid)")
+
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_favorite_exercise_syncId ON favorite_exercise (syncId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_favorite_exercise_ownerFirebaseUid ON favorite_exercise (ownerFirebaseUid)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_favorite_exercise_ownerFirebaseUid_exerciseId ON favorite_exercise (ownerFirebaseUid, exerciseId)")
+    }
+
+    private fun createSyncTables(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sync_cursor (
+                cursorId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                cursor TEXT,
+                lastSyncedAt INTEGER
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_sync_cursor_ownerFirebaseUid ON sync_cursor (ownerFirebaseUid)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sync_outbox (
+                outboxId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                mutationId TEXT NOT NULL,
+                ownerFirebaseUid TEXT NOT NULL,
+                entityType TEXT NOT NULL,
+                recordSyncId TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                payload TEXT,
+                baseVersion INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                retryCount INTEGER NOT NULL,
+                lastError TEXT,
+                syncStatus TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_sync_outbox_mutationId ON sync_outbox (mutationId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid ON sync_outbox (ownerFirebaseUid)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid_syncStatus ON sync_outbox (ownerFirebaseUid, syncStatus)")
+    }
+
+    private fun newId(): String = java.util.UUID.randomUUID().toString()
 }
 
 val PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11 = object : Migration(10, 11) {

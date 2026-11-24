@@ -1,5 +1,6 @@
 package com.organizer.data.repo
 
+import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.SuggestedExerciseRow
@@ -11,53 +12,53 @@ import javax.inject.Inject
 import kotlin.random.Random
 
 class WorkoutExerciseRepository @Inject constructor(
-    private val dao: WorkoutExerciseDao
+    private val dao: WorkoutExerciseDao,
+    private val ownerProvider: OwnerProvider,
 ) {
     suspend fun addExerciseToWorkout(workoutId: Long, exerciseId: Long) {
-        val nextIndex = (dao.getMaxOrderIndex(workoutId) ?: -1) + 1
-        dao.insert(WorkoutExerciseEntity(workoutId, exerciseId,nextIndex)
+        val owner = ownerProvider.currentOwner()
+        val nextIndex = (dao.getMaxOrderIndex(owner, workoutId) ?: -1) + 1
+        dao.insert(
+            WorkoutExerciseEntity(
+                workoutId = workoutId,
+                exerciseId = exerciseId,
+                orderIndex = nextIndex,
+                ownerFirebaseUid = owner,
+            )
         )
     }
 
     fun observeExerciseIdsByWorkout(workoutId: Long): Flow<List<Long>> {
-        return dao.getExerciseIdsByWorkout(workoutId)
+        return dao.getExerciseIdsByWorkout(ownerProvider.currentOwner(), workoutId)
     }
 
     fun observeAllWorkoutExercises(): Flow<List<WorkoutExerciseEntity>> {
-        return dao.getAll()
+        return dao.getAll(ownerProvider.currentOwner())
     }
 
     fun observeSuggestedExercises(limit: Int): Flow<List<ExerciseEntity>> {
-        return dao.observeSuggestedExerciseRows().map { rows ->
+        return dao.observeSuggestedExerciseRows(ownerProvider.currentOwner()).map { rows ->
             mixSuggestedExercises(rows, limit)
         }
     }
 
     fun observeWorkoutExerciseById(workoutId: Long, exerciseId: Long): Flow<WorkoutExerciseEntity?> {
-        return dao.getWorkoutExercise(workoutId, exerciseId)
+        return dao.getWorkoutExercise(ownerProvider.currentOwner(), workoutId, exerciseId)
     }
 
     suspend fun updateExerciseOrder(workoutId: Long, exercises: List<ExerciseEntity>) {
-        dao.updateExerciseOrder(workoutId, exercises)
+        dao.updateExerciseOrder(ownerProvider.currentOwner(), workoutId, exercises, System.currentTimeMillis())
     }
 
     suspend fun deleteExerciseFromWorkout(workoutId: Long, exerciseId: Long) {
-        val workoutExercise = observeWorkoutExerciseById(workoutId, exerciseId).firstOrNull()
-        if (workoutExercise != null) {
-            dao.delete(workoutExercise)
+        val owner = ownerProvider.currentOwner()
+        val link = observeWorkoutExerciseById(workoutId, exerciseId).firstOrNull()
+        if (link != null && link.ownerFirebaseUid == owner) {
+            dao.delete(link.copy(deletedAt = System.currentTimeMillis(), syncStatus = "PENDING_DELETE"))
         }
     }
 }
 
-/**
- * Builds a mixed suggestion list from the exercises of all workouts.
- *
- * Workouts are visited newest first (higher [SuggestedExerciseRow.sourceWorkoutId]
- * means it was created later) and exercises are taken round-robin, one workout
- * per pass, in a random order inside each workout. That keeps the list from
- * reading like a single workout while the most recently created workouts still
- * lead. An exercise that appears in several workouts is only suggested once.
- */
 internal fun mixSuggestedExercises(
     rows: List<SuggestedExerciseRow>,
     limit: Int,

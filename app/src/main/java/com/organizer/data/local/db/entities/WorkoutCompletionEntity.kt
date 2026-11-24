@@ -3,18 +3,9 @@ package com.organizer.data.local.db.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.organizer.auth.OwnerProvider
+import java.util.UUID
 
-/**
- * How much of a workout was performed on a given day.
- *
- * The player tracks exercises only (done / skipped), so this row stores the
- * counts instead of individual results. The calendar shows the resulting
- * percentage on the matching date.
- *
- * `dateKey` is the compact local date (`yyyyMMdd`) used by the schedule, so a
- * completion is tied to the day it happened on rather than to a specific
- * schedule entry (a workout can be scheduled more than once).
- */
 @Entity(
     tableName = "workout_completion",
     primaryKeys = ["dateKey", "workoutId"],
@@ -26,7 +17,7 @@ import androidx.room.Index
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("workoutId")]
+    indices = [Index("workoutId"), Index("syncId", unique = true), Index("ownerFirebaseUid")]
 )
 data class WorkoutCompletionEntity(
     val dateKey: Int,
@@ -34,4 +25,10 @@ data class WorkoutCompletionEntity(
     val completedExercises: Int,
     val totalExercises: Int,
     val completedAt: Long = System.currentTimeMillis(),
+    val ownerFirebaseUid: String = OwnerProvider.GUEST,
+    val syncId: String = UUID.randomUUID().toString(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
+    val syncStatus: String = "LOCAL_ONLY",
+    val serverVersion: Long = 0,
 )

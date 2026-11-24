@@ -2,12 +2,11 @@ package com.organizer.data.local.db.entities
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.organizer.auth.OwnerProvider
+import java.util.UUID
 
-/**
- * An exercise the user marked as favorite. Kept in its own table so library
- * syncs never overwrite the user's choice.
- */
 @Entity(
     tableName = "favorite_exercise",
     foreignKeys = [
@@ -17,11 +16,22 @@ import androidx.room.PrimaryKey
             childColumns = ["exerciseId"],
             onDelete = ForeignKey.CASCADE,
         )
+    ],
+    indices = [
+        Index("syncId", unique = true),
+        Index("ownerFirebaseUid"),
+        Index(value = ["ownerFirebaseUid", "exerciseId"], unique = true),
     ]
 )
 data class FavoriteExerciseEntity(
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
+    val favoriteId: Long = 0L,
     val exerciseId: Long,
-    /** Timestamp used to show the most recently liked exercises first. */
     val addedAt: Long = System.currentTimeMillis(),
+    val ownerFirebaseUid: String = OwnerProvider.GUEST,
+    val syncId: String = UUID.randomUUID().toString(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
+    val syncStatus: String = "LOCAL_ONLY",
+    val serverVersion: Long = 0,
 )

@@ -20,39 +20,34 @@ interface WorkoutExerciseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(workoutExercises: List<WorkoutExerciseEntity>)
 
-    @Query("""UPDATE workout_exercise SET orderIndex = :orderIndex WHERE workoutId = :workoutId AND exerciseId = :exerciseId""")
-    suspend fun updateOrderIndex(workoutId: Long, exerciseId: Long, orderIndex: Int)
+    @Query("UPDATE workout_exercise SET orderIndex = :orderIndex, updatedAt = :updatedAt WHERE workoutId = :workoutId AND exerciseId = :exerciseId AND ownerFirebaseUid = :owner")
+    suspend fun updateOrderIndex(owner: String, workoutId: Long, exerciseId: Long, orderIndex: Int, updatedAt: Long)
 
     @Transaction
-    suspend fun updateExerciseOrder(workoutId: Long, exercises: List<ExerciseEntity>) {
+    suspend fun updateExerciseOrder(owner: String, workoutId: Long, exercises: List<ExerciseEntity>, updatedAt: Long) {
         exercises.forEachIndexed { index, exercise ->
-            updateOrderIndex(workoutId, exercise.exerciseId, index)
+            updateOrderIndex(owner, workoutId, exercise.exerciseId, index, updatedAt)
         }
     }
 
-    @Query("SELECT exerciseId FROM workout_exercise WHERE workoutId = :workoutId ORDER BY orderIndex ASC")
-    fun getExerciseIdsByWorkout(workoutId: Long): Flow<List<Long>>
+    @Query("SELECT exerciseId FROM workout_exercise WHERE workoutId = :workoutId AND ownerFirebaseUid = :owner ORDER BY orderIndex ASC")
+    fun getExerciseIdsByWorkout(owner: String, workoutId: Long): Flow<List<Long>>
 
-    /** Every (workout, exercise) pair, used to summarize what a workout covers. */
-    @Query("SELECT * FROM workout_exercise")
-    fun getAll(): Flow<List<WorkoutExerciseEntity>>
+    @Query("SELECT * FROM workout_exercise WHERE ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    fun getAll(owner: String): Flow<List<WorkoutExerciseEntity>>
 
-    @Query("""SELECT MAX(orderIndex) FROM workout_exercise WHERE workoutId = :workoutId""")
-    suspend fun getMaxOrderIndex(workoutId: Long): Int?
+    @Query("SELECT MAX(orderIndex) FROM workout_exercise WHERE workoutId = :workoutId AND ownerFirebaseUid = :owner")
+    suspend fun getMaxOrderIndex(owner: String, workoutId: Long): Int?
 
-    @Query("SELECT * FROM workout_exercise WHERE workoutId = :workoutId AND exerciseId = :exerciseId")
-    fun getWorkoutExercise(workoutId: Long, exerciseId: Long): Flow<WorkoutExerciseEntity?>
+    @Query("SELECT * FROM workout_exercise WHERE workoutId = :workoutId AND exerciseId = :exerciseId AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    fun getWorkoutExercise(owner: String, workoutId: Long, exerciseId: Long): Flow<WorkoutExerciseEntity?>
 
-    /**
-     * Every exercise the user already added to a workout, tagged with the
-     * workout it came from. Both standard and custom exercises are included.
-     * The mixing and recency ordering happen in the repository.
-     */
     @Query(
         """SELECT e.*, we.workoutId AS sourceWorkoutId FROM exercise e
-        INNER JOIN workout_exercise we ON e.exerciseId = we.exerciseId"""
+        INNER JOIN workout_exercise we ON e.exerciseId = we.exerciseId
+        WHERE we.ownerFirebaseUid = :owner AND e.deletedAt IS NULL"""
     )
-    fun observeSuggestedExerciseRows(): Flow<List<SuggestedExerciseRow>>
+    fun observeSuggestedExerciseRows(owner: String): Flow<List<SuggestedExerciseRow>>
 
     @Delete
     suspend fun delete(workoutExercise: WorkoutExerciseEntity)

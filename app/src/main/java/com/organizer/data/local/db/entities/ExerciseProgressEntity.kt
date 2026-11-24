@@ -4,6 +4,8 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.organizer.auth.OwnerProvider
+import java.util.UUID
 
 @Entity(
     tableName = "exercise_progress",
@@ -26,6 +28,8 @@ import androidx.room.PrimaryKey
         Index("exerciseId"),
         Index("recordedAt"),
         Index("sessionId"),
+        Index("syncId", unique = true),
+        Index("ownerFirebaseUid"),
     ]
 )
 data class ExerciseProgressEntity(
@@ -38,12 +42,12 @@ data class ExerciseProgressEntity(
     val weight: Double? = null,
     val durationSeconds: Int? = null,
     val recordedAt: Long = System.currentTimeMillis(),
-    /**
-     * One workout execution. Sets are numbered and shown per session so a new
-     * session starts again at "Set 1" instead of continuing last week's list.
-     * `0` marks rows recorded before sessions were introduced.
-     */
     val sessionId: Long = 0L,
-    /** Unit the recorded weight belongs to (kg or lb); sticks to the set. */
     val unitSystem: String = "METRIC",
+    val ownerFirebaseUid: String = OwnerProvider.GUEST,
+    val syncId: String = UUID.randomUUID().toString(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
+    val syncStatus: String = "LOCAL_ONLY",
+    val serverVersion: Long = 0,
 )

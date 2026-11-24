@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.Flow
 interface PlannedSetDao {
 
     @Query(
-        "SELECT * FROM planned_set WHERE workoutId = :workoutId AND exerciseId = :exerciseId " +
+        "SELECT * FROM planned_set WHERE ownerFirebaseUid = :owner AND workoutId = :workoutId AND exerciseId = :exerciseId AND deletedAt IS NULL " +
             "ORDER BY setNumber ASC"
     )
-    fun observePlannedSets(workoutId: Long, exerciseId: Long): Flow<List<PlannedSetEntity>>
+    fun observePlannedSets(owner: String, workoutId: Long, exerciseId: Long): Flow<List<PlannedSetEntity>>
 }

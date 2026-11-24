@@ -9,11 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WorkoutCompletionDao {
+    @Query("SELECT * FROM workout_completion WHERE ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    fun observeAll(owner: String): Flow<List<WorkoutCompletionEntity>>
 
-    @Query("SELECT * FROM workout_completion")
-    fun observeAll(): Flow<List<WorkoutCompletionEntity>>
-
-    /** Repeating the same workout on the same day replaces that day's result. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(completion: WorkoutCompletionEntity)
 }

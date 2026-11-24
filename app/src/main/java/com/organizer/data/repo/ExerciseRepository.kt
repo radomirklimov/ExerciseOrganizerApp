@@ -4,6 +4,8 @@ import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.remote.repo.ExerciseRemoteDataSource
+import com.organizer.sync.SyncOutboxWriter
+import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -12,6 +14,8 @@ class ExerciseRepository @Inject constructor(
     private val remoteDataSource: ExerciseRemoteDataSource,
     private val fileRepository: FileRepository,
     private val ownerProvider: OwnerProvider,
+    private val transactions: SyncTransactionRunner,
+    private val outboxWriter: SyncOutboxWriter,
 ) {
     suspend fun addCustomExercise(
         name: String,
@@ -19,18 +23,21 @@ class ExerciseRepository @Inject constructor(
         imageName: String,
         exerciseType: String = "REPS_WEIGHT",
     ) {
+        val owner = ownerProvider.currentOwner()
         val cleanedInstructions = instructions.filter { it.isNotBlank() }
-        exerciseDao.insert(
-            ExerciseEntity(
-                name = name,
-                instructions = cleanedInstructions,
-                imageUrls = listOf(imageName),
-                isCustom = true,
-                exerciseType = exerciseType,
-                ownerFirebaseUid = ownerProvider.currentOwner(),
-                syncId = java.util.UUID.randomUUID().toString(),
-            )
+        val exercise = ExerciseEntity(
+            name = name,
+            instructions = cleanedInstructions,
+            imageUrls = listOf(imageName),
+            isCustom = true,
+            exerciseType = exerciseType,
+            ownerFirebaseUid = owner,
+            syncId = java.util.UUID.randomUUID().toString(),
         )
+        transactions.run {
+            exerciseDao.insert(exercise)
+            outboxWriter.upsertCustomExercise(owner, exercise)
+        }
     }
 
     fun observeAllExercises(): Flow<List<ExerciseEntity>> {
@@ -105,7 +112,14 @@ class ExerciseRepository @Inject constructor(
      * resolve the exercise.
      */
     suspend fun deleteCustomExercise(id: Long) {
+        val owner = ownerProvider.currentOwner()
         val now = System.currentTimeMillis()
-        exerciseDao.softDeleteCustom(ownerProvider.currentOwner(), id, now, now)
+        transactions.run {
+            val exercise = exerciseDao.getByIdOnce(owner, id)
+            if (exercise?.isCustom == true && exercise.ownerFirebaseUid == owner && exercise.deletedAt == null) {
+                exerciseDao.softDeleteCustom(owner, id, now, now)
+                outboxWriter.deleteCustomExercise(owner, exercise.copy(deletedAt = now))
+            }
+        }
     }
 }

@@ -11,7 +11,6 @@ import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
-import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.mapper.asEntity
@@ -27,6 +26,7 @@ class StarterTemplateRepository @Inject constructor(
     private val exerciseCategoryDao: ExerciseCategoryDao,
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
+    private val workoutRepository: WorkoutRepository,
     private val workoutExerciseDao: WorkoutExerciseDao,
     private val fileRepository: FileRepository,
     private val ownerProvider: OwnerProvider,
@@ -114,12 +114,9 @@ class StarterTemplateRepository @Inject constructor(
         val exerciseIds = templateDao.getExerciseIdsOnce(templateId)
 
         val owner = ownerProvider.currentOwner()
-        val workoutId = workoutDao.insert(
-            WorkoutEntity(
-                name = uniqueWorkoutName(template.name),
-                notes = template.notes,
-                ownerFirebaseUid = owner,
-            )
+        val workoutId = workoutRepository.createImportedWorkout(
+            name = uniqueWorkoutName(template.name),
+            notes = template.notes,
         )
         if (exerciseIds.isNotEmpty()) {
             workoutExerciseDao.insertAll(
@@ -138,9 +135,9 @@ class StarterTemplateRepository @Inject constructor(
 
     private suspend fun uniqueWorkoutName(baseName: String): String {
         val owner = ownerProvider.currentOwner()
-        if (!workoutDao.nameExists(baseName, owner)) return baseName
+        if (!workoutDao.nameExists(WorkoutNameNormalizer.normalize(baseName), owner)) return baseName
         var suffix = 2
-        while (workoutDao.nameExists("$baseName ($suffix)", owner)) {
+        while (workoutDao.nameExists(WorkoutNameNormalizer.normalize("$baseName ($suffix)"), owner)) {
             suffix++
         }
         return "$baseName ($suffix)"

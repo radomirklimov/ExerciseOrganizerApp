@@ -4,12 +4,21 @@ import com.organizer.data.local.dao.CategoryDao
 import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.SyncOutboxDao
+import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.SyncOutboxEntity
+import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.data.local.storage.FileStore
 import com.organizer.data.remote.ApiService
+import com.organizer.sync.SyncOutboxWriter
+import com.organizer.sync.SyncPayloadFactory
+import com.organizer.sync.SyncTransactionRunner
+import kotlinx.serialization.json.Json
 import com.organizer.data.remote.model.Category
 import com.organizer.data.remote.model.Exercise
 import com.organizer.data.remote.model.ExerciseCategory
@@ -287,6 +296,132 @@ class FakeFavoriteExerciseDao : FavoriteExerciseDao {
             current.map {
                 if (it.ownerFirebaseUid == owner && it.exerciseId == exerciseId) {
                     it.copy(deletedAt = deletedAt, syncStatus = "PENDING_DELETE")
+                } else it
+            }
+        }
+    }
+}
+
+class FakeSyncOutboxDao : SyncOutboxDao {
+    val entries = MutableStateFlow<List<SyncOutboxEntity>>(emptyList())
+
+    override suspend fun insert(entry: SyncOutboxEntity) {
+        entries.update { it + entry }
+    }
+
+    override suspend fun getPending(owner: String): List<SyncOutboxEntity> =
+        entries.value.filter { it.ownerFirebaseUid == owner }
+
+    override fun observe(owner: String): Flow<List<SyncOutboxEntity>> =
+        entries.map { list -> list.filter { it.ownerFirebaseUid == owner } }
+
+    override suspend fun findByMutationId(owner: String, mutationId: String): SyncOutboxEntity? =
+        entries.value.firstOrNull { it.ownerFirebaseUid == owner && it.mutationId == mutationId }
+
+    override suspend fun findOpenMutation(
+        owner: String,
+        entityType: String,
+        recordSyncId: String,
+        operation: String,
+    ): SyncOutboxEntity? = entries.value.firstOrNull {
+        it.ownerFirebaseUid == owner &&
+            it.entityType == entityType &&
+            it.recordSyncId == recordSyncId &&
+            it.operation == operation &&
+            it.syncStatus == "PENDING_UPLOAD" &&
+            it.retryCount == 0 &&
+            it.lastError == null
+    }
+
+    override suspend fun updateOpenPayload(owner: String, mutationId: String, payload: String, createdAt: Long) {
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId == mutationId &&
+                    it.syncStatus == "PENDING_UPLOAD" && it.retryCount == 0 && it.lastError == null
+                ) {
+                    it.copy(payload = payload, createdAt = createdAt)
+                } else it
+            }
+        }
+    }
+
+    override suspend fun updateRetry(owner: String, mutationId: String, retryCount: Int, error: String?, status: String) {
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId == mutationId) {
+                    it.copy(retryCount = retryCount, lastError = error, syncStatus = status)
+                } else it
+            }
+        }
+    }
+
+    override suspend fun delete(mutationId: String, owner: String) {
+        entries.update { current ->
+            current.filterNot { it.ownerFirebaseUid == owner && it.mutationId == mutationId }
+        }
+    }
+}
+
+class ImmediateSyncTransactionRunner : SyncTransactionRunner {
+    override suspend fun <T> run(block: suspend () -> T): T = block()
+}
+
+fun fakeOutboxWriter(outboxDao: FakeSyncOutboxDao = FakeSyncOutboxDao()): Pair<SyncOutboxWriter, FakeSyncOutboxDao> =
+    SyncOutboxWriter(outboxDao, SyncPayloadFactory(Json { ignoreUnknownKeys = true })) to outboxDao
+
+class FakeWorkoutDao : WorkoutDao {
+    val data = MutableStateFlow<List<WorkoutEntity>>(emptyList())
+
+    fun seed(vararg workouts: WorkoutEntity) {
+        data.value = workouts.toList()
+    }
+
+    override suspend fun insert(workoutEntity: WorkoutEntity): Long {
+        val id = if (workoutEntity.workoutId == 0L) {
+            (data.value.maxOfOrNull { it.workoutId } ?: 0L) + 1L
+        } else workoutEntity.workoutId
+        val normalized = workoutEntity.normalizedName
+            ?: com.organizer.data.repo.WorkoutNameNormalizer.normalize(workoutEntity.name)
+        data.update { it + workoutEntity.copy(workoutId = id, normalizedName = normalized) }
+        return id
+    }
+
+    override suspend fun nameExists(normalizedName: String, owner: String): Boolean =
+        data.value.any {
+            (it.normalizedName ?: com.organizer.data.repo.WorkoutNameNormalizer.normalize(it.name)) == normalizedName &&
+                it.ownerFirebaseUid == owner && it.deletedAt == null
+        }
+
+    override fun getAll(owner: String): Flow<List<WorkoutEntity>> =
+        data.map { list -> list.filter { it.ownerFirebaseUid == owner && it.deletedAt == null } }
+
+    override fun getWorkoutsWithExerciseCount(owner: String): Flow<List<WorkoutWithExerciseCount>> =
+        data.map { list ->
+            list.filter { it.ownerFirebaseUid == owner && it.deletedAt == null }
+                .map { WorkoutWithExerciseCount(it.workoutId, it.name, 0) }
+        }
+
+    override fun getById(owner: String, id: Long): Flow<WorkoutEntity?> =
+        data.map { list -> list.firstOrNull { it.workoutId == id && it.ownerFirebaseUid == owner && it.deletedAt == null } }
+
+    override suspend fun getByIdOnce(owner: String, id: Long): WorkoutEntity? =
+        data.value.firstOrNull { it.workoutId == id && it.ownerFirebaseUid == owner && it.deletedAt == null }
+
+    override suspend fun softDelete(owner: String, id: Long, deletedAt: Long) {
+        data.update { current ->
+            current.map {
+                if (it.workoutId == id && it.ownerFirebaseUid == owner) {
+                    it.copy(deletedAt = deletedAt, normalizedName = null, syncStatus = "PENDING_DELETE")
+                } else it
+            }
+        }
+    }
+
+    override suspend fun updateNotes(owner: String, id: Long, notes: String, updatedAt: Long) {
+        data.update { current ->
+            current.map {
+                if (it.workoutId == id && it.ownerFirebaseUid == owner && it.deletedAt == null) {
+                    it.copy(notes = notes, updatedAt = updatedAt, syncStatus = "PENDING_UPLOAD")
                 } else it
             }
         }

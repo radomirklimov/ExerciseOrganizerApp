@@ -8,6 +8,8 @@ import com.organizer.fakes.FakeApiService
 import com.organizer.fakes.FakeExerciseDao
 import com.organizer.fakes.FakeFileRemote
 import com.organizer.fakes.FakeFileStore
+import com.organizer.fakes.ImmediateSyncTransactionRunner
+import com.organizer.fakes.fakeOutboxWriter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -36,7 +38,14 @@ class CustomExerciseDeletionTest {
         val store = FakeFileStore()
         val remote = FakeFileRemote()
         val queue = MediaDownloadQueue(store, remote, scope.backgroundScope, 3)
-        return ExerciseRepository(dao, ExerciseRemoteDataSource(FakeApiService()), FileRepository(store, queue), OwnerProvider())
+        return ExerciseRepository(
+            dao,
+            ExerciseRemoteDataSource(FakeApiService()),
+            FileRepository(store, queue),
+            OwnerProvider(),
+            ImmediateSyncTransactionRunner(),
+            fakeOutboxWriter().first,
+        )
     }
 
     @Test

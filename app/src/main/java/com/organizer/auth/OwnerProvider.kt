@@ -6,8 +6,8 @@ import javax.inject.Singleton
 
 /** Supplies the owner key for local user-owned data. */
 @Singleton
-class OwnerProvider @Inject constructor() {
-    fun currentOwner(): String = runCatching {
+open class OwnerProvider @Inject constructor() {
+    open fun currentOwner(): String = runCatching {
         FirebaseAuth.getInstance().currentUser?.uid
     }.getOrNull() ?: GUEST
 

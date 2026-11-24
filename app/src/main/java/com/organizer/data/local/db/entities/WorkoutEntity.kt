@@ -9,7 +9,7 @@ import java.util.UUID
 @Entity(
     "workout",
     indices = [
-        Index(value = ["ownerFirebaseUid", "name"], unique = true),
+        Index(value = ["ownerFirebaseUid", "normalizedName"], unique = true),
         Index("syncId", unique = true),
         Index("ownerFirebaseUid"),
     ]
@@ -25,4 +25,6 @@ data class WorkoutEntity(
     val deletedAt: Long? = null,
     val syncStatus: String = "LOCAL_ONLY",
     val serverVersion: Long = 0,
+    /** Null for tombstones; active rows store trimmed lowercase name. */
+    val normalizedName: String? = null,
 )

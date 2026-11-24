@@ -9,6 +9,8 @@ import com.organizer.fakes.FakeApiService
 import com.organizer.fakes.FakeExerciseDao
 import com.organizer.fakes.FakeFileRemote
 import com.organizer.fakes.FakeFileStore
+import com.organizer.fakes.ImmediateSyncTransactionRunner
+import com.organizer.fakes.fakeOutboxWriter
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -37,7 +39,14 @@ class ExerciseRepositoryTest {
     private fun repo(scope: kotlinx.coroutines.test.TestScope): ExerciseRepository {
         val queue = MediaDownloadQueue(store, remote, scope.backgroundScope, 3)
         files = FileRepository(store, queue)
-        return ExerciseRepository(dao, ExerciseRemoteDataSource(api), files, OwnerProvider())
+        return ExerciseRepository(
+            dao,
+            ExerciseRemoteDataSource(api),
+            files,
+            OwnerProvider(),
+            ImmediateSyncTransactionRunner(),
+            fakeOutboxWriter().first,
+        )
     }
 
     private fun exercise(

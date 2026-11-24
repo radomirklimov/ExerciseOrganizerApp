@@ -35,7 +35,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 14,
+    version = 15,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -75,6 +75,30 @@ abstract class AppDatabase : RoomDatabase() {
  * Milestone 1: owner isolation, stable sync IDs and sync metadata.
  * Existing rows are preserved; UUIDs are generated only for rows that lack one.
  */
+/**
+ * Active workout names are unique by owner using the app's normalisation rule
+ * (trim + lowercase). Tombstones get a NULL normalised name, so they no longer
+ * block recreating a workout with the same name.
+ */
+val ACTIVE_WORKOUT_NAME_UNIQUENESS_MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE workout ADD COLUMN normalizedName TEXT")
+        db.execSQL(
+            "UPDATE workout SET normalizedName = lower(trim(name)) WHERE deletedAt IS NULL"
+        )
+        db.execSQL("DROP INDEX IF EXISTS index_workout_ownerFirebaseUid_name")
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_workout_ownerFirebaseUid_normalizedName " +
+                "ON workout (ownerFirebaseUid, normalizedName)"
+        )
+        db.query("PRAGMA foreign_key_check").use { cursor ->
+            if (cursor.moveToFirst()) {
+                throw IllegalStateException("Foreign key violation after v14 -> v15 migration")
+            }
+        }
+    }
+}
+
 val OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14 = object : Migration(13, 14) {
     override fun migrate(db: SupportSQLiteDatabase) {
         val now = System.currentTimeMillis()

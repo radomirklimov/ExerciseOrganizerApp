@@ -14,8 +14,8 @@ interface WorkoutDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(workoutEntity: WorkoutEntity): Long
 
-    @Query("SELECT EXISTS(SELECT 1 FROM workout WHERE name = :name AND ownerFirebaseUid = :owner AND deletedAt IS NULL)")
-    suspend fun nameExists(name: String, owner: String): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM workout WHERE normalizedName = :normalizedName AND ownerFirebaseUid = :owner AND deletedAt IS NULL)")
+    suspend fun nameExists(normalizedName: String, owner: String): Boolean
 
     @Query("SELECT * FROM workout WHERE ownerFirebaseUid = :owner AND deletedAt IS NULL ORDER BY workoutId DESC")
     fun getAll(owner: String): Flow<List<WorkoutEntity>>
@@ -38,9 +38,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
     suspend fun getByIdOnce(owner: String, id: Long): WorkoutEntity?
 
-    @Query("UPDATE workout SET deletedAt = :deletedAt, syncStatus = 'PENDING_DELETE' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
+    @Query("UPDATE workout SET deletedAt = :deletedAt, normalizedName = NULL, syncStatus = 'PENDING_DELETE' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
     suspend fun softDelete(owner: String, id: Long, deletedAt: Long)
 
-    @Query("UPDATE workout SET notes = :notes, updatedAt = :updatedAt, syncStatus = 'PENDING_UPLOAD' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
+    @Query("UPDATE workout SET notes = :notes, updatedAt = :updatedAt, syncStatus = 'PENDING_UPLOAD' WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
     suspend fun updateNotes(owner: String, id: Long, notes: String, updatedAt: Long)
 }

@@ -48,8 +48,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.organizer.data.local.db.entities.StarterTemplateEntity
+import com.organizer.R
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 
 private val Primary: Color
     @Composable @ReadOnlyComposable get() = AppTheme.colors.primaryDark
@@ -142,7 +145,7 @@ fun StarterTemplateCard(
                 }
 
                 Text(
-                    text = "${template.exerciseCount} exercises",
+                    text = stringResource(R.string.starter_template_exercises_count, template.exerciseCount),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = OnSurfaceVariant,
@@ -185,7 +188,7 @@ fun StarterTemplateCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Use Routine",
+                    text = stringResource(R.string.starter_templates_use),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Primary,
@@ -214,7 +217,7 @@ fun StarterTemplatesSection(
     onViewAllClick: () -> Unit,
     viewModel: OrganizerViewModel,
     modifier: Modifier = Modifier,
-    title: String = "Starter templates",
+    @StringRes titleRes: Int = R.string.starter_templates_title,
 ) {
     if (templates.isEmpty()) return
 
@@ -226,15 +229,18 @@ fun StarterTemplatesSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = title,
+                text = stringResource(titleRes),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = OnSurface,
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "${templates.size} " +
-                    if (templates.size == 1) "routine" else "routines",
+                text = if (templates.size == 1) {
+                    stringResource(R.string.starter_templates_routine)
+                } else {
+                    stringResource(R.string.starter_templates_routines_count, templates.size)
+                },
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = AppTheme.colors.textMuted,
@@ -316,14 +322,14 @@ private fun ViewAllTemplatesCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "View all",
+                text = stringResource(R.string.starter_templates_view_all),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppTheme.colors.onPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "All templates",
+                text = stringResource(R.string.starter_templates_all),
                 fontSize = 11.sp,
                 color = AppTheme.colors.onPrimary.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,

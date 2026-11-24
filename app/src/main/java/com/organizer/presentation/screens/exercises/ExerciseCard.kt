@@ -40,7 +40,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.R
 import com.organizer.presentation.screens.general.CelebrationMessage
 import com.organizer.presentation.screens.general.CelebrationOverlay
 import com.organizer.ui.theme.AppTheme
@@ -49,7 +52,7 @@ import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.organizer.ui.theme.darkerShade
-
+import android.content.Context
 @Composable
 fun ExerciseCard(
     exerciseId: Long,
@@ -71,7 +74,7 @@ fun ExerciseCard(
         mutableStateOf<CelebrationMessage?>(null, referentialEqualityPolicy())
     }
     val scrollState = rememberScrollState()
-
+    val context = LocalContext.current
     LaunchedEffect(showSavePopup, pendingCelebration) {
         val message = pendingCelebration ?: return@LaunchedEffect
         if (!showSavePopup) {
@@ -103,7 +106,7 @@ fun ExerciseCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Loading...",
+                    text = stringResource(R.string.common_loading),
                     color = AppTheme.colors.textMuted,
                     fontSize = 16.sp
                 )
@@ -144,7 +147,7 @@ fun ExerciseCard(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.profile_back),
                         tint = arrowTint,
                         modifier = Modifier.size(22.dp),
                     )
@@ -202,8 +205,8 @@ fun ExerciseCard(
                 viewModel = viewModel,
                 onExercisesAdded = { workoutNames ->
                     pendingCelebration = CelebrationMessage(
-                        title = "Exercise Added! 🎉",
-                        subtitle = workoutNamesSubtitle(workoutNames),
+                        title = context.getString(R.string.exercise_added_title),
+                        subtitle = workoutNamesSubtitle(context, workoutNames),
                     )
                 },
             )
@@ -235,7 +238,7 @@ fun ExerciseCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Add to Workout",
+                    stringResource(R.string.exercise_add_to_workout),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -252,10 +255,10 @@ fun ExerciseCard(
 }
 
 /** Subtitle for the "added" toast, naming where the exercise went. */
-private fun workoutNamesSubtitle(workoutNames: List<String>): String = when {
-    workoutNames.isEmpty() -> "Added to your workout"
-    workoutNames.size == 1 -> "Added to ${workoutNames.first()}"
-    else -> "Added to ${workoutNames.first()} + ${workoutNames.size - 1} more"
+private fun workoutNamesSubtitle(context: Context, workoutNames: List<String>): String = when {
+    workoutNames.isEmpty() -> context.getString(R.string.exercise_added_to_your_workout)
+    workoutNames.size == 1 -> context.getString(R.string.exercise_added_to_one, workoutNames.first())
+    else -> context.getString(R.string.exercise_added_to_multiple, workoutNames.first(), workoutNames.size - 1)
 }
 
 /**
@@ -289,9 +292,9 @@ private fun FavoriteToggle(
                     Icons.Outlined.FavoriteBorder
                 },
                 contentDescription = if (isFavorite) {
-                    "Remove from favorite exercises"
+                    stringResource(R.string.exercise_remove_from_favorites)
                 } else {
-                    "Add to favorite exercises"
+                    stringResource(R.string.exercise_add_to_favorites)
                 },
                 tint = if (isFavorite) AppTheme.colors.favorite else AppTheme.colors.textSecondary,
                 modifier = Modifier.size(22.dp),

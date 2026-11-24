@@ -15,6 +15,8 @@ import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
+import com.organizer.R
 
 @Composable
 fun TabSwitcher(
@@ -31,14 +33,14 @@ fun TabSwitcher(
     ) {
 
         TabButton(
-            title = "My Workouts",
+            title = stringResource(R.string.custom_tab_workouts),
             selected = selectedTab == CustomsTab.WORKOUTS,
             modifier = Modifier.weight(1f),
             onClick = { viewModel.selectedTab.value = CustomsTab.WORKOUTS }
         )
 
         TabButton(
-            title = "My Exercises",
+            title = stringResource(R.string.custom_tab_exercises),
             selected = selectedTab == CustomsTab.EXERCISES,
             modifier = Modifier.weight(1f),
             onClick = { viewModel.selectedTab.value = CustomsTab.EXERCISES }

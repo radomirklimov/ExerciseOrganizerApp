@@ -79,6 +79,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.preferences.UnitSystem
@@ -110,8 +114,9 @@ fun WorkoutExecutionScreen(
     val exercisesFlow = remember(workoutId) { viewModel.observeWorkoutExercises(workoutId) }
     val workout by workoutFlow.collectAsState(initial = null)
     val exercises by exercisesFlow.collectAsState(initial = emptyList())
-    val workoutName = workout?.name ?: "Workout"
+    val workoutName = workout?.name ?: stringResource(R.string.workout_default_name)
     val total = exercises.size
+    val context = LocalContext.current
 
     // Session state survives configuration changes (rotation, split screen).
     var currentIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -176,8 +181,8 @@ fun WorkoutExecutionScreen(
                 nowRealtime = SystemClock.elapsedRealtime(),
             )
             celebration = CelebrationMessage(
-                title = "Workout Complete! 🎉",
-                subtitle = "Finished in ${formatSeconds(finishedIn)}",
+                title = context.getString(R.string.workout_complete_title),
+                subtitle = context.getString(R.string.workout_finished_in, formatSeconds(finishedIn)),
             )
         }
     }
@@ -230,11 +235,11 @@ fun WorkoutExecutionScreen(
         if (plannedSets.isNotEmpty()) {
             plannedSets
                 .sortedBy { it.setNumber }
-                .map { ExecutionSet(it.setNumber, plannedSetSummary(it, unitSystem)) }
+                .map { ExecutionSet(it.setNumber, plannedSetSummary(context, it, unitSystem)) }
         } else {
             latestSessionSets
                 .sortedBy { it.setNumber }
-                .map { ExecutionSet(it.setNumber, setSummary(it)) }
+                .map { ExecutionSet(it.setNumber, setSummary(context, it)) }
         }
     }
 
@@ -460,7 +465,7 @@ fun WorkoutExecutionScreen(
                                                 tint = ExecutionBrand,
                                             )
                                             Text(
-                                                text = "Workout Note",
+                                                text = stringResource(R.string.workout_note_label),
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = ExecutionInkSecondary,
@@ -554,7 +559,7 @@ private fun ExecutionHeader(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Exit workout",
+                            contentDescription = stringResource(R.string.workout_exit),
                             modifier = Modifier.size(20.dp),
                             tint = ExecutionInk,
                         )
@@ -577,7 +582,7 @@ private fun ExecutionHeader(
                     )
                     if (total > 0) {
                         Text(
-                            text = "Exercise ${currentIndex.coerceAtMost(total - 1) + 1} of $total",
+                            text = stringResource(R.string.workout_exercise_of, currentIndex.coerceAtMost(total - 1) + 1, total),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = ExecutionBrand,
@@ -773,7 +778,7 @@ private fun InstructionToggle(
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                text = if (expanded) "Hide instructions" else "Instructions",
+                text = if (expanded) stringResource(R.string.workout_hide_instructions) else stringResource(R.string.workout_instructions),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = ExecutionBrand,
@@ -848,7 +853,7 @@ private fun SetsCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "SETS",
+                    text = stringResource(R.string.workout_sets_label),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -861,9 +866,9 @@ private fun SetsCard(
                 ) {
                     Text(
                         text = if (sets.isEmpty()) {
-                            "No sets"
+                            stringResource(R.string.workout_no_sets)
                         } else {
-                            "$doneCount / ${sets.size} done"
+                            stringResource(R.string.workout_sets_done, doneCount, sets.size)
                         },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         fontSize = 12.sp,
@@ -875,7 +880,7 @@ private fun SetsCard(
 
             if (sets.isEmpty()) {
                 Text(
-                    text = "No sets defined for this exercise.",
+                    text = stringResource(R.string.workout_no_sets_defined),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
@@ -956,7 +961,7 @@ private fun ExecutionSetRow(
             }
             Spacer(Modifier.width(10.dp))
             Text(
-                text = "Set",
+                text = stringResource(R.string.track_set_label),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (checked || isCurrent) ExecutionInk else ExecutionInkMuted,
@@ -999,10 +1004,10 @@ private fun ExerciseStopwatchCard(
     onStop: () -> Unit,
 ) {
     val status = when {
-        !started -> "Ready"
-        running -> "Running"
-        stopped -> "Stopped"
-        else -> "Paused"
+        !started -> stringResource(R.string.timer_ready)
+        running -> stringResource(R.string.timer_running)
+        stopped -> stringResource(R.string.timer_stopped)
+        else -> stringResource(R.string.timer_paused)
     }
 
     Surface(
@@ -1030,7 +1035,7 @@ private fun ExerciseStopwatchCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "STOPWATCH",
+                        text = stringResource(R.string.workout_stopwatch),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp,
@@ -1061,7 +1066,7 @@ private fun ExerciseStopwatchCard(
                 color = if (stopped) ExecutionGreen else ExecutionInk,
             )
             Text(
-                text = "ELAPSED",
+                text = stringResource(R.string.workout_elapsed),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp,
@@ -1077,13 +1082,13 @@ private fun ExerciseStopwatchCard(
                 when {
                     running -> {
                         PrimaryTimerButton(
-                            label = "Pause",
+                            label = stringResource(R.string.workout_pause),
                             icon = Icons.Filled.Pause,
                             onClick = onPause,
                             modifier = Modifier.weight(1f),
                         )
                         SecondaryTimerButton(
-                            label = "Stop",
+                            label = stringResource(R.string.workout_stop),
                             icon = Icons.Filled.Stop,
                             onClick = onStop,
                             modifier = Modifier.weight(1f),
@@ -1092,13 +1097,13 @@ private fun ExerciseStopwatchCard(
 
                     started && !stopped -> {
                         PrimaryTimerButton(
-                            label = "Resume",
+                            label = stringResource(R.string.workout_resume),
                             icon = Icons.Filled.PlayArrow,
                             onClick = onResume,
                             modifier = Modifier.weight(1f),
                         )
                         SecondaryTimerButton(
-                            label = "Stop",
+                            label = stringResource(R.string.workout_stop),
                             icon = Icons.Filled.Stop,
                             onClick = onStop,
                             modifier = Modifier.weight(1f),
@@ -1109,7 +1114,7 @@ private fun ExerciseStopwatchCard(
                     // begins a fresh stopwatch from zero.
                     else -> {
                         PrimaryTimerButton(
-                            label = "Start",
+                            label = stringResource(R.string.workout_start),
                             icon = Icons.Filled.PlayArrow,
                             onClick = onStart,
                             modifier = Modifier.weight(1f),
@@ -1229,14 +1234,14 @@ private fun UpNextCard(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                text = "UP NEXT",
+                text = stringResource(R.string.workout_up_next),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp,
                 color = ExecutionBrand,
             )
             Text(
-                text = nextExercise?.name ?: "Workout Complete!",
+                text = nextExercise?.name ?: stringResource(R.string.workout_complete),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = ExecutionInk,
@@ -1272,7 +1277,7 @@ private fun ExecutionActionBar(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PrimaryActionButton(
-                label = "Done",
+                label = stringResource(R.string.workout_done),
                 icon = Icons.Filled.Check,
                 containerColor = ExecutionGreen,
                 enabled = doneEnabled,
@@ -1282,7 +1287,7 @@ private fun ExecutionActionBar(
             // and the icon differ, so skipping reads as the alternate answer
             // instead of a lesser action.
             PrimaryActionButton(
-                label = "Skip Exercise",
+                label = stringResource(R.string.workout_skip_exercise),
                 icon = Icons.Filled.SkipNext,
                 containerColor = ExecutionRed,
                 enabled = true,
@@ -1340,28 +1345,28 @@ private fun PrimaryActionButton(
 // Encouragement follows how much of the workout was actually performed, so a
 // run with a few skipped exercises is not celebrated like a full one.
 private val LowCompletionMessages = listOf(
-    "Getting started is what counts! 👊",
-    "One step at a time! 👣",
-    "You're off to a start! 🚀",
-    "Keep showing up! 💪",
+    R.string.encourage_beginner_1,
+    R.string.encourage_beginner_2,
+    R.string.encourage_beginner_3,
+    R.string.encourage_beginner_4,
 )
 
 private val MidCompletionMessages = listOf(
-    "You're finding your rhythm! 🎯",
-    "Nice progress! Keep going! 🙌",
-    "You're getting there! 🔥",
-    "Keep pushing forward! 🚀",
+    R.string.encourage_mid_1,
+    R.string.encourage_mid_2,
+    R.string.encourage_mid_3,
+    R.string.encourage_mid_4,
 )
 
 private val HighCompletionMessages = listOf(
-    "Outstanding effort! 🏆",
-    "You're crushing it! 🔥",
-    "Look at you go! 💪",
-    "You're on fire! 🔥",
+    R.string.encourage_high_1,
+    R.string.encourage_high_2,
+    R.string.encourage_high_3,
+    R.string.encourage_high_4,
 )
 
 /** Under 20%, 20–50% and over 50%. */
-private fun completionMessages(percent: Int): List<String> = when {
+private fun completionMessages(percent: Int): List<Int> = when {
     percent < 20 -> LowCompletionMessages
     percent <= 50 -> MidCompletionMessages
     else -> HighCompletionMessages
@@ -1384,7 +1389,7 @@ private fun StartCountdownOverlay(seconds: Int) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Get ready!",
+                text = stringResource(R.string.workout_countdown_get_ready),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = ExecutionBrand100,
@@ -1410,7 +1415,7 @@ private fun StartCountdownOverlay(seconds: Int) {
             }
             Spacer(Modifier.height(20.dp))
             Text(
-                text = "Your workout starts in $seconds...",
+                text = stringResource(R.string.workout_countdown_message, seconds),
                 fontSize = 14.sp,
                 color = ExecutionBrand100,
                 textAlign = TextAlign.Center,
@@ -1428,9 +1433,10 @@ private fun CompletionOverlay(
     val percent = completionPercent(completed, total)
     // Stable while the overlay is visible (and across rotation), so the
     // encouragement does not change on every recomposition.
-    val encouragement = rememberSaveable(completed, total) {
+    val encouragementRes = rememberSaveable(completed, total) {
         completionMessages(percent).random()
     }
+    val encouragement = stringResource(encouragementRes)
 
     Box(
         modifier = Modifier
@@ -1479,7 +1485,7 @@ private fun CompletionOverlay(
                             color = ExecutionInk,
                         )
                         Text(
-                            text = "SUCCESS",
+                            text = stringResource(R.string.workout_success_label),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = ExecutionInkSecondary,
@@ -1489,7 +1495,7 @@ private fun CompletionOverlay(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "Workout Complete!",
+                    text = stringResource(R.string.workout_complete),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = ExecutionInk,
@@ -1498,9 +1504,9 @@ private fun CompletionOverlay(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = if (completed >= total) {
-                        "$encouragement You finished all $total exercises."
+                        "$encouragement ${stringResource(R.string.workout_finished_all, total)}"
                     } else {
-                        "$encouragement You finished $completed of $total exercises."
+                        "$encouragement ${stringResource(R.string.workout_finished_some, completed, total)}"
                     },
                     fontSize = 12.sp,
                     lineHeight = 18.sp,
@@ -1520,7 +1526,7 @@ private fun CompletionOverlay(
                     ),
                 ) {
                     Text(
-                        text = "Back to Schedule",
+                        text = stringResource(R.string.workout_back_to_schedule),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -1540,7 +1546,7 @@ private fun EmptyWorkoutState(onBackClick: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "No exercises in this workout yet.",
+            text = stringResource(R.string.workout_no_exercises),
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = ExecutionInk,
@@ -1552,7 +1558,7 @@ private fun EmptyWorkoutState(onBackClick: () -> Unit) {
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = ExecutionBrand),
         ) {
-            Text("Back")
+            Text(stringResource(R.string.profile_back))
         }
     }
 }
@@ -1567,7 +1573,7 @@ private fun UnavailableState(onBackClick: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "This workout is no longer available.",
+            text = stringResource(R.string.workout_unavailable),
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = ExecutionInk,
@@ -1579,7 +1585,7 @@ private fun UnavailableState(onBackClick: () -> Unit) {
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = ExecutionBrand),
         ) {
-            Text("Back")
+            Text(stringResource(R.string.profile_back))
         }
     }
 }
@@ -1593,14 +1599,14 @@ private fun ExitWorkoutDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Exit workout?",
+                text = stringResource(R.string.workout_exit_title),
                 fontWeight = FontWeight.Bold,
                 color = ExecutionInk,
             )
         },
         text = {
             Text(
-                text = "Your workout progress will be lost if you exit now.",
+                text = stringResource(R.string.workout_exit_message),
                 fontSize = 14.sp,
                 color = ExecutionInkSecondary,
             )
@@ -1608,7 +1614,7 @@ private fun ExitWorkoutDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    text = "Exit",
+                    text = stringResource(R.string.workout_exit_button),
                     fontWeight = FontWeight.Bold,
                     color = ExecutionInkSecondary,
                 )
@@ -1617,7 +1623,7 @@ private fun ExitWorkoutDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    text = "Keep going",
+                    text = stringResource(R.string.workout_keep_going),
                     fontWeight = FontWeight.Bold,
                     color = ExecutionBrand,
                 )
@@ -1629,10 +1635,14 @@ private fun ExitWorkoutDialog(
     )
 }
 
-private fun setSummary(set: ExerciseProgressEntity): String = when (set.inferredExerciseType()) {
+private fun setSummary(context: Context, set: ExerciseProgressEntity): String = when (set.inferredExerciseType()) {
     DURATION_TYPE -> formatDuration(set.durationSeconds ?: 0)
-    "REPS" -> "${set.reps ?: 0} reps"
-    else -> "${formatWeight(set.weight, UnitSystem.entries.firstOrNull { it.name == set.unitSystem } ?: UnitSystem.METRIC)} × ${set.reps ?: 0} reps"
+    "REPS" -> context.getString(R.string.workout_set_summary_reps, set.reps ?: 0)
+    else -> context.getString(
+        R.string.workout_set_summary_weighted,
+        formatWeight(context, set.weight, UnitSystem.entries.firstOrNull { it.name == set.unitSystem } ?: UnitSystem.METRIC),
+        set.reps ?: 0,
+    )
 }
 
 private fun formatElapsed(seconds: Int): String {
@@ -1642,11 +1652,11 @@ private fun formatElapsed(seconds: Int): String {
     return "%d:%02d".format(m, s)
 }
 
-private fun plannedSetSummary(planned: PlannedSetEntity, unitSystem: UnitSystem = UnitSystem.METRIC): String = when {
+private fun plannedSetSummary(context: Context, planned: PlannedSetEntity, unitSystem: UnitSystem = UnitSystem.METRIC): String = when {
     planned.durationSeconds != null -> formatDuration(planned.durationSeconds)
     planned.weight != null && planned.weight > 0.0 ->
-        "${formatWeight(planned.weight, unitSystem)} × ${planned.reps ?: 0} reps"
-    else -> "${planned.reps ?: 0} reps"
+        context.getString(R.string.workout_set_summary_weighted, formatWeight(context, planned.weight, unitSystem), planned.reps ?: 0)
+    else -> context.getString(R.string.workout_set_summary_reps, planned.reps ?: 0)
 }
 
 private fun formatSeconds(seconds: Int): String {

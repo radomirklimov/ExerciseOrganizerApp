@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -74,6 +75,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.organizer.data.local.db.entities.ExerciseEntity
+import android.content.Context
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
 import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
@@ -88,10 +92,11 @@ internal const val TYPE_DURATION = "DURATION"
 
 private val exerciseTypes = listOf(TYPE_REPS, TYPE_REPS_WEIGHT, TYPE_DURATION)
 
+@Composable
 internal fun exerciseTypeLabel(exerciseType: String): String = when (exerciseType) {
-    TYPE_DURATION -> "Duration"
-    TYPE_REPS -> "Reps"
-    else -> "Reps + Weight"
+    TYPE_DURATION -> stringResource(R.string.exercise_type_duration)
+    TYPE_REPS -> stringResource(R.string.exercise_type_reps)
+    else -> stringResource(R.string.exercise_type_reps_weight)
 }
 
 /**
@@ -134,13 +139,28 @@ internal fun effectiveExerciseType(
     }
 }
 
-internal fun formatWeight(weight: Double?, unitSystem: UnitSystem = UnitSystem.METRIC): String {
+/** Locale-aware weight formatting for UI call sites. */
+internal fun formatWeight(
+    context: Context,
+    weight: Double?,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
+): String = formatWeight(weight, context.getString(unitSystem.labelRes))
+
+/** Pure formatting helper, also used by unit tests. */
+internal fun formatWeight(
+    weight: Double?,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
+): String = formatWeight(weight, unitSystem.label)
+
+private fun formatWeight(
+    weight: Double?,
+    unitLabel: String,
+): String {
     val value = weight ?: 0.0
-    val unit = unitSystem.label
     return if (value == value.toLong().toDouble()) {
-        "${value.toLong()} $unit"
+        "${value.toLong()} $unitLabel"
     } else {
-        "$value $unit"
+        "$value $unitLabel"
     }
 }
 
@@ -219,7 +239,7 @@ fun TrackExerciseDialog(
 ) {
     SetEditorDialog(
         stateKey = exercise.exerciseId,
-        title = "Track ${exercise.name}",
+        title = stringResource(R.string.track_exercise_title, exercise.name),
         exerciseName = exercise.name,
         initialType = effectiveExerciseType(exercise, sets),
         sets = sets.map { set ->
@@ -233,7 +253,7 @@ fun TrackExerciseDialog(
                     ?: UnitSystem.METRIC,
             )
         },
-        emptyText = "No sets recorded yet.",
+        emptyText = stringResource(R.string.track_no_sets),
         startAddingSet = startAddingSet,
         initialReps = initialReps,
         initialWeight = initialWeight,
@@ -438,7 +458,7 @@ internal fun SetEditorDialog(
                                     onWeightChange = { weightTenths = it },
                                     durationParts = durationParts,
                                     onDurationPartsChange = { durationParts = it },
-                                    actionLabel = "Update Set ${set.setNumber}",
+                                    actionLabel = stringResource(R.string.track_update_set, set.setNumber),
                                     actionEnabled = hasRequiredValues,
                                     onAction = ::saveSet,
                                     onCancel = ::cancelEditing,
@@ -464,7 +484,7 @@ internal fun SetEditorDialog(
                                 onWeightChange = { weightTenths = it },
                                 durationParts = durationParts,
                                 onDurationPartsChange = { durationParts = it },
-                                actionLabel = "Add Set $nextSetNumber",
+                                actionLabel = stringResource(R.string.track_add_set, nextSetNumber),
                                 actionEnabled = hasRequiredValues,
                                 onAction = ::saveSet,
                                 onCancel = ::cancelEditing,
@@ -480,9 +500,9 @@ internal fun SetEditorDialog(
                         if (editorVisible && !hasRequiredValues) {
                             Text(
                                 text = if (selectedType == TYPE_DURATION) {
-                                    "Duration must be at least 1 second."
+                                    stringResource(R.string.track_duration_min)
                                 } else {
-                                    "Reps must be at least 1."
+                                    stringResource(R.string.track_reps_min)
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center,
@@ -504,7 +524,7 @@ internal fun SetEditorDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         TextButton(onClick = onClose) {
-                            Text("Close")
+                            Text(stringResource(R.string.profile_close))
                         }
                         Button(
                             onClick = {
@@ -517,7 +537,7 @@ internal fun SetEditorDialog(
                             modifier = Modifier.height(48.dp),
                             shape = RoundedCornerShape(50),
                         ) {
-                            Text("Save")
+                            Text(stringResource(R.string.profile_save))
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.DoneAll,
@@ -533,8 +553,8 @@ internal fun SetEditorDialog(
 
     setToDelete?.let { entry ->
         DeleteConfirmationDialog(
-            title = "Delete Set?",
-            itemName = "Set ${entry.setNumber}",
+            title = stringResource(R.string.track_delete_set_title),
+            itemName = stringResource(R.string.track_set_number, entry.setNumber),
             location = exerciseName,
             isPermanent = deletePermanently,
             onConfirm = {
@@ -576,7 +596,7 @@ private fun SetEditorHeader(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close set editor",
+                    contentDescription = stringResource(R.string.track_close_editor),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -672,6 +692,7 @@ private fun RecordedSetCard(
     onDelete: () -> Unit,
     unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
+    val context = LocalContext.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -707,7 +728,7 @@ private fun RecordedSetCard(
                     )
                 }
                 Text(
-                    text = "Set",
+                    text = stringResource(R.string.track_set_label),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -725,15 +746,15 @@ private fun RecordedSetCard(
                     )
 
                     TYPE_REPS -> RecordedSetValue(
-                        text = "${entry.reps ?: 0} reps",
+                        text = stringResource(R.string.track_reps_value, entry.reps ?: 0),
                     )
 
                     else -> {
                         RecordedSetValue(
-                            text = "${entry.reps ?: 0} reps",
+                            text = stringResource(R.string.track_reps_value, entry.reps ?: 0),
                         )
                         RecordedSetValue(
-                            text = formatWeight(entry.weight, entry.unitSystem),
+                            text = formatWeight(context, entry.weight, entry.unitSystem),
                         )
                     }
                 }
@@ -745,7 +766,7 @@ private fun RecordedSetCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit set ${entry.setNumber}",
+                    contentDescription = stringResource(R.string.track_edit_set, entry.setNumber),
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.outline,
                 )
@@ -756,7 +777,7 @@ private fun RecordedSetCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete set ${entry.setNumber}",
+                    contentDescription = stringResource(R.string.track_delete_set, entry.setNumber),
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.error,
                 )
@@ -816,14 +837,14 @@ private fun ActiveSetEditor(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Set $setNumber",
+                    text = stringResource(R.string.track_set_number, setNumber),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(onClick = onCancel) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.profile_cancel))
                 }
             }
 
@@ -896,7 +917,7 @@ private fun DurationInput(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "DURATION (HH:MM:SS)",
+                text = stringResource(R.string.track_duration_label),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium,
@@ -1004,9 +1025,9 @@ private fun RepsStepper(
 ) {
     MetricStepper(
         modifier = modifier,
-        label = "REPETITIONS",
+        label = stringResource(R.string.track_repetitions_label),
         valueText = repsValue.toString(),
-        unit = "reps",
+        unit = stringResource(R.string.track_reps_unit),
         dragValue = repsValue,
         dragValueRange = 0..Int.MAX_VALUE,
         dragStepSize = 1,
@@ -1029,9 +1050,9 @@ private fun WeightStepper(
 ) {
     MetricStepper(
         modifier = modifier,
-        label = "LOAD (${unitSystem.label})",
+        label = stringResource(R.string.track_load_label, stringResource(unitSystem.labelRes)),
         valueText = formatWeightNumber(weightTenths / 10.0),
-        unit = unitSystem.label,
+        unit = stringResource(unitSystem.labelRes),
         valueColor = MaterialTheme.colorScheme.onSurface,
         dragValue = weightTenths,
         dragValueRange = 0..Int.MAX_VALUE,
@@ -1118,7 +1139,7 @@ private fun MetricStepper(
             ) {
                 StepperButton(
                     icon = Icons.Default.Remove,
-                    contentDescription = "Decrease $label",
+                    contentDescription = stringResource(R.string.track_decrease, label),
                     onClick = onDecrease,
                 )
                 Column(
@@ -1141,7 +1162,7 @@ private fun MetricStepper(
                 }
                 StepperButton(
                     icon = Icons.Default.Add,
-                    contentDescription = "Increase $label",
+                    contentDescription = stringResource(R.string.track_increase, label),
                     onClick = onIncrease,
                 )
             }
@@ -1156,7 +1177,7 @@ private fun MetricStepper(
             ) {
                 DragHintArrow(icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft)
                 Text(
-                    text = "DRAG",
+                    text = stringResource(R.string.track_drag),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1255,7 +1276,7 @@ private fun AddSetCard(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Add Set $setNumber",
+                text = stringResource(R.string.track_add_set, setNumber),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,

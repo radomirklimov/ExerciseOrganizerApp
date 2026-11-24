@@ -676,7 +676,7 @@ private fun LanguageAndUnitsCard(
                         color = if (selected) colors.primary else Color.Transparent,
                     ) {
                         Text(
-                            text = unit.label,
+                            text = stringResource(unit.labelRes),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1056,14 +1056,14 @@ private fun AccountCard(
         when (userState) {
             is UserState.Guest, UserState.Authenticating -> {
                 Text(
-                    text = "Guest Mode",
+                    text = stringResource(R.string.profile_guest_mode),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Your workouts are currently stored only on this device.",
+                    text = stringResource(R.string.profile_guest_desc),
                     fontSize = 13.sp,
                     color = colors.textSecondary,
                 )
@@ -1075,7 +1075,7 @@ private fun AccountCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "Continue with Google",
+                        text = stringResource(R.string.profile_continue_google),
                         modifier = Modifier.padding(12.dp),
                         color = colors.onPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -1083,12 +1083,12 @@ private fun AccountCard(
                 }
                 if (userState == UserState.Authenticating) {
                     Spacer(Modifier.height(8.dp))
-                    Text("Authenticating...", color = colors.textSecondary)
+                    Text(stringResource(R.string.profile_authenticating), color = colors.textSecondary)
                 }
             }
             is UserState.Authenticated -> {
                 Text(
-                    text = "Signed in",
+                    text = stringResource(R.string.profile_signed_in),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary,
@@ -1114,7 +1114,7 @@ private fun AccountCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "Sign out",
+                        text = stringResource(R.string.profile_log_out),
                         modifier = Modifier.padding(12.dp),
                         color = colors.primary,
                         fontWeight = FontWeight.SemiBold,

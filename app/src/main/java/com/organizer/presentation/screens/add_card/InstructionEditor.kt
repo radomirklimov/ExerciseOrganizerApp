@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
@@ -42,7 +44,7 @@ fun InstructionEditor(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "(optional)",
+                text = stringResource(R.string.instruction_optional),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -56,7 +58,7 @@ fun InstructionEditor(
                     instructions[index] = it
                 },
                 placeholder = {
-                    Text("Step ${index + 1}")
+                    Text(stringResource(R.string.instruction_step, index + 1))
                 },
                 trailingIcon = {
                     IconButton(
@@ -64,7 +66,7 @@ fun InstructionEditor(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Remove step"
+                            contentDescription = stringResource(R.string.instruction_remove_step)
                         )
                     }
                 }
@@ -83,7 +85,7 @@ fun InstructionEditor(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            Text("Add instruction")
+            Text(stringResource(R.string.instruction_add))
         }
     }
 }

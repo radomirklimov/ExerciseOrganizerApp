@@ -31,21 +31,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import com.organizer.presentation.model.ExerciseCatalogEntry
 import com.organizer.presentation.screens.general.SearchBar
 
 private data class FilterOption(
     val filter: ExerciseFilter,
-    val label: String,
+    val labelRes: Int,
 )
 
-private val FilterOptions = listOf(
-    FilterOption(ExerciseFilter.All, "All"),
-    FilterOption(ExerciseFilter.Standard, "Standard"),
-    FilterOption(ExerciseFilter.Favorites, "Favorites"),
-    FilterOption(ExerciseFilter.Custom, "Custom"),
+private fun FilterOptions(): List<FilterOption> = listOf(
+    FilterOption(ExerciseFilter.All, R.string.exercise_filter_all),
+    FilterOption(ExerciseFilter.Standard, R.string.exercise_filter_standard),
+    FilterOption(ExerciseFilter.Favorites, R.string.exercise_filter_favorites),
+    FilterOption(ExerciseFilter.Custom, R.string.exercise_filter_custom),
 )
 
 /**
@@ -96,7 +99,7 @@ internal fun ExercisePickerSection(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Add Exercises",
+            text = stringResource(R.string.exercise_picker_add),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary,
@@ -107,14 +110,14 @@ internal fun ExercisePickerSection(
         SearchBar(
             query = query,
             onQueryChange = { query = it },
-            scopeLabel = selectedFilter.name,
+            scopeLabel = stringResource(exerciseFilterLabelRes(selectedFilter)),
             scopeColor = Brand,
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "SEARCH SCOPE",
+            text = stringResource(R.string.exercise_picker_scope),
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp,
@@ -135,14 +138,22 @@ internal fun ExercisePickerSection(
             Spacer(modifier = Modifier.height(20.dp))
 
             ExerciseSectionHeading(
-                if (query.isBlank()) "Recently Used in Other Workouts" else "Search Results"
+                textRes = if (query.isBlank()) {
+                    R.string.exercise_picker_recent_title
+                } else {
+                    R.string.exercise_picker_search_title
+                },
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             if (results.isEmpty()) {
                 ExerciseSearchEmptyMessage(
-                    text = emptyExerciseSearchMessage(query, selectedFilter),
+                    text = emptyExerciseSearchMessage(
+                        context = LocalContext.current,
+                        query = query,
+                        filter = selectedFilter,
+                    ),
                 )
             } else {
                 val visibleResults = results.take(MAX_EXERCISE_SEARCH_RESULTS)
@@ -178,9 +189,9 @@ private fun FilterChipsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 1.dp),
     ) {
-        items(FilterOptions, key = { it.filter.name }) { option ->
+        items(FilterOptions(), key = { it.filter.name }) { option ->
             FilterChip(
-                label = option.label,
+                label = stringResource(option.labelRes),
                 selected = selectedFilter == option.filter,
                 count = resultCounts[option.filter],
                 onClick = { onSelect(option.filter) },

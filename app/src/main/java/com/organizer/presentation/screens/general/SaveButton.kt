@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SaveButton(
@@ -34,7 +36,7 @@ fun SaveButton(
             )
         } else {
             Text(
-                text = "Create Exercise",
+                text = stringResource(R.string.common_create_exercise),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )

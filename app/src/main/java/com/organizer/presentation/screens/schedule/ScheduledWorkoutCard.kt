@@ -44,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.organizer.ui.theme.themedColor
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.organizer.R
 import com.organizer.data.repo.joinCategoryNames
 import com.organizer.presentation.model.ScheduledWorkoutItem
 import kotlinx.coroutines.delay
@@ -198,9 +202,9 @@ internal fun ScheduledWorkoutCard(
                                 Spacer(Modifier.width(4.dp))
                                 Text(
                                     text = if (item.entry.scheduledDateKey == null) {
-                                        "Every ${isoDayShortName(item.entry.dayOfWeek)}"
+                                        stringResource(R.string.schedule_every_day, isoDayShortName(item.entry.dayOfWeek, appLocale(context)))
                                     } else {
-                                        "This ${isoDayShortName(item.entry.dayOfWeek)} Only"
+                                        stringResource(R.string.schedule_this_day_only, isoDayShortName(item.entry.dayOfWeek, appLocale(context)))
                                     },
                                     fontSize = 13.sp,
                                     color = ScheduleInkMuted,
@@ -216,7 +220,7 @@ internal fun ScheduledWorkoutCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = "Schedule options",
+                                contentDescription = stringResource(R.string.schedule_options),
                                 tint = ScheduleInkMuted,
                                 modifier = Modifier.size(22.dp),
                             )
@@ -228,7 +232,7 @@ internal fun ScheduledWorkoutCard(
                             containerColor = ScheduleSurface,
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Edit schedule", fontSize = 15.sp) },
+                                text = { Text(stringResource(R.string.schedule_edit), fontSize = 15.sp) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Outlined.Edit,
@@ -242,7 +246,7 @@ internal fun ScheduledWorkoutCard(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Remove", fontSize = 15.sp) },
+                                text = { Text(stringResource(R.string.common_remove), fontSize = 15.sp) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Outlined.Delete,
@@ -272,13 +276,13 @@ internal fun ScheduledWorkoutCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Personal Note / Checklist",
+                        text = stringResource(R.string.schedule_personal_note),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = themedColor(Color(0xFF334155), ScheduleInkSecondary),
                     )
                     Text(
-                        text = "Included in alert",
+                        text = stringResource(R.string.schedule_included_alert),
                         fontSize = 11.sp,
                         color = ScheduleInkMuted,
                     )
@@ -293,7 +297,7 @@ internal fun ScheduledWorkoutCard(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "Add a note for this reminder",
+                            text = stringResource(R.string.schedule_add_note),
                             fontSize = 14.sp,
                             color = ScheduleInkMuted,
                         )
@@ -347,7 +351,7 @@ internal fun ScheduledWorkoutCard(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Start Workout",
+                        text = stringResource(R.string.schedule_start_workout),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                     )

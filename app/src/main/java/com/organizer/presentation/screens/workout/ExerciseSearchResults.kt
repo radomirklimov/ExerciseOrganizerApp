@@ -33,7 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
+import android.content.Context
+import com.organizer.R
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
 import com.organizer.presentation.model.ExerciseCatalogEntry
@@ -43,9 +47,9 @@ internal const val MAX_EXERCISE_SEARCH_RESULTS = 40
 
 /** "Search Results" / "Recently Used in Other Workouts" heading. */
 @Composable
-internal fun ExerciseSectionHeading(text: String) {
+internal fun ExerciseSectionHeading(@StringRes textRes: Int) {
     Text(
-        text = text,
+        text = stringResource(textRes),
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.8.sp,
@@ -68,7 +72,7 @@ internal fun ExerciseSearchEmptyMessage(text: String) {
 @Composable
 internal fun ExerciseSearchLimitHint() {
     Text(
-        text = "Showing the first $MAX_EXERCISE_SEARCH_RESULTS results. Refine your search.",
+        text = stringResource(R.string.exercise_search_limit_hint, MAX_EXERCISE_SEARCH_RESULTS),
         fontSize = 12.sp,
         color = TextSecondary,
     )
@@ -202,16 +206,18 @@ private fun SelectionIndicator(selected: Boolean) {
     }
 }
 
-internal fun emptyExerciseSearchMessage(query: String, filter: ExerciseFilter): String {
+internal fun emptyExerciseSearchMessage(context: Context, query: String, filter: ExerciseFilter): String {
     if (query.isBlank()) {
-        return "Exercises you use in other workouts will appear here."
+        return context.getString(R.string.exercise_search_empty_no_recent)
     }
 
-    val area = when (filter) {
-        ExerciseFilter.All -> ""
-        ExerciseFilter.Standard -> "standard "
-        ExerciseFilter.Favorites -> "favorite "
-        ExerciseFilter.Custom -> "custom "
-    }
-    return "No ${area}exercises match \"${query.trim()}\""
+    return context.getString(
+        when (filter) {
+            ExerciseFilter.All -> R.string.exercise_no_results_all
+            ExerciseFilter.Standard -> R.string.exercise_no_results_standard
+            ExerciseFilter.Favorites -> R.string.exercise_no_results_favorites
+            ExerciseFilter.Custom -> R.string.exercise_no_results_custom
+        },
+        query.trim(),
+    )
 }

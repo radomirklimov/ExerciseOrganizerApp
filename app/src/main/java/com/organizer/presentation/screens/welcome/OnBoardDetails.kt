@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -21,14 +22,14 @@ fun OnBoardDetails(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = currentPage.title,
+            text = stringResource(currentPage.titleRes),
             style = MaterialTheme.typography.displaySmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = currentPage.description,
+            text = stringResource(currentPage.descriptionRes),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()

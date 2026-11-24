@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun LoadingErrorView(
@@ -27,7 +29,7 @@ fun LoadingErrorView(
                 CircularProgressIndicator()
 
                 Text(
-                    text = "Loading...",
+                    text = stringResource(R.string.common_loading),
                     color = com.organizer.ui.theme.AppTheme.colors.textMuted,
                     fontSize = 18.sp
                 )
@@ -44,13 +46,13 @@ fun LoadingErrorView(
                 Button(
                     onClick = onRetry
                 ) {
-                    Text("Retry")
+                    Text(stringResource(R.string.common_retry))
                 }
             }
 
             else -> {
                 Text(
-                    text = "No data available",
+                    text = stringResource(R.string.common_no_data),
                     color = com.organizer.ui.theme.AppTheme.colors.textMuted,
                     fontSize = 18.sp
                 )
@@ -58,7 +60,7 @@ fun LoadingErrorView(
                 Button(
                     onClick = onRetry
                 ) {
-                    Text("Load data")
+                    Text(stringResource(R.string.common_load_data))
                 }
             }
         }

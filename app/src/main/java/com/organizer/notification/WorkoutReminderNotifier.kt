@@ -27,10 +27,10 @@ class WorkoutReminderNotifier @Inject constructor(
 
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Workout reminders",
+            context.getString(R.string.notification_reminder_channel),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "Alerts before your scheduled workouts"
+            description = context.getString(R.string.notification_reminder_channel_desc)
         }
 
         context.getSystemService(NotificationManager::class.java)

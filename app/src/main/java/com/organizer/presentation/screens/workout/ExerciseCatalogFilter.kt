@@ -1,6 +1,20 @@
 package com.organizer.presentation.screens.workout
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.annotation.StringRes
+import com.organizer.R
 import com.organizer.presentation.model.ExerciseCatalogEntry
+
+/** Localized label resource for an exercise filter chip. */
+@Composable
+@ReadOnlyComposable
+internal fun exerciseFilterLabelRes(filter: ExerciseFilter): Int = when (filter) {
+    ExerciseFilter.All -> R.string.exercise_filter_all
+    ExerciseFilter.Standard -> R.string.exercise_filter_standard
+    ExerciseFilter.Favorites -> R.string.exercise_filter_favorites
+    ExerciseFilter.Custom -> R.string.exercise_filter_custom
+}
 
 /** The four exercise areas the Create Workout search can operate on. */
 internal enum class ExerciseFilter {

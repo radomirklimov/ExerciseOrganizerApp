@@ -34,6 +34,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.organizer.presentation.OrganizerViewModel
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import com.organizer.ui.theme.AppTheme
 
 @Composable
@@ -81,14 +83,14 @@ fun CreateWorkoutScreen(
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = stringResource(R.string.profile_back)
                 )
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Create New Workout",
+                text = stringResource(R.string.workout_create_new),
                 fontSize = 26.sp
             )
 
@@ -113,13 +115,13 @@ fun CreateWorkoutScreen(
                 },
                 isError = showDuplicateNameError,
                 placeholder = {
-                    Text("Name Of Workout")
+                    Text(stringResource(R.string.workout_name_of))
                 },
                 // Only reserve the supporting-text area while an error is shown,
                 // otherwise the field keeps ~20dp of empty bottom padding.
                 supportingText = if (showDuplicateNameError) {
                     {
-                        Text("A workout with this name already exists. Please choose a different name.")
+                        Text(stringResource(R.string.workout_name_duplicate))
                     }
                 } else {
                     null
@@ -135,7 +137,7 @@ fun CreateWorkoutScreen(
                 value = notes,
                 onValueChange = { notes = it },
                 placeholder = {
-                    Text("Add your thoughts, energy levels, or notes for this workout...")
+                    Text(stringResource(R.string.workout_notes_placeholder))
                 },
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
@@ -235,8 +237,9 @@ private fun CreateWorkoutFooter(
     }
 }
 
+@Composable
 private fun createWorkoutLabel(exerciseCount: Int): String = when (exerciseCount) {
-    0 -> "Create Workout"
-    1 -> "Create Workout (1 exercise)"
-    else -> "Create Workout ($exerciseCount exercises)"
+    0 -> stringResource(R.string.workout_create_button)
+    1 -> stringResource(R.string.workout_create_button_one_exercise)
+    else -> stringResource(R.string.workout_create_button_n_exercises, exerciseCount)
 }

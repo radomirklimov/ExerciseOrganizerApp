@@ -43,14 +43,25 @@ object WeeklyEngagementNotifications {
      */
     private val TEST_INTERVAL_MS: Long? = null
 
-    val MESSAGES = listOf(
-        "👋 It's been a while! Your next workout is waiting for you.",
-        "💪 Ready to pick up where you left off?",
-        "🔥 Your workout plan is waiting. Let's make this week count!",
-        "👀 Your fitness goals called. They're wondering how you're doing!",
-        "🚀 One workout can be the start of a great week.",
-        "🎯 Your next achievement is waiting for you!",
-        "🙌 We've saved your progress. Ready to keep building on it?",
+    /** Message string resources and their emoji, kept apart so aapt can flatten the XML. */
+    private val MESSAGE_RES = listOf(
+        R.string.notification_weekly_1,
+        R.string.notification_weekly_2,
+        R.string.notification_weekly_3,
+        R.string.notification_weekly_4,
+        R.string.notification_weekly_5,
+        R.string.notification_weekly_6,
+        R.string.notification_weekly_7,
+    )
+
+    private val MESSAGE_EMOJIS = listOf(
+        "\uD83D\uDC4B", // 👋
+        "\uD83D\uDC4A", // 💪
+        "\uD83D\uDD25", // 🔥
+        "\uD83D\uDC41", // 👀
+        "\uD83D\uDE80", // 🚀
+        "\uD83C\uDFAF", // 🎯
+        "\uD83D\uDE4C", // 🙌
     )
 
     fun ensureChannel(context: Context) {
@@ -60,10 +71,10 @@ object WeeklyEngagementNotifications {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Weekly reminders",
+                context.getString(R.string.notification_weekly_channel),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                description = "A weekly nudge to keep you on track."
+                description = context.getString(R.string.notification_weekly_channel_desc)
             }
         )
     }
@@ -151,7 +162,7 @@ object WeeklyEngagementNotifications {
      */
     private fun nextMessage(context: Context): String {
         val prefs = context.getSharedPreferences(ROTATION_PREFS, Context.MODE_PRIVATE)
-        val shuffler = MessageShuffler(MESSAGES.size)
+        val shuffler = MessageShuffler(MESSAGE_RES.size)
         shuffler.restore(
             remaining = prefs.getString(KEY_REMAINING, null)
                 ?.split(',')
@@ -164,7 +175,7 @@ object WeeklyEngagementNotifications {
             putString(KEY_REMAINING, shuffler.remaining().joinToString(","))
             putInt(KEY_LAST, index)
         }
-        return MESSAGES[index]
+        return context.getString(MESSAGE_RES[index]) + " " + MESSAGE_EMOJIS[index]
     }
 
     private fun pendingIntent(context: Context): PendingIntent {

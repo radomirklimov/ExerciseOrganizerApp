@@ -1,5 +1,7 @@
 package com.organizer.data.preferences
 
+import com.organizer.R
+
 /** How the app chooses between the light and dark palette. */
 enum class ThemeMode(val label: String) {
     LIGHT("Light"),
@@ -56,9 +58,9 @@ enum class LanguageOption(
     }
 }
 
-enum class UnitSystem(val label: String) {
-    METRIC("kg"),
-    IMPERIAL("lb"),
+enum class UnitSystem(val label: String, val labelRes: Int) {
+    METRIC("kg", R.string.unit_kg),
+    IMPERIAL("lb", R.string.unit_lb),
 }
 
 /** Everything the profile screen lets the user personalise. */

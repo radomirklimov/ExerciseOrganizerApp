@@ -5,7 +5,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.organizer.R
 
 @Composable
 fun OnBoardNavButton(
@@ -21,9 +23,9 @@ fun OnBoardNavButton(
     ) {
         Text(
             text = if (currentPage < noOfPages - 1)
-                "Next"
+                stringResource(R.string.onboarding_next)
             else
-                "Start Building"
+                stringResource(R.string.onboarding_start_building)
         )
     }
 }

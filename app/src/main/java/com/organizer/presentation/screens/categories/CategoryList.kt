@@ -50,6 +50,8 @@ import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.ui.theme.AppTheme
+import com.organizer.R
+import androidx.compose.ui.res.stringResource
 import com.organizer.presentation.screens.exercises.ExerciseListItem
 
 
@@ -121,12 +123,12 @@ fun CategoryList(
                 showSuggestDialog = false
                 suggestionText = ""
             },
-            title = { Text("Suggest an exercise") },
+            title = { Text(stringResource(R.string.category_suggest_exercise)) },
             text = {
                 OutlinedTextField(
                     value = suggestionText,
                     onValueChange = { suggestionText = it },
-                    placeholder = { Text("Describe the exercise you would like to see") },
+                    placeholder = { Text(stringResource(R.string.category_suggest_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                 )
@@ -144,7 +146,7 @@ fun CategoryList(
                     },
                     enabled = suggestionText.isNotBlank(),
                 ) {
-                    Text("Send")
+                    Text(stringResource(R.string.category_send))
                 }
             },
             dismissButton = {
@@ -154,7 +156,7 @@ fun CategoryList(
                         suggestionText = ""
                     }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.profile_cancel))
                 }
             }
         )
@@ -195,7 +197,7 @@ private fun MissingExerciseBlock(
             }
             Column {
                 Text(
-                    text = "Missing an exercise?",
+                    text = stringResource(R.string.category_missing_exercise),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AppTheme.colors.textPrimary,
@@ -231,13 +233,13 @@ private fun MissingExerciseBlock(
                 }
                 Column {
                     Text(
-                        text = "Add custom movement",
+                        text = stringResource(R.string.category_add_custom),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = AppTheme.colors.textPrimary,
                     )
                     Text(
-                        text = "Create and track your own variation",
+                        text = stringResource(R.string.category_add_custom_desc),
                         fontSize = 12.sp,
                         color = AppTheme.colors.textSecondary,
                     )
@@ -248,7 +250,7 @@ private fun MissingExerciseBlock(
                 shape = RoundedCornerShape(50),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             ) {
-                Text("+ Create", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.category_create), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -280,13 +282,13 @@ private fun MissingExerciseBlock(
                 }
                 Column {
                     Text(
-                        text = "Suggest an exercise",
+                        text = stringResource(R.string.category_suggest_exercise),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = AppTheme.colors.textPrimary,
                     )
                     Text(
-                        text = "Tell us what's missing in this category",
+                        text = stringResource(R.string.category_suggest_exercise_desc),
                         fontSize = 12.sp,
                         color = AppTheme.colors.textSecondary,
                     )
@@ -297,7 +299,7 @@ private fun MissingExerciseBlock(
                 shape = RoundedCornerShape(50),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             ) {
-                Text("Suggest", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.category_suggest), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -309,10 +311,10 @@ private fun sendSuggestionEmail(
     message: String,
 ) {
     val body = buildString {
-        appendLine("Message:")
+        appendLine(context.getString(R.string.category_message_label))
         appendLine(message.trim())
     }
-    val subject = "Exercise suggestion: ${categoryName ?: "Unknown"}"
+    val subject = context.getString(R.string.category_suggestion_subject, categoryName ?: "Unknown")
     val uri = Uri.parse(
         "mailto:radomirklimovv@gmail.com" +
             "?subject=" + Uri.encode(subject) +
@@ -324,9 +326,9 @@ private fun sendSuggestionEmail(
         putExtra(Intent.EXTRA_TEXT, body)
     }
     try {
-        context.startActivity(Intent.createChooser(intent, "Send email"))
+        context.startActivity(Intent.createChooser(intent, context.getString(R.string.category_send_email)))
     } catch (e: Exception) {
-        Toast.makeText(context, "No email app available", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.category_no_email_app), Toast.LENGTH_SHORT).show()
     }
 }
 

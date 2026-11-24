@@ -65,6 +65,10 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideJson(): Json = json
+
+    @Provides
+    @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 
     @Provides

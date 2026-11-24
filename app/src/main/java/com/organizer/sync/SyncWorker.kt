@@ -15,11 +15,10 @@ class SyncWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        return try {
-            syncManager.syncNow()
-            Result.success()
-        } catch (e: Exception) {
-            Result.retry()
-        }
+        // Orchestration is intentionally not implemented yet. Do not report
+        // success for a no-op sync, and do not let callers treat this as a
+        // completed synchronization.
+        syncManager.syncNow()
+        return Result.failure()
     }
 }

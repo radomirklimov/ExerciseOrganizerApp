@@ -10,7 +10,10 @@ import retrofit2.http.Query
 
 interface SyncApi {
     @GET("api/sync/changes")
-    suspend fun changes(@Query("since") since: String? = null): SyncChangesResponseDto
+    suspend fun changes(
+        @Query("cursor") cursor: String? = null,
+        @Query("limit") limit: Int = 100,
+    ): SyncChangesResponseDto
 
     @POST("api/sync/push")
     suspend fun push(@Body request: SyncPushRequestDto): SyncPushResponseDto

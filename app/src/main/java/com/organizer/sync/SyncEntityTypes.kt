@@ -10,4 +10,15 @@ object SyncEntityTypes {
     const val WORKOUT_COMPLETION = "WORKOUT_COMPLETION"
     const val SCHEDULED_WORKOUT = "SCHEDULED_WORKOUT"
     const val FAVORITE_EXERCISE = "FAVORITE_EXERCISE"
+
+    val ALL: Set<String> = setOf(
+        WORKOUT,
+        CUSTOM_EXERCISE,
+        WORKOUT_EXERCISE,
+        EXERCISE_PROGRESS,
+        PLANNED_SET,
+        WORKOUT_COMPLETION,
+        SCHEDULED_WORKOUT,
+        FAVORITE_EXERCISE,
+    )
 }

@@ -63,4 +63,36 @@
     <string name="profile_about_title">О IndiSport</string>
     <string name="profile_version">Версия %1$s</string>
     <string name="profile_close">Закрыть</string>
+
+    <!-- Motivational phrases for automatically generated reminder notes. -->
+    <string name="motivational_1">Ты справишься!</string>
+    <string name="motivational_2">Сделай сегодня всё возможное!</string>
+    <string name="motivational_3">Так держать!</string>
+    <string name="motivational_4">Ещё шаг к цели!</string>
+    <string name="motivational_5">У тебя всё получится!</string>
+    <string name="motivational_6">Сделай этот день важным!</string>
+    <string name="motivational_7">Будь сильным и продолжай!</string>
+    <string name="motivational_8">Твоё будущее спасибо скажет!</string>
+    <string name="motivational_9">Каждое повторение имеет значение!</string>
+    <string name="motivational_10">Давай сделаем это!</string>
+    <string name="motivational_11">Без отговорок, только прогресс!</string>
+    <string name="motivational_12">Ты сильнее, чем думаешь!</string>
+    <string name="motivational_13">Маленькие шаги - большие результаты!</string>
+    <string name="motivational_14">Время достигать целей!</string>
+    <string name="motivational_15">Верь в себя!</string>
+    <string name="motivational_16">Приходи и выкладывайся на полную!</string>
+    <string name="motivational_17">Прогресс, а не совершенство!</string>
+    <string name="motivational_18">Оставайся сосредоточенным!</string>
+    <string name="motivational_19">Гордись собой сегодня!</string>
+    <string name="motivational_20">Будь сосредоточен и силён!</string>
+    <string name="motivational_21">Единственная плохая тренировка - та, которую пропустил!</string>
+    <string name="motivational_22">Расширяй свои пределы!</string>
+    <string name="motivational_23">Ты делаешь потрясающе!</string>
+    <string name="motivational_24">Давай станем сильнее вместе!</string>
+    <string name="motivational_25">Постоянство - ключ к успеху!</string>
+    <string name="motivational_26">Сегодня ещё один шанс стать лучше!</string>
+    <string name="motivational_27">Двигайся вперёд!</string>
+    <string name="motivational_28">Бросай себе вызов и наслаждайся путём!</string>
+    <string name="motivational_29">Выложись на полную!</string>
+    <string name="motivational_30">Ещё один день - ещё одна возможность вырасти!</string>
 </resources>

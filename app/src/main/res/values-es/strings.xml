@@ -63,4 +63,36 @@
     <string name="profile_about_title">Acerca de IndiSport</string>
     <string name="profile_version">Versión %1$s</string>
     <string name="profile_close">Cerrar</string>
+
+    <!-- Motivational phrases for automatically generated reminder notes. -->
+    <string name="motivational_1">¡Tú puedes!</string>
+    <string name="motivational_2">¡Haz lo mejor hoy!</string>
+    <string name="motivational_3">¡Sigue así!</string>
+    <string name="motivational_4">¡Un paso más cerca de tu meta!</string>
+    <string name="motivational_5">¡Tienes fuerza en ti!</string>
+    <string name="motivational_6">¡Haz que hoy valga la pena!</string>
+    <string name="motivational_7">¡Sé fuerte y sigue adelante!</string>
+    <string name="motivational_8">Tu yo del futuro te agradecerá!</string>
+    <string name="motivational_9">¡Cada repetición hace la diferencia!</string>
+    <string name="motivational_10">¡Hagamos que suceda!</string>
+    <string name="motivational_11">¡Sin excusas, solo progreso!</string>
+    <string name="motivational_12">¡Eres más fuerte de lo que piensas!</string>
+    <string name="motivational_13">¡Pequeños pasos, grandes resultados!</string>
+    <string name="motivational_14">¡Es hora de lograr tus metas!</string>
+    <string name="motivational_15">¡Créete a ti mismo!</string>
+    <string name="motivational_16">¡Suelta y da lo mejor!</string>
+    <string name="motivational_17">¡Progreso, no perfección!</string>
+    <string name="motivational_18">¡Mantente enfocado!</string>
+    <string name="motivational_19">¡Háblate con orgullo hoy!</string>
+    <string name="motivational_20">¡Mantente enfocado y fuerte!</string>
+    <string name="motivational_21">¡Lo único que está mal es que no entrenas!</string>
+    <string name="motivational_22">¡Empuja tus límites!</string>
+    <string name="motivational_23">¡Lo estás haciendo increíble!</string>
+    <string name="motivational_24">¡Hagamos lo fuerte juntos!</string>
+    <string name="motivational_25">¡La constancia es la clave del éxito!</string>
+    <string name="motivational_26">¡Hoy es otra oportunidad de mejorar!</string>
+    <string name="motivational_27">¡Sigue avanzando!</string>
+    <string name="motivational_28">¡Desafíate y disfruta el camino!</string>
+    <string name="motivational_29">¡Dale todo!</string>
+    <string name="motivational_30">¡Otro día, otra oportunidad de crecer!</string>
 </resources>

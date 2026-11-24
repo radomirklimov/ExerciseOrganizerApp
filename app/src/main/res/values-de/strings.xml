@@ -63,4 +63,36 @@
     <string name="profile_about_title">Über IndiSport</string>
     <string name="profile_version">Version %1$s</string>
     <string name="profile_close">Schließen</string>
+
+    <!-- Motivational phrases for automatically generated reminder notes. -->
+    <string name="motivational_1">Du schaffst das!</string>
+    <string name="motivational_2">Gib heute dein Bestes!</string>
+    <string name="motivational_3">Weiter so!</string>
+    <string name="motivational_4">Einen Schritt näher an dein Ziel!</string>
+    <string name="motivational_5">Du hast es in dir!</string>
+    <string name="motivational_6">Mach heute zählt!</string>
+    <string name="motivational_7">Bleib stark und mach weiter!</string>
+    <string name="motivational_8">Dein zukünftiges Ich wird dir danken!</string>
+    <string name="motivational_9">Jede Wiederholung zählt!</string>
+    <string name="motivational_10">Lass es uns angehen!</string>
+    <string name="motivational_11">Keine Ausreden, nur Fortschritt!</string>
+    <string name="motivational_12">Du bist stärker als du denkst!</string>
+    <string name="motivational_13">Kleine Schritte, große Ergebnisse!</string>
+    <string name="motivational_14">Zeit, deine Ziele zu crushen!</string>
+    <string name="motivational_15">Glaub an dich!</string>
+    <string name="motivational_16">Erscheine und gib dein Bestes!</string>
+    <string name="motivational_17">Fortschritt, nicht Perfektion!</string>
+    <string name="motivational_18">Bleib fokussiert!</string>
+    <string name="motivational_19">Mach dich heute stolz!</string>
+    <string name="motivational_20">Bleib fokussiert und stark!</string>
+    <string name="motivational_21">Das einzige schlechte Training ist das, das du auslässt!</string>
+    <string name="motivational_22">Push deine Grenzen!</string>
+    <string name="motivational_23">Du machst das toll!</string>
+    <string name="motivational_24">Lass uns gemeinsam stärker werden!</string>
+    <string name="motivational_25">Beständigkeit ist der Schlüssel zum Erfolg!</string>
+    <string name="motivational_26">Heute ist eine weitere Chance, dich zu verbessern!</string>
+    <string name="motivational_27">Immer weiter vorwärts!</string>
+    <string name="motivational_28">Fordere dich heraus und genieße die Reise!</string>
+    <string name="motivational_29">Gib alles!</string>
+    <string name="motivational_30">Ein weiterer Tag, eine weitere Chance zu wachsen!</string>
 </resources>

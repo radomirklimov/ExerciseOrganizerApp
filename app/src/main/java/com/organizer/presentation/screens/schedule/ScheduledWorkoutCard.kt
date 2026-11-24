@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,39 +66,43 @@ internal fun ScheduledWorkoutCard(
     onRemove: () -> Unit,
     onNoteChange: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     var menuExpanded by remember { mutableStateOf(false) }
+    // Automatic notes are stored as a token and shown in the current language.
     var noteText by remember(item.entry.scheduleId) {
-        mutableStateOf(item.entry.reminderNote)
+        mutableStateOf(MotivationalPhrases.resolve(context, item.entry.reminderNote))
     }
-    var noteDirty by remember(item.entry.scheduleId) {
+    var noteEdited by remember(item.entry.scheduleId) {
         mutableStateOf(false)
     }
     val latestNote by rememberUpdatedState(noteText)
-    val latestStoredNote by rememberUpdatedState(item.entry.reminderNote)
+    val latestEdited by rememberUpdatedState(noteEdited)
+    val latestResolvedNote by rememberUpdatedState(
+        MotivationalPhrases.resolve(context, item.entry.reminderNote),
+    )
 
     // Adopt changes made elsewhere (the edit sheet), but never overwrite text
     // the user is currently typing while a debounced save is still pending.
     LaunchedEffect(item.entry.reminderNote) {
-        when {
-            item.entry.reminderNote == noteText -> noteDirty = false
-            !noteDirty -> noteText = item.entry.reminderNote
+        if (!noteEdited) {
+            noteText = MotivationalPhrases.resolve(context, item.entry.reminderNote)
         }
     }
 
-    // Persist notes after the user pauses instead of on every keystroke.
+    // Persist only user-written notes after a pause. An untouched automatic
+    // note keeps its token so it can still follow the app language.
     LaunchedEffect(noteText) {
-        if (noteText != item.entry.reminderNote) {
-            noteDirty = true
+        if (noteEdited && noteText != latestResolvedNote) {
             delay(600)
             onNoteChange(noteText)
         } else {
-            noteDirty = false
+            noteEdited = false
         }
     }
 
     DisposableEffect(item.entry.scheduleId) {
         onDispose {
-            if (latestNote != latestStoredNote) {
+            if (latestEdited && latestNote != latestResolvedNote) {
                 onNoteChange(latestNote)
             }
         }
@@ -282,7 +287,7 @@ internal fun ScheduledWorkoutCard(
                 OutlinedTextField(
                     value = noteText,
                     onValueChange = {
-                        noteDirty = true
+                        noteEdited = true
                         noteText = it
                     },
                     modifier = Modifier.fillMaxWidth(),

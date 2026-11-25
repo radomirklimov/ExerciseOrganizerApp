@@ -793,6 +793,10 @@ class FakeSyncCursorDao : SyncCursorDao {
     override suspend fun get(owner: String): SyncCursorEntity? =
         cursors.value.firstOrNull { it.ownerFirebaseUid == owner }
 
+    override suspend fun delete(owner: String) {
+        cursors.update { current -> current.filterNot { it.ownerFirebaseUid == owner } }
+    }
+
     override fun observe(owner: String): Flow<SyncCursorEntity?> =
         cursors.map { list -> list.firstOrNull { it.ownerFirebaseUid == owner } }
 }

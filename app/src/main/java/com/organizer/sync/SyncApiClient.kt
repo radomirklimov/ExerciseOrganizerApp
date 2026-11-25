@@ -39,6 +39,11 @@ class SyncApiClient @Inject constructor(
         syncApi.changes(cursor, limit, authorization)
     }
 
+    companion object {
+        /** Structured backend error code for an expired, otherwise-valid cursor. */
+        const val CURSOR_EXPIRED = "CURSOR_EXPIRED"
+    }
+
     private suspend inline fun <reified T> safeCall(crossinline call: suspend () -> T): SyncApiResult<T> =
         try {
             SyncApiResult.Success(call())

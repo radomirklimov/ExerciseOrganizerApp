@@ -15,6 +15,9 @@ interface SyncCursorDao {
     @Query("SELECT * FROM sync_cursor WHERE ownerFirebaseUid = :owner")
     suspend fun get(owner: String): SyncCursorEntity?
 
+    @Query("DELETE FROM sync_cursor WHERE ownerFirebaseUid = :owner")
+    suspend fun delete(owner: String)
+
     @Query("SELECT * FROM sync_cursor WHERE ownerFirebaseUid = :owner")
     fun observe(owner: String): Flow<SyncCursorEntity?>
 }

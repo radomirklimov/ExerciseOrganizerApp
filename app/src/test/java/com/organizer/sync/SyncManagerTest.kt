@@ -1,6 +1,7 @@
 package com.organizer.sync
 
 import com.organizer.auth.OwnerProvider
+import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
 import com.organizer.data.remote.SyncApi
 import com.organizer.data.remote.model.SyncChangeRecordDto
@@ -16,12 +17,16 @@ import com.organizer.fakes.ImmediateSyncTransactionRunner
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.util.UUID
 
 class SyncManagerTest {
@@ -33,6 +38,14 @@ class SyncManagerTest {
         override fun currentOwner(): String = uid
     }
 
+    private class SwitchOwner(private val switchAtCall: Int) : OwnerProvider() {
+        var calls = 0
+        override fun currentOwner(): String {
+            calls++
+            return if (calls == switchAtCall) "user-b" else "user-a"
+        }
+    }
+
     private class TestTokenProvider : SyncTokenProvider {
         override suspend fun idTokenFor(owner: String): String? =
             if (owner == OwnerProvider.GUEST) null else "captured-token"
@@ -40,6 +53,7 @@ class SyncManagerTest {
 
     private class FakeSyncApi : SyncApi {
         val authorizations = mutableListOf<String>()
+        val cursors = mutableListOf<String?>()
         var changesBlock: suspend (String?, Int) -> SyncChangesResponseDto = { _, _ ->
             SyncChangesResponseDto(emptyList(), "cursor-1", false, "2026-11-24T10:00:01Z")
         }
@@ -50,6 +64,7 @@ class SyncManagerTest {
             authorization: String,
         ): SyncChangesResponseDto {
             authorizations += authorization
+            cursors += cursor
             return changesBlock(cursor, limit)
         }
 
@@ -59,7 +74,7 @@ class SyncManagerTest {
         ): SyncPushResponseDto = error("not used")
     }
 
-    private class Fixture(val owner: MutableOwner = MutableOwner()) {
+    private class Fixture(val owner: OwnerProvider = MutableOwner()) {
         val cursors = FakeSyncCursorDao()
         val staged = FakeSyncStagedDao()
         val workouts = FakeWorkoutDao()
@@ -175,6 +190,116 @@ class SyncManagerTest {
         assertNotNull(result.error)
         assertFalse(result.ownerChanged)
         assertTrue(f.api.authorizations.isEmpty())
+        assertNull(f.cursors.get("user-a"))
+    }
+
+    private suspend fun seedCursor(f: Fixture, value: String) {
+        f.cursors.upsert(
+            SyncCursorEntity(
+                ownerFirebaseUid = "user-a",
+                cursor = value,
+                lastSyncedAt = 1L,
+                updatedAt = 1L,
+            )
+        )
+    }
+
+    private fun httpError(code: Int, error: String): suspend (String?, Int) -> SyncChangesResponseDto {
+        val response = Response.error<SyncChangesResponseDto>(
+            code,
+            """{"error":"$error","message":"request failed"}""".toResponseBody("application/json".toMediaType()),
+        )
+        return { _, _ -> throw HttpException(response) }
+    }
+
+    @Test
+    fun `expired cursor is cleared and pull retried once from null`() = runTest {
+        val f = Fixture()
+        seedCursor(f, "old-cursor")
+        val syncId = UUID.randomUUID().toString()
+        var call = 0
+        f.api.changesBlock = { _, _ ->
+            call++
+            if (call == 1) throw HttpException(
+                Response.error<SyncChangesResponseDto>(
+                    400,
+                    """{"error":"CURSOR_EXPIRED","message":"Sync cursor expired"}"""
+                        .toResponseBody("application/json".toMediaType()),
+                )
+            ) else page(syncId)
+        }
+
+        val result = f.manager.pullOnePage()
+
+        assertEquals(1, result.applied)
+        assertEquals(listOf<String?>("old-cursor", null), f.api.cursors)
+        assertEquals("cursor-2", f.cursors.get("user-a")!!.cursor)
+    }
+
+    @Test
+    fun `expired cursor retry failure does not loop`() = runTest {
+        val f = Fixture()
+        seedCursor(f, "old-cursor")
+        var call = 0
+        f.api.changesBlock = { _, _ ->
+            call++
+            if (call == 1) throw HttpException(
+                Response.error<SyncChangesResponseDto>(
+                    400,
+                    """{"error":"CURSOR_EXPIRED","message":"Sync cursor expired"}"""
+                        .toResponseBody("application/json".toMediaType()),
+                )
+            ) else httpError(400, "INVALID_REQUEST")(null, 100)
+        }
+
+        val result = f.manager.pullOnePage()
+
+        assertNotNull(result.error)
+        assertEquals(2, call)
+        assertEquals(listOf<String?>("old-cursor", null), f.api.cursors)
+        assertNull(f.cursors.get("user-a"))
+    }
+
+    @Test
+    fun `generic and invalid cursor errors preserve the cursor`() {
+        listOf("INVALID_REQUEST", "UNAUTHENTICATED", "SOMETHING_ELSE").forEach { code ->
+            runTest {
+                val f = Fixture()
+                seedCursor(f, "old-cursor")
+                f.api.changesBlock = httpError(400, code)
+
+                val result = f.manager.pullOnePage()
+
+                assertNotNull(result.error)
+                assertEquals(1, f.api.cursors.size)
+                assertEquals("old-cursor", f.cursors.get("user-a")!!.cursor)
+            }
+        }
+    }
+
+    @Test
+    fun `account switch before cursor reset aborts without clearing or retrying`() = runTest {
+        val f = Fixture(SwitchOwner(2))
+        seedCursor(f, "old-cursor")
+        f.api.changesBlock = httpError(400, "CURSOR_EXPIRED")
+
+        val result = f.manager.pullOnePage()
+
+        assertTrue(result.ownerChanged)
+        assertEquals(1, f.api.cursors.size)
+        assertEquals("old-cursor", f.cursors.get("user-a")!!.cursor)
+    }
+
+    @Test
+    fun `account switch before retry aborts after clearing the cursor`() = runTest {
+        val f = Fixture(SwitchOwner(4))
+        seedCursor(f, "old-cursor")
+        f.api.changesBlock = httpError(400, "CURSOR_EXPIRED")
+
+        val result = f.manager.pullOnePage()
+
+        assertTrue(result.ownerChanged)
+        assertEquals(1, f.api.cursors.size)
         assertNull(f.cursors.get("user-a"))
     }
 }

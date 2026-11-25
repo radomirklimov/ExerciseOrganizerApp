@@ -43,14 +43,49 @@ class SyncManager @Inject constructor(
                 error = "Authenticated user is no longer available for pull",
             )
         }
-        val persistedCursor = cursorDao.get(owner)
+        val persistedCursor = cursorDao.get(owner)?.cursor
+        return performPull(owner, limit, persistedCursor, token, allowCursorReset = true)
+    }
 
-        val apiResult = apiClient.changes(persistedCursor?.cursor, limit, "Bearer $token")
+    private suspend fun retryAfterCursorExpiry(owner: String, limit: Int, token: String): PullResult {
+        if (ownerProvider.currentOwner() != owner) {
+            return PullResult(ownerChanged = true, error = "Authenticated account changed before cursor reset")
+        }
+        try {
+            transactions.run {
+                if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPullException()
+                cursorDao.delete(owner)
+            }
+        } catch (ex: OwnerChangedDuringPullException) {
+            return PullResult(ownerChanged = true, error = "Authenticated account changed during cursor reset")
+        } catch (ex: Exception) {
+            return PullResult(error = "Failed to clear expired cursor")
+        }
+        if (ownerProvider.currentOwner() != owner) {
+            return PullResult(ownerChanged = true, error = "Authenticated account changed before retry")
+        }
+        // Exactly one retry, and it never resets a cursor again.
+        return performPull(owner, limit, null, token, allowCursorReset = false)
+    }
+
+    private suspend fun performPull(
+        owner: String,
+        limit: Int,
+        cursor: String?,
+        token: String,
+        allowCursorReset: Boolean,
+    ): PullResult {
+        val apiResult = apiClient.changes(cursor, limit, "Bearer $token")
         val changes = when (apiResult) {
             is SyncApiResult.Success -> contractMapper.toChanges(apiResult.data).getOrElse {
                 return PullResult(error = "Malformed pull response")
             }
-            is SyncApiResult.HttpError -> return PullResult(error = "HTTP ${apiResult.code}")
+            is SyncApiResult.HttpError -> {
+                if (allowCursorReset && apiResult.error == SyncApiClient.CURSOR_EXPIRED) {
+                    return retryAfterCursorExpiry(owner, limit, token)
+                }
+                return PullResult(error = "HTTP ${apiResult.code}")
+            }
             is SyncApiResult.TransportError -> return PullResult(error = "Network error")
             is SyncApiResult.MalformedResponse -> return PullResult(error = "Malformed pull response")
         }

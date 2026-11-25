@@ -37,7 +37,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 16,
+    version = 17,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -79,6 +79,20 @@ abstract class AppDatabase : RoomDatabase() {
  * Milestone 1: owner isolation, stable sync IDs and sync metadata.
  * Existing rows are preserved; UUIDs are generated only for rows that lack one.
  */
+/** Adds acknowledgement metadata to outbox rows and a record-level lookup index. */
+val OUTBOX_ACKNOWLEDGEMENT_MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN serverVersion INTEGER")
+        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN serverUpdatedAt INTEGER")
+        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN acknowledgedAt INTEGER")
+        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN terminalErrorCode TEXT")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid_entityType_recordSyncId " +
+                "ON sync_outbox (ownerFirebaseUid, entityType, recordSyncId)"
+        )
+    }
+}
+
 /** Adds durable staging for pulled records and pagination metadata for cursors. */
 val PULL_STAGING_MIGRATION_15_16 = object : Migration(15, 16) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -489,13 +503,21 @@ val OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14 = object : Migration(13, 14) {
                 createdAt INTEGER NOT NULL,
                 retryCount INTEGER NOT NULL,
                 lastError TEXT,
-                syncStatus TEXT NOT NULL
+                syncStatus TEXT NOT NULL,
+                serverVersion INTEGER,
+                serverUpdatedAt INTEGER,
+                acknowledgedAt INTEGER,
+                terminalErrorCode TEXT
             )
             """.trimIndent()
         )
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_sync_outbox_mutationId ON sync_outbox (mutationId)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid ON sync_outbox (ownerFirebaseUid)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid_syncStatus ON sync_outbox (ownerFirebaseUid, syncStatus)")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid_entityType_recordSyncId " +
+                "ON sync_outbox (ownerFirebaseUid, entityType, recordSyncId)"
+        )
     }
 
     private fun newId(): String = java.util.UUID.randomUUID().toString()

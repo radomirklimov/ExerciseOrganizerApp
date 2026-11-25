@@ -246,6 +246,28 @@ class FakeExerciseDao : ExerciseDao {
         }
     }
 
+    override suspend fun applyAcknowledgementMetadata(
+        owner: String,
+        syncId: String,
+        serverVersion: Long,
+        serverUpdatedAt: Long,
+        syncStatus: String,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.syncId == syncId && it.ownerFirebaseUid == owner && it.isCustom &&
+                    it.serverVersion < serverVersion
+                ) {
+                    it.copy(
+                        serverVersion = serverVersion,
+                        updatedAt = maxOf(it.updatedAt, serverUpdatedAt),
+                        syncStatus = syncStatus,
+                    )
+                } else it
+            }
+        }
+    }
+
     override suspend fun softDeleteCustom(owner: String, id: Long, deletedAt: Long, updatedAt: Long): Int {
         var changed = 0
         data.update { current ->
@@ -396,6 +418,39 @@ class FakeSyncOutboxDao : SyncOutboxDao {
         }
     }
 
+    override suspend fun findByRecord(owner: String, entityType: String, syncId: String): List<SyncOutboxEntity> =
+        entries.value.filter {
+            it.ownerFirebaseUid == owner && it.entityType == entityType && it.recordSyncId == syncId
+        }
+
+    override suspend fun markTerminal(
+        owner: String,
+        mutationId: String,
+        status: String,
+        serverVersion: Long?,
+        serverUpdatedAt: Long?,
+        acknowledgedAt: Long,
+        terminalErrorCode: String?,
+        allowedStatuses: Set<String>,
+    ): Int {
+        var updated = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId == mutationId && it.syncStatus in allowedStatuses) {
+                    updated++
+                    it.copy(
+                        syncStatus = status,
+                        serverVersion = serverVersion,
+                        serverUpdatedAt = serverUpdatedAt,
+                        acknowledgedAt = acknowledgedAt,
+                        terminalErrorCode = terminalErrorCode,
+                    )
+                } else it
+            }
+        }
+        return updated
+    }
+
     override suspend fun delete(mutationId: String, owner: String) {
         entries.update { current ->
             current.filterNot { it.ownerFirebaseUid == owner && it.mutationId == mutationId }
@@ -490,6 +545,26 @@ class FakeWorkoutDao : WorkoutDao {
                     it.copy(
                         deletedAt = deletedAt, normalizedName = null, serverVersion = serverVersion,
                         updatedAt = updatedAt, syncStatus = "SYNCED",
+                    )
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyAcknowledgementMetadata(
+        owner: String,
+        syncId: String,
+        serverVersion: Long,
+        serverUpdatedAt: Long,
+        syncStatus: String,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.syncId == syncId && it.ownerFirebaseUid == owner && it.serverVersion < serverVersion) {
+                    it.copy(
+                        serverVersion = serverVersion,
+                        updatedAt = maxOf(it.updatedAt, serverUpdatedAt),
+                        syncStatus = syncStatus,
                     )
                 } else it
             }

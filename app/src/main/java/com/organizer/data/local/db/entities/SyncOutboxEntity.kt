@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
         Index("ownerFirebaseUid"),
         Index("mutationId", unique = true),
         Index(value = ["ownerFirebaseUid", "syncStatus"]),
+        Index(value = ["ownerFirebaseUid", "entityType", "recordSyncId"]),
     ]
 )
 data class SyncOutboxEntity(
@@ -26,4 +27,8 @@ data class SyncOutboxEntity(
     val retryCount: Int = 0,
     val lastError: String? = null,
     val syncStatus: String = "PENDING_UPLOAD",
+    val serverVersion: Long? = null,
+    val serverUpdatedAt: Long? = null,
+    val acknowledgedAt: Long? = null,
+    val terminalErrorCode: String? = null,
 )

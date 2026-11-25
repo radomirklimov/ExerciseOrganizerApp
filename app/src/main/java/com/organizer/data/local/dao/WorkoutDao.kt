@@ -72,6 +72,23 @@ interface WorkoutDao {
         updatedAt: Long,
     )
 
+    @Query(
+        """UPDATE workout
+           SET serverVersion = :serverVersion,
+               updatedAt = MAX(updatedAt, :serverUpdatedAt),
+               syncStatus = :syncStatus
+           WHERE ownerFirebaseUid = :owner
+           AND syncId = :syncId
+           AND serverVersion < :serverVersion"""
+    )
+    suspend fun applyAcknowledgementMetadata(
+        owner: String,
+        syncId: String,
+        serverVersion: Long,
+        serverUpdatedAt: Long,
+        syncStatus: String,
+    )
+
     @Query("UPDATE workout SET deletedAt = :deletedAt, normalizedName = NULL, syncStatus = 'PENDING_DELETE' WHERE workoutId = :id AND ownerFirebaseUid = :owner")
     suspend fun softDelete(owner: String, id: Long, deletedAt: Long)
 

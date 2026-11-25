@@ -90,6 +90,24 @@ interface ExerciseDao {
         updatedAt: Long,
     )
 
+    @Query(
+        """UPDATE exercise
+           SET serverVersion = :serverVersion,
+               updatedAt = MAX(updatedAt, :serverUpdatedAt),
+               syncStatus = :syncStatus
+           WHERE ownerFirebaseUid = :owner
+           AND syncId = :syncId
+           AND isCustom = 1
+           AND serverVersion < :serverVersion"""
+    )
+    suspend fun applyAcknowledgementMetadata(
+        owner: String,
+        syncId: String,
+        serverVersion: Long,
+        serverUpdatedAt: Long,
+        syncStatus: String,
+    )
+
     /** Idempotent soft delete; only owner-scoped custom exercises are affected. */
     @Query(
         """UPDATE exercise

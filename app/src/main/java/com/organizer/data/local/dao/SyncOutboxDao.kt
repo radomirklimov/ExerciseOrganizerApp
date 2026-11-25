@@ -63,6 +63,37 @@ interface SyncOutboxDao {
     @Query("UPDATE sync_outbox SET retryCount = :retryCount, lastError = :error, syncStatus = :status WHERE ownerFirebaseUid = :owner AND mutationId = :mutationId")
     suspend fun updateRetry(owner: String, mutationId: String, retryCount: Int, error: String?, status: String)
 
+    @Query(
+        """SELECT * FROM sync_outbox
+           WHERE ownerFirebaseUid = :owner
+           AND entityType = :entityType
+           AND recordSyncId = :syncId
+           ORDER BY createdAt ASC, outboxId ASC"""
+    )
+    suspend fun findByRecord(owner: String, entityType: String, syncId: String): List<SyncOutboxEntity>
+
+    @Query(
+        """UPDATE sync_outbox
+           SET syncStatus = :status,
+               serverVersion = :serverVersion,
+               serverUpdatedAt = :serverUpdatedAt,
+               acknowledgedAt = :acknowledgedAt,
+               terminalErrorCode = :terminalErrorCode
+           WHERE ownerFirebaseUid = :owner
+           AND mutationId = :mutationId
+           AND syncStatus IN (:allowedStatuses)"""
+    )
+    suspend fun markTerminal(
+        owner: String,
+        mutationId: String,
+        status: String,
+        serverVersion: Long?,
+        serverUpdatedAt: Long?,
+        acknowledgedAt: Long,
+        terminalErrorCode: String?,
+        allowedStatuses: Set<String>,
+    ): Int
+
     @Query("DELETE FROM sync_outbox WHERE mutationId = :mutationId AND ownerFirebaseUid = :owner")
     suspend fun delete(mutationId: String, owner: String)
 

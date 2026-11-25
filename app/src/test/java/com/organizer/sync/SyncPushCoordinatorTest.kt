@@ -2,6 +2,7 @@ package com.organizer.sync
 
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.SyncOutboxEntity
+import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
 import com.organizer.data.remote.SyncApi
@@ -50,12 +51,25 @@ class SyncPushCoordinatorTest {
         }
     }
 
+    private class TestTokenProvider(var token: String? = "user-a-token") : SyncTokenProvider {
+        val requestedFor = mutableListOf<String>()
+        var hook: (() -> Unit)? = null
+
+        override suspend fun idTokenFor(owner: String): String? {
+            requestedFor += owner
+            hook?.invoke()
+            return token
+        }
+    }
+
     private class FakeSyncApi : SyncApi {
         val pushed = mutableListOf<SyncPushRequestDto>()
+        val authorizations = mutableListOf<String>()
         var pushBlock: suspend (SyncPushRequestDto) -> SyncPushResponseDto = { error("pushBlock not configured") }
 
-        override suspend fun push(request: SyncPushRequestDto): SyncPushResponseDto {
+        override suspend fun push(request: SyncPushRequestDto, authorization: String): SyncPushResponseDto {
             pushed += request
+            authorizations += authorization
             return pushBlock(request)
         }
 
@@ -69,6 +83,7 @@ class SyncPushCoordinatorTest {
         val exercises = FakeExerciseDao()
         val staged = FakeSyncStagedDao()
         val api = FakeSyncApi()
+        val tokens = TestTokenProvider()
         val runner = ImmediateSyncTransactionRunner()
         val json = Json { ignoreUnknownKeys = true }
         val acknowledger = SyncOutboxAcknowledger(ownerProvider, outbox, workouts, exercises, runner)
@@ -76,6 +91,7 @@ class SyncPushCoordinatorTest {
         val reconciler = SyncReconciler(ownerProvider, outbox, staged, applier, runner)
         val coordinator = SyncPushCoordinator(
             ownerProvider,
+            tokens,
             outbox,
             SyncApiClient(api, json),
             SyncContractMapper(),
@@ -601,5 +617,130 @@ class SyncPushCoordinatorTest {
         assertEquals(1, report.applied)
         assertEquals(1, report.reconciled)
         assertEquals(SyncStagedStatus.APPLIED, f.staged.find(owner, SyncEntityTypes.WORKOUT, syncId)!!.processingStatus)
+    }
+
+    @Test
+    fun `recovered in flight mutation is never coalesced and retries byte-identically`() = runTest {
+        val f = Fixture()
+        val original = mutation(
+            baseVersion = 2,
+            createdAt = 1L,
+            payload = """{"schemaVersion":1,"name":"Original"}""",
+        )
+        f.outbox.insert(original)
+
+        // The server may have applied it before the app died.
+        f.outbox.markInFlight(owner, setOf(original.mutationId))
+        f.outbox.recoverInFlight(owner)
+        val recovered = f.outbox.findByMutationId(owner, original.mutationId)!!
+        assertTrue(recovered.everTransmitted)
+        assertEquals(SyncOutboxStatus.PENDING_UPLOAD, recovered.syncStatus)
+
+        // A later local edit of the same record and operation must not replace
+        // the payload under the original mutation ID.
+        SyncOutboxWriter(f.outbox, SyncPayloadFactory(f.json)).upsertWorkout(
+            owner,
+            WorkoutEntity(
+                name = "Edited",
+                ownerFirebaseUid = owner,
+                syncId = original.recordSyncId,
+                serverVersion = 2,
+            ),
+        )
+        val pending = f.outbox.findByStatus(owner, SyncOutboxStatus.PENDING_UPLOAD)
+        assertEquals(2, pending.size)
+        val storedOriginal = f.outbox.findByMutationId(owner, original.mutationId)!!
+        assertEquals(original.mutationId, storedOriginal.mutationId)
+        assertEquals(original.payload, storedOriginal.payload)
+        assertEquals(original.baseVersion, storedOriginal.baseVersion)
+        assertTrue(pending.any { it.mutationId != original.mutationId })
+
+        // Retrying the original still sends the exact same request contents.
+        f.api.pushBlock = { call ->
+            response(call.mutations.map {
+                SyncMutationResultDto(
+                    mutationId = it.mutationId, syncId = it.syncId, status = "DUPLICATE",
+                    originalStatus = "APPLIED", serverVersion = 2,
+                    serverUpdatedAt = "2026-11-24T10:00:00Z",
+                )
+            })
+        }
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(1, report.duplicate)
+        val sent = f.api.pushed.single().mutations.single()
+        assertEquals(original.mutationId, sent.mutationId)
+        assertEquals(original.operation, sent.operation)
+        assertEquals(original.baseVersion, sent.baseVersion)
+        assertEquals(Json.parseToJsonElement(original.payload!!), sent.payload)
+        assertEquals(SyncOutboxStatus.ACKNOWLEDGED, f.outbox.findByMutationId(owner, original.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `missing token aborts before the network call`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+        f.tokens.token = null
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertNotNull(report.error)
+        assertTrue(f.api.pushed.isEmpty())
+        assertEquals(SyncOutboxStatus.IN_FLIGHT, f.outbox.findByMutationId(owner, m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `account switch after token binding still sends the captured user token`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+        f.api.pushBlock = { call ->
+            response(call.mutations.map {
+                SyncMutationResultDto(it.mutationId, it.syncId, "APPLIED", serverVersion = 1, serverUpdatedAt = "2026-11-24T10:00:00Z")
+            })
+        }
+        f.tokens.hook = { f.ownerProvider.switchTo("user-b") }
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(listOf(owner), f.tokens.requestedFor)
+        assertEquals("Bearer user-a-token", f.api.authorizations.single())
+        // The ambient account is B at transmission time, but the request still
+        // carries A's token, so the backend derives A as the owner.
+        assertEquals("user-b", f.ownerProvider.uid)
+        // Persistence remains protected: no ack is written under B.
+        assertTrue(report.ownerChanged)
+        assertEquals(0, report.applied)
+        assertEquals(SyncOutboxStatus.IN_FLIGHT, f.outbox.findByMutationId(owner, m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `duplicate of a conflict from the server remains blocking`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+        f.api.pushBlock = {
+            response(
+                listOf(
+                    SyncMutationResultDto(
+                        mutationId = m.mutationId,
+                        syncId = m.recordSyncId,
+                        status = "DUPLICATE",
+                        originalStatus = "CONFLICT",
+                        errorCode = "VERSION_CONFLICT",
+                        serverVersion = 3,
+                    ),
+                )
+            )
+        }
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(1, report.conflicted)
+        assertEquals(0, report.applied)
+        assertEquals(0, report.duplicate)
+        assertEquals(0, report.reconciled)
+        assertEquals(SyncOutboxStatus.CONFLICTED, f.outbox.findByMutationId(owner, m.mutationId)!!.syncStatus)
     }
 }

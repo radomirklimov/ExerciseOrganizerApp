@@ -13,6 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class SyncPushCoordinator @Inject constructor(
     private val ownerProvider: OwnerProvider,
+    private val tokenProvider: SyncTokenProvider,
     private val outboxDao: SyncOutboxDao,
     private val apiClient: SyncApiClient,
     private val contractMapper: SyncContractMapper,
@@ -69,7 +70,19 @@ class SyncPushCoordinator @Inject constructor(
             )
         }
 
-        val apiResult = apiClient.push(SyncPushRequestDto(requests))
+        // Bind the credential to the captured user. From here on the request
+        // carries A's token even if the ambient account switches to B; checks
+        // above and below still guard all persistence.
+        val token = tokenProvider.idTokenFor(owner)
+        if (token == null) {
+            return PushResult(
+                selected = selected.size,
+                superseded = selection.superseded,
+                ownerChanged = ownerProvider.currentOwner() != owner,
+                error = "Authenticated user is no longer available for push",
+            )
+        }
+        val apiResult = apiClient.push(SyncPushRequestDto(requests), "Bearer $token")
         return when (apiResult) {
             is SyncApiResult.Success -> handleSuccess(owner, selection, requests, apiResult.data.results)
             is SyncApiResult.HttpError -> handleHttpError(owner, selection, apiResult)
@@ -206,13 +219,18 @@ class SyncPushCoordinator @Inject constructor(
         val recognized = results
             .filter { r -> selection.mutations.any { m -> m.mutationId == r.mutationId && m.recordSyncId == r.syncId } }
             .distinctBy { it.mutationId }
+        val effectiveStatuses = recognized.map { r ->
+            if (r.status == "DUPLICATE") r.originalStatus ?: "APPLIED" else r.status
+        }
         return PushResult(
             selected = selection.mutations.size,
             sent = requests.size,
-            applied = recognized.count { it.status == "APPLIED" },
-            duplicate = recognized.count { it.status == "DUPLICATE" },
-            conflicted = recognized.count { it.status == "CONFLICT" },
-            rejected = recognized.count { it.status == "REJECTED" },
+            applied = effectiveStatuses.count { it == "APPLIED" },
+            duplicate = recognized.indices.count {
+                recognized[it].status == "DUPLICATE" && effectiveStatuses[it] == "APPLIED"
+            },
+            conflicted = effectiveStatuses.count { it == "CONFLICT" },
+            rejected = effectiveStatuses.count { it == "REJECTED" },
             retryable = retryable,
             skipped = ack.skippedUnknown + ack.skippedTerminal + ack.skippedInvalid,
             superseded = selection.superseded,
@@ -234,7 +252,9 @@ class SyncPushCoordinator @Inject constructor(
         val representatives = groups.values.map { group ->
             val ordered = group.sortedWith(compareBy<SyncOutboxEntity> { it.createdAt }.thenBy { it.orderKey() })
             val final = ordered.last()
-            val allClean = ordered.all { it.retryCount == 0 && it.lastError == null }
+            val allClean = ordered.all {
+                it.retryCount == 0 && it.lastError == null && !it.everTransmitted
+            }
             val finalIsStandaloneSafe = final.operation == "UPSERT" || final.operation == "DELETE"
             val finalMaps = contractMapper.toMutation(final, owner) is OutboxMappingResult.Success
 

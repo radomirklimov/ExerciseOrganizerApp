@@ -400,7 +400,7 @@ class FakeSyncOutboxDao : SyncOutboxDao {
                     it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD
                 ) {
                     changed++
-                    it.copy(syncStatus = SyncOutboxStatus.IN_FLIGHT, lastError = null)
+                    it.copy(syncStatus = SyncOutboxStatus.IN_FLIGHT, lastError = null, everTransmitted = true)
                 } else it
             }
         }
@@ -502,14 +502,16 @@ class FakeSyncOutboxDao : SyncOutboxDao {
             it.operation == operation &&
             it.syncStatus == "PENDING_UPLOAD" &&
             it.retryCount == 0 &&
-            it.lastError == null
+            it.lastError == null &&
+            !it.everTransmitted
     }
 
     override suspend fun updateOpenPayload(owner: String, mutationId: String, payload: String, createdAt: Long) {
         entries.update { current ->
             current.map {
                 if (it.ownerFirebaseUid == owner && it.mutationId == mutationId &&
-                    it.syncStatus == "PENDING_UPLOAD" && it.retryCount == 0 && it.lastError == null
+                    it.syncStatus == "PENDING_UPLOAD" && it.retryCount == 0 && it.lastError == null &&
+                        !it.everTransmitted
                 ) {
                     it.copy(payload = payload, createdAt = createdAt)
                 } else it

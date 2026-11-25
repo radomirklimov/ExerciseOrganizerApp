@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.ALL_MIGRATIONS
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -87,7 +88,7 @@ class MigrationV13ToV14Test {
         context,
         AppDatabase::class.java,
         dbName,
-    ).addMigrations(OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14).build()
+    ).addMigrations(*ALL_MIGRATIONS).build()
 
     @Test
     fun migrationPreservesAllV13DataAndAddsStableSyncMetadata() = runBlocking {

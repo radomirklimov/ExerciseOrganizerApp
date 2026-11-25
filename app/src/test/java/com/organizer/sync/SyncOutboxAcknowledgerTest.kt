@@ -62,6 +62,7 @@ class SyncOutboxAcknowledgerTest {
         status: String,
         version: Long = 1,
         errorCode: String? = null,
+        originalStatus: String? = null,
     ) = SyncMutationResultDto(
         mutationId = mutationId,
         syncId = syncId,
@@ -69,6 +70,7 @@ class SyncOutboxAcknowledgerTest {
         serverVersion = version,
         serverUpdatedAt = "2026-11-24T10:00:00Z",
         errorCode = errorCode,
+        originalStatus = originalStatus,
     )
 
     private fun localWorkout(syncId: String, version: Long = 0, status: String = "PENDING_UPLOAD") =
@@ -112,6 +114,86 @@ class SyncOutboxAcknowledgerTest {
 
         assertEquals(1, report.acknowledged)
         assertEquals(SyncOutboxStatus.ACKNOWLEDGED, f.outbox.findByMutationId("user-a", m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `duplicate of APPLIED is acknowledged`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+        f.workouts.seed(localWorkout(m.recordSyncId))
+
+        val report = f.acknowledger.acknowledge(
+            "user-a", listOf(result(m.mutationId, m.recordSyncId, "DUPLICATE", originalStatus = "APPLIED"))
+        )
+
+        assertEquals(1, report.acknowledged)
+        assertEquals(SyncOutboxStatus.ACKNOWLEDGED, f.outbox.findByMutationId("user-a", m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `duplicate of CONFLICT stays blocking`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+        f.workouts.seed(localWorkout(m.recordSyncId))
+
+        val report = f.acknowledger.acknowledge(
+            "user-a",
+            listOf(result(m.mutationId, m.recordSyncId, "DUPLICATE", errorCode = "VERSION_CONFLICT", originalStatus = "CONFLICT")),
+        )
+
+        assertEquals(1, report.conflicted)
+        assertEquals(0, report.acknowledged)
+        val stored = f.outbox.findByMutationId("user-a", m.mutationId)!!
+        assertEquals(SyncOutboxStatus.CONFLICTED, stored.syncStatus)
+        assertEquals("VERSION_CONFLICT", stored.terminalErrorCode)
+        assertTrue(
+            f.outbox.hasBlockingMutationForRecord(
+                "user-a", SyncEntityTypes.WORKOUT, m.recordSyncId, SyncOutboxStatus.BLOCKING
+            )
+        )
+    }
+
+    @Test
+    fun `duplicate of REJECTED stays terminal blocking`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+
+        val report = f.acknowledger.acknowledge(
+            "user-a",
+            listOf(result(m.mutationId, m.recordSyncId, "DUPLICATE", errorCode = "PAYLOAD_REQUIRED", originalStatus = "REJECTED")),
+        )
+
+        assertEquals(1, report.rejected)
+        assertEquals(SyncOutboxStatus.REJECTED_TERMINAL, f.outbox.findByMutationId("user-a", m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `duplicate without originalStatus keeps legacy success behavior`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+
+        val report = f.acknowledger.acknowledge("user-a", listOf(result(m.mutationId, m.recordSyncId, "DUPLICATE")))
+
+        assertEquals(1, report.acknowledged)
+        assertEquals(SyncOutboxStatus.ACKNOWLEDGED, f.outbox.findByMutationId("user-a", m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `duplicate with unknown originalStatus is invalid and stays blocking`() = runTest {
+        val f = Fixture()
+        val m = mutation()
+        f.outbox.insert(m)
+
+        val report = f.acknowledger.acknowledge(
+            "user-a", listOf(result(m.mutationId, m.recordSyncId, "DUPLICATE", originalStatus = "MYSTERY"))
+        )
+
+        assertEquals(1, report.skippedInvalid)
+        assertEquals(SyncOutboxStatus.PENDING_UPLOAD, f.outbox.findByMutationId("user-a", m.mutationId)!!.syncStatus)
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.organizer.sync
 
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.SyncOutboxEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.media.MediaDownloadQueue
 import com.organizer.data.remote.repo.ExerciseRemoteDataSource
@@ -32,6 +33,18 @@ class SyncOutboxProducerTest {
 
     private class FixedOwner(private val uid: String) : OwnerProvider() {
         override fun currentOwner(): String = uid
+    }
+
+    private class MutableOwner(initial: String) : OwnerProvider() {
+        @Volatile var uid = initial
+        override fun currentOwner(): String = uid
+    }
+
+    private class SwitchInsideRunner(private val owner: MutableOwner) : SyncTransactionRunner {
+        override suspend fun <T> run(block: suspend () -> T): T {
+            owner.uid = "user-b"
+            return block()
+        }
     }
 
     private fun exerciseRepo(
@@ -204,5 +217,59 @@ class SyncOutboxProducerTest {
         repo.deleteWorkout(9L)
 
         assertTrue(outboxDao.entries.value.isEmpty())
+    }
+
+    @Test
+    fun `owner switch inside local transaction aborts entity and outbox writes`() = runTest {
+        val owner = MutableOwner("user-a")
+        val workoutDao = FakeWorkoutDao()
+        val outboxDao = FakeSyncOutboxDao()
+        val repo = WorkoutRepository(
+            workoutDao,
+            owner,
+            SwitchInsideRunner(owner),
+            fakeOutboxWriter(outboxDao).first,
+        )
+
+        val thrown = runCatching { repo.createWorkout("Switched") }.exceptionOrNull()
+
+        assertTrue(thrown is OwnerChangedDuringLocalWriteException)
+        assertTrue(workoutDao.data.value.isEmpty())
+        assertTrue(outboxDao.entries.value.isEmpty())
+    }
+
+    @Test
+    fun `previously transmitted pending mutation is never coalesced`() = runTest {
+        val outboxDao = FakeSyncOutboxDao()
+        val syncId = "existing-uuid"
+        val original = SyncOutboxEntity(
+            mutationId = "original-uuid",
+            ownerFirebaseUid = "user-a",
+            entityType = "WORKOUT",
+            recordSyncId = syncId,
+            operation = "UPSERT",
+            payload = """{"schemaVersion":1,"name":"Original"}""",
+            baseVersion = 0,
+            syncStatus = SyncOutboxStatus.PENDING_UPLOAD,
+            everTransmitted = true,
+        )
+        outboxDao.insert(original)
+
+        fakeOutboxWriter(outboxDao).first.upsertWorkout(
+            "user-a",
+            WorkoutEntity(
+                name = "Edited",
+                ownerFirebaseUid = "user-a",
+                syncId = syncId,
+                serverVersion = 0,
+            ),
+        )
+
+        val rows = outboxDao.entries.value
+        assertEquals(2, rows.size)
+        val stored = rows.first { it.mutationId == original.mutationId }
+        assertEquals(original.payload, stored.payload)
+        assertEquals(original.baseVersion, stored.baseVersion)
+        assertTrue(rows.any { it.mutationId != original.mutationId && it.recordSyncId == syncId })
     }
 }

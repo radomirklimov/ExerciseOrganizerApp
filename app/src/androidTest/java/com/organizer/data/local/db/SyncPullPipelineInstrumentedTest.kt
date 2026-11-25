@@ -60,8 +60,10 @@ class SyncPullPipelineInstrumentedTest {
             return response
         }
 
-        override suspend fun push(request: com.organizer.data.remote.model.SyncPushRequestDto):
-            com.organizer.data.remote.model.SyncPushResponseDto = error("push not used")
+        override suspend fun push(
+            request: com.organizer.data.remote.model.SyncPushRequestDto,
+            authorization: String,
+        ): com.organizer.data.remote.model.SyncPushResponseDto = error("push not used")
     }
 
     private class FailingRunner(private val db: AppDatabase) : SyncTransactionRunner {

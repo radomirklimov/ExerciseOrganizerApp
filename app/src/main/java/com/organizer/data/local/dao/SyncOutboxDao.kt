@@ -37,6 +37,7 @@ interface SyncOutboxDao {
            AND syncStatus = 'PENDING_UPLOAD'
            AND retryCount = 0
            AND lastError IS NULL
+           AND everTransmitted = 0
            ORDER BY createdAt DESC
            LIMIT 1"""
     )
@@ -54,7 +55,8 @@ interface SyncOutboxDao {
            AND mutationId = :mutationId
            AND syncStatus = 'PENDING_UPLOAD'
            AND retryCount = 0
-           AND lastError IS NULL"""
+           AND lastError IS NULL
+           AND everTransmitted = 0"""
     )
     suspend fun updateOpenPayload(
         owner: String,
@@ -101,7 +103,7 @@ interface SyncOutboxDao {
     suspend fun recoverInFlight(owner: String): Int
 
     @Query(
-        """UPDATE sync_outbox SET syncStatus = 'IN_FLIGHT', lastError = NULL
+        """UPDATE sync_outbox SET syncStatus = 'IN_FLIGHT', lastError = NULL, everTransmitted = 1
            WHERE ownerFirebaseUid = :owner
            AND mutationId IN (:mutationIds)
            AND syncStatus = 'PENDING_UPLOAD'"""

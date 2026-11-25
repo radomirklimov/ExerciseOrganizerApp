@@ -4,6 +4,7 @@ import com.organizer.data.remote.model.SyncChangesResponseDto
 import com.organizer.data.remote.model.SyncPushRequestDto
 import com.organizer.data.remote.model.SyncPushResponseDto
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
@@ -16,5 +17,8 @@ interface SyncApi {
     ): SyncChangesResponseDto
 
     @POST("api/sync/push")
-    suspend fun push(@Body request: SyncPushRequestDto): SyncPushResponseDto
+    suspend fun push(
+        @Body request: SyncPushRequestDto,
+        @Header("Authorization") authorization: String,
+    ): SyncPushResponseDto
 }

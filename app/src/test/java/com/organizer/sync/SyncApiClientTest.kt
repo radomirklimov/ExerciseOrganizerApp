@@ -21,7 +21,10 @@ class SyncApiClientTest {
         var pushBlock: suspend () -> SyncPushResponseDto = { error("not configured") }
         var changesBlock: suspend () -> SyncChangesResponseDto = { error("not configured") }
 
-        override suspend fun push(request: com.organizer.data.remote.model.SyncPushRequestDto) = pushBlock()
+        override suspend fun push(
+            request: com.organizer.data.remote.model.SyncPushRequestDto,
+            authorization: String,
+        ) = pushBlock()
         override suspend fun changes(cursor: String?, limit: Int) = changesBlock()
     }
 
@@ -38,7 +41,8 @@ class SyncApiClientTest {
     fun `successful push is returned`() = runBlocking {
         val api = FakeSyncApi().apply { pushBlock = { successPush() } }
         val result = apiClient(api).push(
-            com.organizer.data.remote.model.SyncPushRequestDto(emptyList())
+            com.organizer.data.remote.model.SyncPushRequestDto(emptyList()),
+            "Bearer test-token",
         )
         assertTrue(result is SyncApiResult.Success)
         assertTrue((result as SyncApiResult.Success).data.results.isEmpty())
@@ -53,7 +57,8 @@ class SyncApiClientTest {
         )
         val api = FakeSyncApi().apply { pushBlock = { throw HttpException(response) } }
         val result = apiClient(api).push(
-            com.organizer.data.remote.model.SyncPushRequestDto(emptyList())
+            com.organizer.data.remote.model.SyncPushRequestDto(emptyList()),
+            "Bearer test-token",
         )
         val error = result as SyncApiResult.HttpError
         assertEquals(400, error.code)
@@ -78,7 +83,8 @@ class SyncApiClientTest {
     fun `network failure is reported as transport error`() = runBlocking {
         val api = FakeSyncApi().apply { pushBlock = { throw IOException("offline") } }
         val result = apiClient(api).push(
-            com.organizer.data.remote.model.SyncPushRequestDto(emptyList())
+            com.organizer.data.remote.model.SyncPushRequestDto(emptyList()),
+            "Bearer test-token",
         )
         assertTrue(result is SyncApiResult.TransportError)
         assertEquals("offline", (result as SyncApiResult.TransportError).message)
@@ -88,7 +94,8 @@ class SyncApiClientTest {
     fun `malformed response is reported safely`() = runBlocking {
         val api = FakeSyncApi().apply { pushBlock = { throw SerializationException("bad json") } }
         val result = apiClient(api).push(
-            com.organizer.data.remote.model.SyncPushRequestDto(emptyList())
+            com.organizer.data.remote.model.SyncPushRequestDto(emptyList()),
+            "Bearer test-token",
         )
         assertTrue(result is SyncApiResult.MalformedResponse)
         assertEquals("bad json", (result as SyncApiResult.MalformedResponse).message)

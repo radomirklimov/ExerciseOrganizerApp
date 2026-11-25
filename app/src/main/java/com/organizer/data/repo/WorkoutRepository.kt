@@ -4,6 +4,7 @@ import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
+import com.organizer.sync.OwnerChangedDuringLocalWriteException
 import com.organizer.sync.SyncOutboxWriter
 import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ class WorkoutRepository @Inject constructor(
             normalizedName = WorkoutNameNormalizer.normalize(name),
         )
         return transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
             val id = dao.insert(entity)
             outboxWriter.upsertWorkout(owner, entity.copy(workoutId = id))
             id
@@ -51,6 +53,7 @@ class WorkoutRepository @Inject constructor(
         val owner = ownerProvider.currentOwner()
         val now = System.currentTimeMillis()
         transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
             val workout = dao.getByIdOnce(owner, id)
             if (workout != null && workout.deletedAt == null) {
                 dao.softDelete(owner, id, now)
@@ -62,6 +65,7 @@ class WorkoutRepository @Inject constructor(
     suspend fun updateWorkoutNotes(id: Long, notes: String) {
         val owner = ownerProvider.currentOwner()
         transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
             val workout = dao.getByIdOnce(owner, id)
             if (workout != null && workout.deletedAt == null && workout.notes != notes) {
                 val now = System.currentTimeMillis()

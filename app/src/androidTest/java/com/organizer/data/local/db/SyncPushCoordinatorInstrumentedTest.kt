@@ -22,6 +22,7 @@ import com.organizer.sync.SyncOutboxStatus
 import com.organizer.sync.SyncPushCoordinator
 import com.organizer.sync.SyncReconciler
 import com.organizer.sync.SyncStagedApplier
+import com.organizer.sync.SyncTokenProvider
 import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -56,12 +57,22 @@ class SyncPushCoordinatorInstrumentedTest {
         }
     }
 
+    private class TestTokenProvider(var token: String? = "user-a-token") : SyncTokenProvider {
+        var hook: (() -> Unit)? = null
+        override suspend fun idTokenFor(owner: String): String? {
+            hook?.invoke()
+            return token
+        }
+    }
+
     private class FakeSyncApi : SyncApi {
         val pushed = mutableListOf<SyncPushRequestDto>()
+        val authorizations = mutableListOf<String>()
         var pushBlock: suspend (SyncPushRequestDto) -> SyncPushResponseDto = { error("pushBlock not configured") }
 
-        override suspend fun push(request: SyncPushRequestDto): SyncPushResponseDto {
+        override suspend fun push(request: SyncPushRequestDto, authorization: String): SyncPushResponseDto {
             pushed += request
+            authorizations += authorization
             return pushBlock(request)
         }
 
@@ -124,6 +135,7 @@ class SyncPushCoordinatorInstrumentedTest {
         api: FakeSyncApi,
         ownerProvider: OwnerProvider,
         runner: SyncTransactionRunner = RoomSyncTransactionRunner(db),
+        tokens: TestTokenProvider = TestTokenProvider(),
     ): SyncPushCoordinator {
         val json = Json { ignoreUnknownKeys = true }
         val acknowledger = SyncOutboxAcknowledger(ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, runner)
@@ -133,7 +145,7 @@ class SyncPushCoordinatorInstrumentedTest {
         )
         val reconciler = SyncReconciler(ownerProvider, db.syncOutboxDao, db.syncStagedDao, applier, RoomSyncTransactionRunner(db))
         return SyncPushCoordinator(
-            ownerProvider, db.syncOutboxDao, SyncApiClient(api, json), SyncContractMapper(),
+            ownerProvider, tokens, db.syncOutboxDao, SyncApiClient(api, json), SyncContractMapper(),
             acknowledger, reconciler, runner,
         )
     }
@@ -362,6 +374,27 @@ class SyncPushCoordinatorInstrumentedTest {
             assertEquals(1, retried.applied)
             assertEquals(m.mutationId, retry.pushed.single().mutations.single().mutationId)
             assertEquals(SyncOutboxStatus.ACKNOWLEDGED, db.syncOutboxDao.findByMutationId(owner, m.mutationId)!!.syncStatus)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun authorizationStaysBoundToCapturedOwnerAfterAccountSwitch() = runBlocking {
+        val db = openDb()
+        try {
+            val ownerProvider = TestOwner()
+            val m = mutation()
+            db.syncOutboxDao.insert(m)
+            val tokens = TestTokenProvider().apply { hook = { ownerProvider.uid = "user-b" } }
+            val api = FakeSyncApi().apply { pushBlock = { resultsFor(it) } }
+
+            val report = coordinator(db, api, ownerProvider, tokens = tokens).pushOneBatch()
+
+            assertTrue(report.ownerChanged)
+            assertEquals("Bearer user-a-token", api.authorizations.single())
+            assertEquals("user-b", ownerProvider.uid)
+            assertEquals(SyncOutboxStatus.IN_FLIGHT, db.syncOutboxDao.findByMutationId(owner, m.mutationId)!!.syncStatus)
         } finally {
             db.close()
         }

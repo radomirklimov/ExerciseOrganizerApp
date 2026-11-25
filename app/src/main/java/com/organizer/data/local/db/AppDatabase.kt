@@ -37,7 +37,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 17,
+    version = 18,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -82,15 +82,42 @@ abstract class AppDatabase : RoomDatabase() {
 /** Adds acknowledgement metadata to outbox rows and a record-level lookup index. */
 val OUTBOX_ACKNOWLEDGEMENT_MIGRATION_16_17 = object : Migration(16, 17) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN serverVersion INTEGER")
-        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN serverUpdatedAt INTEGER")
-        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN acknowledgedAt INTEGER")
-        db.execSQL("ALTER TABLE sync_outbox ADD COLUMN terminalErrorCode TEXT")
+        // 13->14 already creates these columns when sync_outbox is first built.
+        // Adding them unconditionally here broke upgrades from v13-v15.
+        db.addColumnIfMissing("sync_outbox", "serverVersion", "INTEGER")
+        db.addColumnIfMissing("sync_outbox", "serverUpdatedAt", "INTEGER")
+        db.addColumnIfMissing("sync_outbox", "acknowledgedAt", "INTEGER")
+        db.addColumnIfMissing("sync_outbox", "terminalErrorCode", "TEXT")
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS index_sync_outbox_ownerFirebaseUid_entityType_recordSyncId " +
                 "ON sync_outbox (ownerFirebaseUid, entityType, recordSyncId)"
         )
     }
+}
+
+/**
+ * Durable transmission marker. Once a row has been handed to the network it may
+ * already exist on the server, so it must never be coalesced into a later local
+ * edit under the same mutationId. Recovery keeps the marker set.
+ */
+val TRANSMISSION_MARKER_MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.addColumnIfMissing("sync_outbox", "everTransmitted", "INTEGER NOT NULL DEFAULT 0")
+        // A v17 row may already have reached the server and been returned to
+        // PENDING_UPLOAD by recovery. The old schema cannot distinguish it from
+        // a never-sent row, so treat every pre-existing row as transmitted.
+        // New rows still get DEFAULT 0 and remain eligible for coalescing.
+        db.execSQL("UPDATE sync_outbox SET everTransmitted = 1")
+    }
+}
+
+private fun SupportSQLiteDatabase.addColumnIfMissing(table: String, column: String, definition: String) {
+    val exists = query("PRAGMA table_info('$table')").use { cursor ->
+        val nameIndex = cursor.getColumnIndex("name")
+        generateSequence { if (cursor.moveToNext()) cursor.getString(nameIndex) else null }
+            .any { it == column }
+    }
+    if (!exists) execSQL("ALTER TABLE $table ADD COLUMN $column $definition")
 }
 
 /** Adds durable staging for pulled records and pagination metadata for cursors. */
@@ -714,3 +741,23 @@ val DISPLAY_ORDER_MIGRATION_1_2 = object : Migration(1, 2) {
         """.trimIndent())
     }
 }
+/** Single source of truth for Room upgrades, shared by the app and migration tests. */
+val ALL_MIGRATIONS = arrayOf(
+    DISPLAY_ORDER_MIGRATION_1_2,
+    EXERCISE_TYPE_MIGRATION_2_3,
+    EXERCISE_PROGRESS_MIGRATION_3_4,
+    WORKOUT_NOTES_MIGRATION_4_5,
+    STARTER_TEMPLATES_MIGRATION_5_6,
+    STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7,
+    FAVORITE_EXERCISE_MIGRATION_7_8,
+    SCHEDULED_WORKOUT_MIGRATION_8_9,
+    SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10,
+    PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11,
+    WORKOUT_COMPLETION_MIGRATION_11_12,
+    EXERCISE_PROGRESS_UNIT_MIGRATION_12_13,
+    OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14,
+    ACTIVE_WORKOUT_NAME_UNIQUENESS_MIGRATION_14_15,
+    PULL_STAGING_MIGRATION_15_16,
+    OUTBOX_ACKNOWLEDGEMENT_MIGRATION_16_17,
+    TRANSMISSION_MARKER_MIGRATION_17_18,
+)

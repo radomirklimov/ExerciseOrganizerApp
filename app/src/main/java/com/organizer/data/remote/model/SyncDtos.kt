@@ -31,6 +31,8 @@ data class SyncMutationResultDto(
     val serverUpdatedAt: String? = null,
     val deleted: Boolean = false,
     val serverPayload: JsonObject? = null,
+    /** On DUPLICATE, the original receipt outcome; absent from legacy servers. */
+    val originalStatus: String? = null,
 )
 
 @Serializable

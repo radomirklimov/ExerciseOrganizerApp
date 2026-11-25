@@ -24,8 +24,11 @@ class SyncApiClient @Inject constructor(
     private val syncApi: SyncApi,
     private val json: Json,
 ) {
-    suspend fun push(request: SyncPushRequestDto): SyncApiResult<SyncPushResponseDto> = safeCall {
-        syncApi.push(request)
+    suspend fun push(
+        request: SyncPushRequestDto,
+        authorization: String,
+    ): SyncApiResult<SyncPushResponseDto> = safeCall {
+        syncApi.push(request, authorization)
     }
 
     suspend fun changes(cursor: String?, limit: Int): SyncApiResult<SyncChangesResponseDto> = safeCall {

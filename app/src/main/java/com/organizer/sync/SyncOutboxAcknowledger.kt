@@ -81,7 +81,15 @@ class SyncOutboxAcknowledger @Inject constructor(
             return AckOutcome.SKIPPED_INVALID
         }
 
-        val status = when (result.status) {
+        // DUPLICATE is a replay marker, not an acknowledgement. Use the stored
+        // original outcome when present; legacy servers omit it, so their
+        // duplicates keep the historical success interpretation.
+        val effectiveStatus = if (result.status == STATUS_DUPLICATE) {
+            result.originalStatus ?: STATUS_APPLIED
+        } else {
+            result.status
+        }
+        val status = when (effectiveStatus) {
             STATUS_APPLIED, STATUS_DUPLICATE -> SyncOutboxStatus.ACKNOWLEDGED
             STATUS_CONFLICT -> SyncOutboxStatus.CONFLICTED
             STATUS_REJECTED -> SyncOutboxStatus.REJECTED_TERMINAL

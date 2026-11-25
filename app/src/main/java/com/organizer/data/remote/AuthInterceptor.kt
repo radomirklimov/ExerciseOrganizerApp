@@ -11,6 +11,9 @@ class AuthInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
+        // A caller performing an owner-bound sync already supplied the exact
+        // credential for that operation. Never replace it from ambient state.
+        if (original.header("Authorization") != null) return chain.proceed(original)
         val token = try {
             val task = firebaseAuth.currentUser?.getIdToken(false)
             val result = if (task != null) Tasks.await(task) else null

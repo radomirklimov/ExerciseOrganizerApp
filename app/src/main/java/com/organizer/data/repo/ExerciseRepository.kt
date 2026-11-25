@@ -4,6 +4,7 @@ import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.remote.repo.ExerciseRemoteDataSource
+import com.organizer.sync.OwnerChangedDuringLocalWriteException
 import com.organizer.sync.SyncOutboxWriter
 import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +36,7 @@ class ExerciseRepository @Inject constructor(
             syncId = java.util.UUID.randomUUID().toString(),
         )
         transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
             exerciseDao.insert(exercise)
             outboxWriter.upsertCustomExercise(owner, exercise)
         }
@@ -115,6 +117,7 @@ class ExerciseRepository @Inject constructor(
         val owner = ownerProvider.currentOwner()
         val now = System.currentTimeMillis()
         transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
             val exercise = exerciseDao.getByIdOnce(owner, id)
             if (exercise?.isCustom == true && exercise.ownerFirebaseUid == owner && exercise.deletedAt == null) {
                 exerciseDao.softDeleteCustom(owner, id, now, now)

@@ -31,4 +31,6 @@ data class SyncOutboxEntity(
     val serverUpdatedAt: Long? = null,
     val acknowledgedAt: Long? = null,
     val terminalErrorCode: String? = null,
+    /** Durable proof that this mutation was handed to the network at least once. */
+    val everTransmitted: Boolean = false,
 )

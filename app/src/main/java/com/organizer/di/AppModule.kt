@@ -19,6 +19,7 @@ import com.organizer.data.local.dao.SyncCursorDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.db.AppDatabase
+import com.organizer.data.local.db.ALL_MIGRATIONS
 import com.organizer.data.local.db.DISPLAY_ORDER_MIGRATION_1_2
 import com.organizer.data.local.db.OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14
 import com.organizer.data.local.db.ACTIVE_WORKOUT_NAME_UNIQUENESS_MIGRATION_14_15
@@ -38,7 +39,9 @@ import com.organizer.data.local.db.WORKOUT_NOTES_MIGRATION_4_5
 import com.google.firebase.auth.FirebaseAuth
 import com.organizer.data.remote.ApiService
 import com.organizer.data.remote.AuthInterceptor
+import com.organizer.sync.FirebaseSyncTokenProvider
 import com.organizer.sync.RoomSyncTransactionRunner
+import com.organizer.sync.SyncTokenProvider
 import com.organizer.sync.SyncTransactionRunner
 import com.organizer.data.remote.SyncApi
 import com.organizer.data.remote.UserApi
@@ -80,6 +83,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideSyncTokenProvider(impl: FirebaseSyncTokenProvider): SyncTokenProvider = impl
 
     @Provides
     @Singleton
@@ -136,7 +143,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppConfig.DATABASE_NAME
-        ).addMigrations(DISPLAY_ORDER_MIGRATION_1_2, EXERCISE_TYPE_MIGRATION_2_3, EXERCISE_PROGRESS_MIGRATION_3_4, WORKOUT_NOTES_MIGRATION_4_5, STARTER_TEMPLATES_MIGRATION_5_6, STARTER_TEMPLATE_CATEGORIES_MIGRATION_6_7, FAVORITE_EXERCISE_MIGRATION_7_8, SCHEDULED_WORKOUT_MIGRATION_8_9, SCHEDULED_WORKOUT_ONE_TIME_MIGRATION_9_10, PLANNED_SETS_AND_SESSIONS_MIGRATION_10_11, WORKOUT_COMPLETION_MIGRATION_11_12, EXERCISE_PROGRESS_UNIT_MIGRATION_12_13, OWNER_AND_SYNC_FOUNDATION_MIGRATION_13_14, ACTIVE_WORKOUT_NAME_UNIQUENESS_MIGRATION_14_15, PULL_STAGING_MIGRATION_15_16, OUTBOX_ACKNOWLEDGEMENT_MIGRATION_16_17).build()
+        ).addMigrations(*ALL_MIGRATIONS).build()
     }
 
     @Provides

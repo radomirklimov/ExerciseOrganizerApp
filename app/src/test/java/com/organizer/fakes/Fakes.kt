@@ -175,12 +175,32 @@ class FakeExerciseDao : ExerciseDao {
         data.value = items.toList()
     }
 
-    override suspend fun insertAll(exercises: List<ExerciseEntity>) {
-        data.update { current ->
-            val ids = exercises.map { it.exerciseId }.toSet()
-            current.filter { it.exerciseId !in ids } + exercises
+    private fun withLocalIds(current: List<ExerciseEntity>, incoming: List<ExerciseEntity>): List<ExerciseEntity> {
+        var nextId = (current.maxOfOrNull { it.exerciseId } ?: 0L) + 1L
+        val normalized = incoming.map { item ->
+            if (item.exerciseId == 0L) item.copy(exerciseId = nextId++) else item
         }
+        val ids = normalized.map { it.exerciseId }.toSet()
+        return current.filter { it.exerciseId !in ids } + normalized
     }
+
+    override suspend fun insertAll(exercises: List<ExerciseEntity>) {
+        data.update { current -> withLocalIds(current, exercises) }
+    }
+
+    override suspend fun insertPublicAll(exercises: List<ExerciseEntity>) {
+        data.update { current -> withLocalIds(current, exercises) }
+    }
+
+    override suspend fun getAllPublicOnce(): List<ExerciseEntity> =
+        data.value.filter { it.ownerFirebaseUid == "public" && !it.isCustom }
+
+    override suspend fun findPublicByCatalogId(publicExerciseId: Long): ExerciseEntity? =
+        data.value.firstOrNull {
+            it.ownerFirebaseUid == "public" && !it.isCustom && it.publicExerciseId == publicExerciseId
+        }
+
+    override suspend fun getAllNamesOnce(): List<String> = data.value.map { it.name }
 
     override suspend fun insert(exercise: ExerciseEntity) {
         data.update { it + exercise }

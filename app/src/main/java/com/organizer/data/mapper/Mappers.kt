@@ -15,8 +15,10 @@ fun Category.asEntity() = CategoryEntity(
     sortOrder = sortOrder,
 )
 
+/** Maps a catalog DTO with a locally allocated Room PK and a stable catalog ID. */
 fun Exercise.asEntity() = ExerciseEntity(
-    exerciseId = exerciseId,
+    exerciseId = 0L,
+    publicExerciseId = exerciseId,
     name = name,
     instructions = instructions,
     imageUrls = images,

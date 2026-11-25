@@ -44,35 +44,51 @@ class StarterTemplateRepository @Inject constructor(
      * Downloads starter templates and resolves the category that dominates
      * each template (the standard category covering the most exercises).
      */
-    suspend fun refreshTemplates() {
+    /** Returns the number of unresolved catalog exercise IDs in this refresh. */
+    suspend fun refreshTemplates(): Int {
         val remoteTemplates = remoteDataSource.getTemplates()
 
         // Templates can arrive before an exercise refresh has stored a newly
         // added exercise; upsert the included exercise payloads so the foreign
         // keys in starter_template_exercise always resolve.
-        val existingIds = exerciseDao.getAllOnce(ownerProvider.currentOwner()).map { it.exerciseId }.toSet()
+        // Template payloads carry catalog IDs; local child FKs need Room PKs.
+        val catalogToLocal = exerciseDao.getAllPublicOnce()
+            .mapNotNull { row -> row.publicExerciseId?.let { it to row.exerciseId } }
+            .toMap()
         val missingExercises = remoteTemplates
             .flatMap { it.exercises }
             .mapNotNull { it.exercise }
-            .filter { it.exerciseId !in existingIds }
+            .filter { it.exerciseId !in catalogToLocal }
             .distinctBy { it.exerciseId }
         if (missingExercises.isNotEmpty()) {
-            exerciseDao.insertAll(missingExercises.map { it.asEntity() })
+            exerciseDao.insertPublicAll(missingExercises.map { it.asEntity() })
             fileRepository.enqueueImages(missingExercises.flatMap { it.images })
         }
-        val availableIds = existingIds + missingExercises.map { it.exerciseId }
+        val resolvedCatalog = exerciseDao.getAllPublicOnce()
+            .mapNotNull { row -> row.publicExerciseId?.let { it to row.exerciseId } }
+            .toMap()
+        val availableIds = resolvedCatalog.values.toSet()
 
         val categories =
             (categoryDao.getSportsOnce() + categoryDao.getCategoriesOnce())
                 .associateBy { it.categoryId }
         val linksByExercise = exerciseCategoryDao.getAllOnce().groupBy { it.exerciseId }
 
+        var unresolved = 0
+        val resolvedByTemplate = remoteTemplates.associate { template ->
+            val ids = mutableListOf<Long>()
+            template.exercises.sortedBy { it.orderIndex }.forEach { entry ->
+                val catalogId = entry.exerciseIdOrNull()
+                if (catalogId != null) {
+                    val localId = resolvedCatalog[catalogId]
+                    if (localId != null && localId in availableIds) ids += localId else unresolved++
+                }
+            }
+            template.workoutId to ids.distinct()
+        }
+
         val templateEntities = remoteTemplates.map { template ->
-            val exerciseIds = template.exercises
-                .sortedBy { it.orderIndex }
-                .mapNotNull { it.exerciseIdOrNull() }
-                .filter { it in availableIds }
-                .distinct()
+            val exerciseIds = resolvedByTemplate.getValue(template.workoutId)
             val dominant = dominantCategory(exerciseIds, linksByExercise, categories)
             val usedCategories = usedCategories(exerciseIds, linksByExercise, categories)
 
@@ -88,21 +104,21 @@ class StarterTemplateRepository @Inject constructor(
         }
 
         val templateExercises = remoteTemplates.flatMap { template ->
-            val seen = mutableSetOf<Long>()
-            template.exercises
-                .sortedBy { it.orderIndex }
-                .mapNotNull { it.exerciseIdOrNull() }
-                .filter { it in availableIds && seen.add(it) }
-                .mapIndexed { index, exerciseId ->
-                    StarterTemplateExerciseEntity(
-                        templateId = template.workoutId,
-                        exerciseId = exerciseId,
-                        orderIndex = index,
-                    )
-                }
+            resolvedByTemplate.getValue(template.workoutId).mapIndexed { index, exerciseId ->
+                StarterTemplateExerciseEntity(
+                    templateId = template.workoutId,
+                    exerciseId = exerciseId,
+                    orderIndex = index,
+                )
+            }
         }
 
-        templateDao.replaceAll(templateEntities, templateExercises)
+        // An unresolved catalog ID means this snapshot is incomplete. Keep the
+        // existing template rows rather than replacing them with shortened ones.
+        if (unresolved == 0) {
+            templateDao.replaceAll(templateEntities, templateExercises)
+        }
+        return unresolved
     }
 
     /**

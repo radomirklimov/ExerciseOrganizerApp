@@ -14,6 +14,20 @@ interface ExerciseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(exercises: List<ExerciseEntity>)
 
+    /** Catalog inserts allocate local PKs and must never replace a custom row. */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertPublicAll(exercises: List<ExerciseEntity>)
+
+    @Query("SELECT * FROM exercise WHERE ownerFirebaseUid = 'public' AND isCustom = 0")
+    suspend fun getAllPublicOnce(): List<ExerciseEntity>
+
+    @Query("SELECT * FROM exercise WHERE ownerFirebaseUid = 'public' AND isCustom = 0 AND publicExerciseId = :publicExerciseId")
+    suspend fun findPublicByCatalogId(publicExerciseId: Long): ExerciseEntity?
+
+    /** All names, including custom rows of every owner and soft-deleted rows. */
+    @Query("SELECT name FROM exercise")
+    suspend fun getAllNamesOnce(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(exercise: ExerciseEntity)
 

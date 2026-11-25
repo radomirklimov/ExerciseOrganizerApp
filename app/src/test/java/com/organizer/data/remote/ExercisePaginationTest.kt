@@ -21,7 +21,7 @@ class ExercisePaginationTest {
         val all = ExerciseRemoteDataSource(api).getAll()
 
         assertEquals(250, all.size)
-        assertEquals((1L..250L).toList(), all.map { it.exerciseId })
+        assertEquals((1L..250L).toList(), all.map { it.publicExerciseId })
         // 100 + 100 + 50: stops after the partial page, no extra request.
         assertEquals(listOf(0 to 100, 1 to 100, 2 to 100), api.pageCalls)
     }

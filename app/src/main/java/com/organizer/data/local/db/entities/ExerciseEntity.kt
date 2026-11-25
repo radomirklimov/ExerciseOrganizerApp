@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
         Index("name", unique = true),
         Index("isCustom"),
         Index("syncId", unique = true),
+        Index(value = ["publicExerciseId"], unique = true),
         Index("ownerFirebaseUid"),
     ]
 )
@@ -24,6 +25,8 @@ data class ExerciseEntity(
     val ownerFirebaseUid: String = "public",
     /** Null for public/cached exercises; UUID for user-owned custom exercises. */
     val syncId: String? = null,
+    /** Stable backend catalog ID for public rows; null for custom exercises. */
+    val publicExerciseId: Long? = null,
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
     val syncStatus: String = "LOCAL_ONLY",

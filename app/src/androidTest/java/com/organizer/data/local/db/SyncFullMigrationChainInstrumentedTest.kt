@@ -9,7 +9,12 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.organizer.auth.OwnerProvider
+import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
+import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.sync.SyncOutboxStatus
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -91,6 +96,15 @@ class SyncFullMigrationChainInstrumentedTest {
             assertEquals(1, db.workoutExerciseDao.getAll(OwnerProvider.GUEST).first().size)
             assertEquals(1, db.plannedSetDao.observePlannedSets(OwnerProvider.GUEST, 1L, 1L).first().size)
             assertEquals(2, db.favoriteExerciseDao.observeFavoriteIds(OwnerProvider.GUEST).first().size)
+
+            val exercises = db.exerciseDao.getAll(OwnerProvider.GUEST).first()
+            val publicRow = exercises.first { it.name == "Push Up" }
+            assertEquals(1L, publicRow.exerciseId)
+            assertEquals(1L, publicRow.publicExerciseId)
+            val customRow = exercises.first { it.name == "My Lift" }
+            assertEquals(3L, customRow.exerciseId)
+            assertNull(customRow.publicExerciseId)
+            assertNotNull(customRow.syncId)
 
             val m = SyncOutboxEntity(
                 mutationId = UUID.randomUUID().toString(),
@@ -319,6 +333,171 @@ class SyncFullMigrationChainInstrumentedTest {
             assertNotNull(db.syncOutboxDao.findOpenMutation(owner, "WORKOUT", freshSyncId, "UPSERT"))
         } finally {
             db.close()
+        }
+    }
+
+    @Test
+    fun v18To19SeparatesCatalogIdentityAndPreservesCustomRowsAndChildren() = runBlocking<Unit> {
+        val name = "sync-v18-v19-test.db"
+        val file = context.getDatabasePath(name)
+        file.parentFile?.mkdirs()
+        if (file.exists()) assertTrue(file.delete())
+
+        // Create a complete v19 database, then reshape only `exercise` back to
+        // its v18 form. Room then has a valid, single 18->19 migration path.
+        val seed = Room.databaseBuilder(context, AppDatabase::class.java, name).build()
+        val owner = "user-a"
+        val publicId = 7L // legacy public PK is also its catalog identity
+        val publicId2 = 8L
+        val customId = 1007L
+        val customId2 = 1008L
+        var workoutId = 0L
+        try {
+            workoutId = seed.workoutDao.insert(WorkoutEntity(name = "Routine", ownerFirebaseUid = owner))
+            listOf(publicId to "Old catalog", publicId2 to "Second catalog").forEach { (id, label) ->
+                seed.exerciseDao.insert(
+                    ExerciseEntity(
+                        exerciseId = id, name = label, instructions = emptyList(),
+                        imageUrls = emptyList(), isCustom = false,
+                        ownerFirebaseUid = OwnerProvider.PUBLIC, publicExerciseId = id,
+                    )
+                )
+            }
+            listOf(customId to "custom-sync-1007", customId2 to "custom-sync-1008").forEach { (id, sync) ->
+                seed.exerciseDao.insert(
+                    ExerciseEntity(
+                        exerciseId = id, name = "Mine $id", instructions = listOf("do it"),
+                        imageUrls = listOf("mine.jpg"), isCustom = true,
+                        ownerFirebaseUid = owner, syncId = sync,
+                    )
+                )
+            }
+            seed.workoutExerciseDao.insert(
+                WorkoutExerciseEntity(
+                    workoutId = workoutId, exerciseId = publicId, orderIndex = 0,
+                    ownerFirebaseUid = owner, syncId = "link-public",
+                )
+            )
+            seed.workoutExerciseDao.insert(
+                WorkoutExerciseEntity(
+                    workoutId = workoutId, exerciseId = customId, orderIndex = 1,
+                    ownerFirebaseUid = owner, syncId = "link-custom",
+                )
+            )
+            seed.favoriteExerciseDao.insert(FavoriteExerciseEntity(exerciseId = customId, ownerFirebaseUid = owner))
+        } finally {
+            seed.close()
+        }
+
+        val rawBefore = SQLiteDatabase.openDatabase(file.path, null, 0)
+        try {
+            // Keep child FK references pointing at `exercise` while the table
+            // is temporarily renamed to its v19 shape.
+            rawBefore.execSQL("PRAGMA legacy_alter_table = ON")
+            rawBefore.execSQL("ALTER TABLE exercise RENAME TO exercise_v19")
+            rawBefore.execSQL("DROP INDEX IF EXISTS index_exercise_publicExerciseId")
+            rawBefore.execSQL(
+                """CREATE TABLE exercise (
+                   exerciseId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                   name TEXT NOT NULL,
+                   instructions TEXT NOT NULL,
+                   imageUrls TEXT NOT NULL,
+                   isCustom INTEGER NOT NULL,
+                   exerciseType TEXT NOT NULL,
+                   ownerFirebaseUid TEXT NOT NULL,
+                   syncId TEXT,
+                   updatedAt INTEGER NOT NULL,
+                   deletedAt INTEGER,
+                   syncStatus TEXT NOT NULL,
+                   serverVersion INTEGER NOT NULL)"""
+            )
+            rawBefore.execSQL(
+                """INSERT INTO exercise
+                   (exerciseId, name, instructions, imageUrls, isCustom, exerciseType,
+                    ownerFirebaseUid, syncId, updatedAt, deletedAt, syncStatus, serverVersion)
+                   SELECT exerciseId, name, instructions, imageUrls, isCustom, exerciseType,
+                    ownerFirebaseUid, syncId, updatedAt, deletedAt, syncStatus, serverVersion
+                   FROM exercise_v19"""
+            )
+            rawBefore.execSQL("DROP TABLE exercise_v19")
+            rawBefore.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercise_name ON exercise (name)")
+            rawBefore.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_isCustom ON exercise (isCustom)")
+            rawBefore.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercise_syncId ON exercise (syncId)")
+            rawBefore.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_ownerFirebaseUid ON exercise (ownerFirebaseUid)")
+            rawBefore.execSQL("PRAGMA legacy_alter_table = OFF")
+            rawBefore.execSQL("PRAGMA user_version = 18")
+        } finally {
+            rawBefore.close()
+        }
+
+        val migrated = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(PUBLIC_EXERCISE_IDENTITY_MIGRATION_18_19)
+            .build()
+        try {
+            val exercises = migrated.exerciseDao.getAll("user-a").first()
+            val publicRow = exercises.first { it.exerciseId == publicId }
+            val publicRow2 = exercises.first { it.exerciseId == publicId2 }
+            val customRow = exercises.first { it.exerciseId == customId }
+            val customRow2 = exercises.first { it.exerciseId == customId2 }
+            assertEquals(publicId, publicRow.publicExerciseId)
+            assertEquals(publicId2, publicRow2.publicExerciseId)
+            assertEquals("Old catalog", publicRow.name)
+            assertNull(customRow.publicExerciseId)
+            assertNull(customRow2.publicExerciseId)
+            assertEquals("custom-sync-1007", customRow.syncId)
+            assertEquals("custom-sync-1008", customRow2.syncId)
+            assertEquals(owner, customRow.ownerFirebaseUid)
+            assertEquals("Mine 1007", customRow.name)
+            assertEquals(listOf("do it"), customRow.instructions)
+            assertEquals(listOf("mine.jpg"), customRow.imageUrls)
+
+            // Multiple NULL catalog IDs are allowed; duplicate non-null IDs are not.
+            val thirdCustom = ExerciseEntity(
+                name = "Mine third", instructions = emptyList(), imageUrls = emptyList(),
+                isCustom = true, ownerFirebaseUid = owner, syncId = "custom-sync-third",
+            )
+            migrated.exerciseDao.insert(thirdCustom)
+            assertNull(migrated.exerciseDao.findCustomBySyncId(owner, "custom-sync-third")!!.publicExerciseId)
+            val duplicateCatalog = runCatching {
+                migrated.exerciseDao.insert(
+                    ExerciseEntity(
+                        name = "Duplicate catalog", instructions = emptyList(), imageUrls = emptyList(),
+                        isCustom = false, ownerFirebaseUid = OwnerProvider.PUBLIC, publicExerciseId = publicId,
+                    )
+                )
+            }.exceptionOrNull()
+            assertNotNull(duplicateCatalog)
+
+            val links = migrated.workoutExerciseDao.getAll(owner).first()
+            assertEquals(2, links.size)
+            assertTrue(links.any { it.exerciseId == publicId && it.syncId == "link-public" })
+            assertTrue(links.any { it.exerciseId == customId && it.syncId == "link-custom" })
+            assertEquals(
+                listOf(customId),
+                migrated.favoriteExerciseDao.observeFavoriteIds(owner).first(),
+            )
+        } finally {
+            migrated.close()
+        }
+
+        val rawAfter = SQLiteDatabase.openDatabase(file.path, null, 0)
+        try {
+            var catalogIndexFound = false
+            val indices = rawAfter.rawQuery("PRAGMA index_list('exercise')", null)
+            while (indices.moveToNext()) {
+                if (indices.getString(indices.getColumnIndex("name")) == "index_exercise_publicExerciseId") {
+                    assertEquals(1, indices.getInt(indices.getColumnIndex("unique")))
+                    catalogIndexFound = true
+                }
+            }
+            indices.close()
+            assertTrue(catalogIndexFound)
+
+            val cursor = rawAfter.rawQuery("PRAGMA foreign_key_check", null)
+            assertTrue(!cursor.moveToFirst())
+            cursor.close()
+        } finally {
+            rawAfter.close()
         }
     }
 }

@@ -37,7 +37,7 @@ import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.mapper.ListConverters
 
 @Database(
-    version = 18,
+    version = 19,
     entities = [
         CategoryEntity::class,
         ExerciseEntity::class,
@@ -108,6 +108,26 @@ val TRANSMISSION_MARKER_MIGRATION_17_18 = object : Migration(17, 18) {
         // a never-sent row, so treat every pre-existing row as transmitted.
         // New rows still get DEFAULT 0 and remain eligible for coalescing.
         db.execSQL("UPDATE sync_outbox SET everTransmitted = 1")
+    }
+}
+
+/**
+ * Separates the backend catalog identity from the local Room PK. Legacy public
+ * rows used their PK as the catalog ID, so that value is copied into the new
+ * column; custom rows keep their PK, owner and syncId and get no catalog ID.
+ * No row is replaced and no PK is rewritten, so every FK child survives.
+ */
+val PUBLIC_EXERCISE_IDENTITY_MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE exercise ADD COLUMN publicExerciseId INTEGER")
+        db.execSQL(
+            "UPDATE exercise SET publicExerciseId = exerciseId " +
+                "WHERE ownerFirebaseUid = 'public' AND isCustom = 0"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_exercise_publicExerciseId " +
+                "ON exercise (publicExerciseId)"
+        )
     }
 }
 
@@ -760,4 +780,5 @@ val ALL_MIGRATIONS = arrayOf(
     PULL_STAGING_MIGRATION_15_16,
     OUTBOX_ACKNOWLEDGEMENT_MIGRATION_16_17,
     TRANSMISSION_MARKER_MIGRATION_17_18,
+    PUBLIC_EXERCISE_IDENTITY_MIGRATION_18_19,
 )

@@ -58,6 +58,22 @@ data class SyncChanges(
     val serverTimeMillis: Long,
 )
 
+data class PushResult(
+    val selected: Int = 0,
+    val sent: Int = 0,
+    val applied: Int = 0,
+    val duplicate: Int = 0,
+    val conflicted: Int = 0,
+    val rejected: Int = 0,
+    val failed: Int = 0,
+    val retryable: Int = 0,
+    val skipped: Int = 0,
+    val superseded: Int = 0,
+    val reconciled: Int = 0,
+    val ownerChanged: Boolean = false,
+    val error: String? = null,
+)
+
 data class PullResult(
     val received: Int = 0,
     val staged: Int = 0,

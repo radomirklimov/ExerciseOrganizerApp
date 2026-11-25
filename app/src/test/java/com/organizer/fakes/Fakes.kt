@@ -375,6 +375,115 @@ class FakeSyncOutboxDao : SyncOutboxDao {
     override suspend fun getPending(owner: String): List<SyncOutboxEntity> =
         entries.value.filter { it.ownerFirebaseUid == owner }
 
+    override suspend fun findByStatus(owner: String, status: String): List<SyncOutboxEntity> =
+        entries.value.filter { it.ownerFirebaseUid == owner && it.syncStatus == status }
+            .sortedWith(compareBy<SyncOutboxEntity> { it.createdAt }.thenBy { it.outboxId })
+
+    override suspend fun recoverInFlight(owner: String): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncStatus == SyncOutboxStatus.IN_FLIGHT) {
+                    changed++
+                    it.copy(syncStatus = SyncOutboxStatus.PENDING_UPLOAD, lastError = null)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun markInFlight(owner: String, mutationIds: Set<String>): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds &&
+                    it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD
+                ) {
+                    changed++
+                    it.copy(syncStatus = SyncOutboxStatus.IN_FLIGHT, lastError = null)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun markSuperseded(owner: String, mutationIds: Set<String>): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds &&
+                    it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD
+                ) {
+                    changed++
+                    it.copy(syncStatus = SyncOutboxStatus.SUPERSEDED, lastError = null)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun resetToPending(
+        owner: String,
+        mutationIds: Set<String>,
+        error: String?,
+        allowedStatuses: Set<String>,
+    ): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds && it.syncStatus in allowedStatuses) {
+                    changed++
+                    it.copy(syncStatus = SyncOutboxStatus.PENDING_UPLOAD, lastError = error)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun markFailedBatch(
+        owner: String,
+        mutationIds: Set<String>,
+        error: String,
+        allowedStatuses: Set<String>,
+    ): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds && it.syncStatus in allowedStatuses) {
+                    changed++
+                    it.copy(syncStatus = SyncOutboxStatus.FAILED, lastError = error)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun markTerminalBatch(
+        owner: String,
+        mutationIds: Set<String>,
+        status: String,
+        errorCode: String?,
+        error: String?,
+        now: Long,
+        allowedStatuses: Set<String>,
+    ): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds && it.syncStatus in allowedStatuses) {
+                    changed++
+                    it.copy(
+                        syncStatus = status,
+                        terminalErrorCode = errorCode,
+                        lastError = error,
+                        acknowledgedAt = now,
+                    )
+                } else it
+            }
+        }
+        return changed
+    }
+
     override fun observe(owner: String): Flow<List<SyncOutboxEntity>> =
         entries.map { list -> list.filter { it.ownerFirebaseUid == owner } }
 

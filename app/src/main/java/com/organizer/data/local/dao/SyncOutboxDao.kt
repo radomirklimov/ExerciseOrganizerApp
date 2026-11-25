@@ -12,8 +12,11 @@ interface SyncOutboxDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entry: SyncOutboxEntity)
 
-    @Query("SELECT * FROM sync_outbox WHERE ownerFirebaseUid = :owner ORDER BY createdAt ASC")
+    @Query("SELECT * FROM sync_outbox WHERE ownerFirebaseUid = :owner ORDER BY createdAt ASC, outboxId ASC")
     suspend fun getPending(owner: String): List<SyncOutboxEntity>
+
+    @Query("SELECT * FROM sync_outbox WHERE ownerFirebaseUid = :owner AND syncStatus = :status ORDER BY createdAt ASC, outboxId ASC")
+    suspend fun findByStatus(owner: String, status: String): List<SyncOutboxEntity>
 
     @Query("SELECT * FROM sync_outbox WHERE ownerFirebaseUid = :owner ORDER BY createdAt ASC")
     fun observe(owner: String): Flow<List<SyncOutboxEntity>>
@@ -91,6 +94,71 @@ interface SyncOutboxDao {
         serverUpdatedAt: Long?,
         acknowledgedAt: Long,
         terminalErrorCode: String?,
+        allowedStatuses: Set<String>,
+    ): Int
+
+    @Query("UPDATE sync_outbox SET syncStatus = 'PENDING_UPLOAD', lastError = NULL WHERE ownerFirebaseUid = :owner AND syncStatus = 'IN_FLIGHT'")
+    suspend fun recoverInFlight(owner: String): Int
+
+    @Query(
+        """UPDATE sync_outbox SET syncStatus = 'IN_FLIGHT', lastError = NULL
+           WHERE ownerFirebaseUid = :owner
+           AND mutationId IN (:mutationIds)
+           AND syncStatus = 'PENDING_UPLOAD'"""
+    )
+    suspend fun markInFlight(owner: String, mutationIds: Set<String>): Int
+
+    @Query(
+        """UPDATE sync_outbox SET syncStatus = 'SUPERSEDED', lastError = NULL
+           WHERE ownerFirebaseUid = :owner
+           AND mutationId IN (:mutationIds)
+           AND syncStatus = 'PENDING_UPLOAD'"""
+    )
+    suspend fun markSuperseded(owner: String, mutationIds: Set<String>): Int
+
+    @Query(
+        """UPDATE sync_outbox SET syncStatus = 'PENDING_UPLOAD', lastError = :error
+           WHERE ownerFirebaseUid = :owner
+           AND mutationId IN (:mutationIds)
+           AND syncStatus IN (:allowedStatuses)"""
+    )
+    suspend fun resetToPending(
+        owner: String,
+        mutationIds: Set<String>,
+        error: String?,
+        allowedStatuses: Set<String>,
+    ): Int
+
+    @Query(
+        """UPDATE sync_outbox SET syncStatus = 'FAILED', lastError = :error
+           WHERE ownerFirebaseUid = :owner
+           AND mutationId IN (:mutationIds)
+           AND syncStatus IN (:allowedStatuses)"""
+    )
+    suspend fun markFailedBatch(
+        owner: String,
+        mutationIds: Set<String>,
+        error: String,
+        allowedStatuses: Set<String>,
+    ): Int
+
+    @Query(
+        """UPDATE sync_outbox
+           SET syncStatus = :status,
+               terminalErrorCode = :errorCode,
+               lastError = :error,
+               acknowledgedAt = :now
+           WHERE ownerFirebaseUid = :owner
+           AND mutationId IN (:mutationIds)
+           AND syncStatus IN (:allowedStatuses)"""
+    )
+    suspend fun markTerminalBatch(
+        owner: String,
+        mutationIds: Set<String>,
+        status: String,
+        errorCode: String?,
+        error: String?,
+        now: Long,
         allowedStatuses: Set<String>,
     ): Int
 

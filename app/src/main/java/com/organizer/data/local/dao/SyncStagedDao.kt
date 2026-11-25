@@ -50,6 +50,16 @@ interface SyncStagedDao {
     @Query("SELECT * FROM sync_staged_record WHERE ownerFirebaseUid = :owner AND processingStatus = :status ORDER BY createdAt ASC")
     suspend fun getByStatus(owner: String, status: String): List<SyncStagedRecordEntity>
 
+    @Query("SELECT * FROM sync_staged_record WHERE ownerFirebaseUid = :owner AND stagedId = :stagedId")
+    suspend fun findByStagedId(owner: String, stagedId: Long): SyncStagedRecordEntity?
+
+    @Query(
+        """UPDATE sync_staged_record
+           SET processingStatus = 'PENDING', lastError = NULL
+           WHERE ownerFirebaseUid = :owner AND processingStatus IN (:statuses)"""
+    )
+    suspend fun resetToPending(owner: String, statuses: Set<String>): Int
+
     @Query("SELECT * FROM sync_staged_record WHERE ownerFirebaseUid = :owner AND entityType = :entityType AND syncId = :syncId")
     suspend fun find(owner: String, entityType: String, syncId: String): SyncStagedRecordEntity?
 

@@ -15,6 +15,7 @@ import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
+import com.organizer.data.local.db.entities.SyncStagedStatus
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.data.local.storage.FileStore
@@ -752,6 +753,22 @@ class FakeSyncStagedDao : SyncStagedDao {
         records.value.firstOrNull {
             it.ownerFirebaseUid == owner && it.entityType == entityType && it.syncId == syncId
         }
+
+    override suspend fun findByStagedId(owner: String, stagedId: Long): SyncStagedRecordEntity? =
+        records.value.firstOrNull { it.ownerFirebaseUid == owner && it.stagedId == stagedId }
+
+    override suspend fun resetToPending(owner: String, statuses: Set<String>): Int {
+        var changed = 0
+        records.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.processingStatus in statuses) {
+                    changed++
+                    it.copy(processingStatus = SyncStagedStatus.PENDING, lastError = null)
+                } else it
+            }
+        }
+        return changed
+    }
 
     override suspend fun updateStatus(owner: String, stagedId: Long, status: String, retryCount: Int, error: String?, attemptAt: Long) {
         records.update { current ->

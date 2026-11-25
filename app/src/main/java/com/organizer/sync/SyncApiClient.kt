@@ -31,8 +31,12 @@ class SyncApiClient @Inject constructor(
         syncApi.push(request, authorization)
     }
 
-    suspend fun changes(cursor: String?, limit: Int): SyncApiResult<SyncChangesResponseDto> = safeCall {
-        syncApi.changes(cursor, limit)
+    suspend fun changes(
+        cursor: String?,
+        limit: Int,
+        authorization: String,
+    ): SyncApiResult<SyncChangesResponseDto> = safeCall {
+        syncApi.changes(cursor, limit, authorization)
     }
 
     private suspend inline fun <reified T> safeCall(crossinline call: suspend () -> T): SyncApiResult<T> =

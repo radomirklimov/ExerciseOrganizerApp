@@ -25,7 +25,7 @@ class SyncApiClientTest {
             request: com.organizer.data.remote.model.SyncPushRequestDto,
             authorization: String,
         ) = pushBlock()
-        override suspend fun changes(cursor: String?, limit: Int) = changesBlock()
+        override suspend fun changes(cursor: String?, limit: Int, authorization: String) = changesBlock()
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -73,7 +73,7 @@ class SyncApiClientTest {
             create("application/json".toMediaType(), """{"error":"UNAUTHENTICATED","message":"Authentication required"}"""),
         )
         val api = FakeSyncApi().apply { changesBlock = { throw HttpException(response) } }
-        val result = apiClient(api).changes(null, 100)
+        val result = apiClient(api).changes(null, 100, "Bearer test-token")
         val error = result as SyncApiResult.HttpError
         assertEquals(401, error.code)
         assertEquals("UNAUTHENTICATED", error.error)

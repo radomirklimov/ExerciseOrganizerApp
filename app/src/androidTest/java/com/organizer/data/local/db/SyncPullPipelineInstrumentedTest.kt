@@ -12,7 +12,9 @@ import com.organizer.data.remote.model.SyncChangeRecordDto
 import com.organizer.sync.SyncApiClient
 import com.organizer.sync.SyncContractMapper
 import com.organizer.sync.SyncManager
+import com.organizer.sync.SyncOperationLocks
 import com.organizer.sync.SyncStagedApplier
+import com.organizer.sync.SyncTokenProvider
 import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -53,7 +55,7 @@ class SyncPullPipelineInstrumentedTest {
         var lastCursor: String? = null
         var lastLimit: Int = 0
 
-        override suspend fun changes(cursor: String?, limit: Int): SyncChangesResponseDto {
+        override suspend fun changes(cursor: String?, limit: Int, authorization: String): SyncChangesResponseDto {
             calls++
             lastCursor = cursor
             lastLimit = limit
@@ -64,6 +66,11 @@ class SyncPullPipelineInstrumentedTest {
             request: com.organizer.data.remote.model.SyncPushRequestDto,
             authorization: String,
         ): com.organizer.data.remote.model.SyncPushResponseDto = error("push not used")
+    }
+
+    private class TestTokenProvider : SyncTokenProvider {
+        override suspend fun idTokenFor(owner: String): String? =
+            if (owner == OwnerProvider.GUEST) null else "captured-user-token"
     }
 
     private class FailingRunner(private val db: AppDatabase) : SyncTransactionRunner {
@@ -98,12 +105,14 @@ class SyncPullPipelineInstrumentedTest {
         runner: SyncTransactionRunner = com.organizer.sync.RoomSyncTransactionRunner(db),
     ) = SyncManager(
         owner,
+        TestTokenProvider(),
         SyncApiClient(api, json),
         SyncContractMapper(),
         runner,
         db.syncCursorDao,
         db.syncStagedDao,
-        SyncStagedApplier(db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao, runner, json),
+        SyncStagedApplier(owner, db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao, runner, json),
+        SyncOperationLocks(),
     )
 
     @Test
@@ -157,8 +166,8 @@ class SyncPullPipelineInstrumentedTest {
             val api = FakeSyncApi(response(UUID.randomUUID().toString()))
             // Switch owner after API call is prepared by mutating during the call.
             val switchingApi = object : SyncApi by api {
-                override suspend fun changes(cursor: String?, limit: Int): SyncChangesResponseDto {
-                    val result = api.changes(cursor, limit)
+                override suspend fun changes(cursor: String?, limit: Int, authorization: String): SyncChangesResponseDto {
+                    val result = api.changes(cursor, limit, authorization)
                     owner.uid = "user-b"
                     return result
                 }

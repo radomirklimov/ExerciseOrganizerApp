@@ -84,6 +84,7 @@ data class PullResult(
     val localPending: Int = 0,
     val failed: Int = 0,
     val hasMore: Boolean = false,
+    val ownerChanged: Boolean = false,
     val error: String? = null,
 )
 

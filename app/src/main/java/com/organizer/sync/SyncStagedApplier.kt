@@ -4,6 +4,7 @@ import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
+import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
@@ -19,6 +20,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SyncStagedApplier @Inject constructor(
+    private val ownerProvider: OwnerProvider,
     private val workoutDao: WorkoutDao,
     private val exerciseDao: ExerciseDao,
     private val outboxDao: SyncOutboxDao,
@@ -28,30 +30,45 @@ class SyncStagedApplier @Inject constructor(
 ) {
     suspend fun process(owner: String, staged: SyncStagedRecordEntity): StagedApplyResult {
         if (staged.ownerFirebaseUid != owner) return StagedApplyResult.FAILED
-        if (staged.entityType !in APPLICABLE_TYPES) return mark(staged, SyncStagedStatus.UNSUPPORTED)
-
-        if (outboxDao.hasBlockingMutationForRecord(owner, staged.entityType, staged.syncId, SyncOutboxStatus.BLOCKING)) {
-            return mark(staged, SyncStagedStatus.LOCAL_PENDING, "Local mutation pending")
-        }
-
         return try {
             transactions.run {
-                if (staged.deleted) {
-                    applyTombstone(owner, staged)
+                if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringStagedApplyException()
+                // A newer delivery may have replaced this row (stagedId is
+                // stable). Always apply the current version, never the snapshot
+                // captured by the caller.
+                val current = stagedDao.findByStagedId(owner, staged.stagedId)
+                    ?: return@run StagedApplyResult.FAILED
+                if (current.ownerFirebaseUid != owner) return@run StagedApplyResult.FAILED
+                if (current.entityType !in APPLICABLE_TYPES) {
+                    // Retain the staged payload. A future app version that adds
+                    // an applier for this entity type must explicitly requeue
+                    // these rows to PENDING; this version never does so.
+                    return@run mark(current, SyncStagedStatus.UNSUPPORTED)
+                }
+                if (outboxDao.hasBlockingMutationForRecord(
+                        owner, current.entityType, current.syncId, SyncOutboxStatus.BLOCKING
+                    )
+                ) {
+                    return@run mark(current, SyncStagedStatus.LOCAL_PENDING, "Local mutation pending")
+                }
+                if (current.deleted) {
+                    applyTombstone(owner, current)
                 } else {
-                    val payload = staged.payload?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject
-                        ?: return@run mark(staged, SyncStagedStatus.FAILED, "Invalid payload")
+                    val payload = current.payload?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject
+                        ?: return@run mark(current, SyncStagedStatus.FAILED, "Invalid payload")
                     val schemaVersion = payload["schemaVersion"]?.jsonPrimitive?.content?.toIntOrNull()
                     if (schemaVersion != SUPPORTED_SCHEMA_VERSION) {
-                        return@run mark(staged, SyncStagedStatus.UNSUPPORTED_SCHEMA, "Unsupported schemaVersion")
+                        return@run mark(current, SyncStagedStatus.UNSUPPORTED_SCHEMA, "Unsupported schemaVersion")
                     }
-                    when (staged.entityType) {
-                        SyncEntityTypes.WORKOUT -> applyWorkout(owner, staged, payload)
-                        SyncEntityTypes.CUSTOM_EXERCISE -> applyCustomExercise(owner, staged, payload)
-                        else -> mark(staged, SyncStagedStatus.UNSUPPORTED)
+                    when (current.entityType) {
+                        SyncEntityTypes.WORKOUT -> applyWorkout(owner, current, payload)
+                        SyncEntityTypes.CUSTOM_EXERCISE -> applyCustomExercise(owner, current, payload)
+                        else -> mark(current, SyncStagedStatus.UNSUPPORTED)
                     }
                 }
             }
+        } catch (ex: OwnerChangedDuringStagedApplyException) {
+            StagedApplyResult.OWNER_CHANGED
         } catch (ex: Exception) {
             mark(staged, SyncStagedStatus.FAILED, ex.javaClass.simpleName)
         }
@@ -214,4 +231,8 @@ enum class StagedApplyResult {
     UNSUPPORTED_SCHEMA,
     LOCAL_PENDING,
     FAILED,
+    OWNER_CHANGED,
 }
+
+/** Thrown inside the staged-apply transaction to abort an account-switched call. */
+class OwnerChangedDuringStagedApplyException : RuntimeException()

@@ -20,15 +20,15 @@ class SyncPushCoordinator @Inject constructor(
     private val acknowledger: SyncOutboxAcknowledger,
     private val reconciler: SyncReconciler,
     private val transactions: SyncTransactionRunner,
+    private val operationLocks: SyncOperationLocks,
 ) {
-    private val pushLocks = mutableMapOf<String, Mutex>()
 
     suspend fun pushOneBatch(limit: Int = MAX_BATCH_SIZE): PushResult {
         val owner = ownerProvider.currentOwner()
         if (owner == OwnerProvider.GUEST) {
             return PushResult(error = "Guest mode cannot push cloud data")
         }
-        val lock = synchronized(pushLocks) { pushLocks.getOrPut(owner) { Mutex() } }
+        val lock = operationLocks.forOwner(owner)
         return lock.withLock { pushLocked(owner, limit.coerceIn(1, MAX_BATCH_SIZE)) }
     }
 
@@ -51,22 +51,34 @@ class SyncPushCoordinator @Inject constructor(
             )
         }
 
+        val mappingFailures = mutableMapOf<String, String>()
         val requests = selected.mapNotNull { mutation ->
             when (val mapped = contractMapper.toMutation(mutation, owner)) {
                 is OutboxMappingResult.Success -> mapped.request
-                is OutboxMappingResult.Failure -> null
+                is OutboxMappingResult.Failure -> {
+                    mappingFailures[mutation.mutationId] = mapped.reason
+                    null
+                }
             }
         }
-        val invalidIds = selected.map { it.mutationId }.toSet() - requests.map { it.mutationId }.toSet()
-        if (invalidIds.isNotEmpty()) {
-            val reset = resetRows(owner, invalidIds, "Invalid local mutation", retryable = true)
-            if (reset.ownerChanged) return reset.result
+        fun withMapping(result: PushResult): PushResult =
+            if (mappingFailures.isEmpty()) result
+            else result.copy(rejected = result.rejected + mappingFailures.size)
+
+        // Mapping failures are deterministic (bad UUID, type, payload JSON or
+        // owner). Retrying them unchanged can never succeed, so park them
+        // terminally with a diagnostic code while preserving all local data.
+        if (mappingFailures.isNotEmpty()) {
+            val diagnostic = mappingFailures.values.distinct().joinToString("; ")
+            val terminal = markMappingFailuresTerminal(owner, mappingFailures.keys, diagnostic)
+            if (terminal.ownerChanged) return terminal.result
         }
         if (requests.isEmpty()) {
             return PushResult(
                 selected = selected.size,
                 superseded = selection.superseded,
-                skipped = invalidIds.size,
+                rejected = mappingFailures.size,
+                error = mappingFailures.values.distinct().joinToString("; "),
             )
         }
 
@@ -75,15 +87,17 @@ class SyncPushCoordinator @Inject constructor(
         // above and below still guard all persistence.
         val token = tokenProvider.idTokenFor(owner)
         if (token == null) {
-            return PushResult(
-                selected = selected.size,
-                superseded = selection.superseded,
-                ownerChanged = ownerProvider.currentOwner() != owner,
-                error = "Authenticated user is no longer available for push",
+            return withMapping(
+                PushResult(
+                    selected = selected.size,
+                    superseded = selection.superseded,
+                    ownerChanged = ownerProvider.currentOwner() != owner,
+                    error = "Authenticated user is no longer available for push",
+                )
             )
         }
         val apiResult = apiClient.push(SyncPushRequestDto(requests), "Bearer $token")
-        return when (apiResult) {
+        return withMapping(when (apiResult) {
             is SyncApiResult.Success -> handleSuccess(owner, selection, requests, apiResult.data.results)
             is SyncApiResult.HttpError -> handleHttpError(owner, selection, apiResult)
             is SyncApiResult.TransportError,
@@ -98,7 +112,7 @@ class SyncPushCoordinator @Inject constructor(
                     error = "Network or malformed response failure",
                 )
             }
-        }
+        })
     }
 
     /**
@@ -109,7 +123,7 @@ class SyncPushCoordinator @Inject constructor(
     suspend fun requeueFailed(): Int {
         val owner = ownerProvider.currentOwner()
         if (owner == OwnerProvider.GUEST) return 0
-        val lock = synchronized(pushLocks) { pushLocks.getOrPut(owner) { Mutex() } }
+        val lock = operationLocks.forOwner(owner)
         return lock.withLock {
             try {
                 transactions.run {
@@ -215,7 +229,8 @@ class SyncPushCoordinator @Inject constructor(
             reset.count
         }
 
-        val reconciled = if (ack.acknowledged > 0) reconciler.reconcile().reconsidered else 0
+        val reconciliation = if (ack.acknowledged > 0) reconciler.reconcile(owner) else ReconciliationResult()
+        val reconciled = reconciliation.reconsidered
         val recognized = results
             .filter { r -> selection.mutations.any { m -> m.mutationId == r.mutationId && m.recordSyncId == r.syncId } }
             .distinctBy { it.mutationId }
@@ -235,6 +250,7 @@ class SyncPushCoordinator @Inject constructor(
             skipped = ack.skippedUnknown + ack.skippedTerminal + ack.skippedInvalid,
             superseded = selection.superseded,
             reconciled = reconciled,
+            ownerChanged = reconciliation.ownerChanged,
         )
     }
 
@@ -242,7 +258,18 @@ class SyncPushCoordinator @Inject constructor(
         if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPushException()
         outboxDao.recoverInFlight(owner)
 
-        val candidates = outboxDao.findByStatus(owner, SyncOutboxStatus.PENDING_UPLOAD)
+        // A later edit must never bypass an unresolved mutation for the same
+        // record (FAILED, CONFLICTED or REJECTED_TERMINAL). Skip the whole
+        // record until it is explicitly resolved or requeued.
+        val allRows = outboxDao.getPending(owner)
+        val blockedRecords = allRows
+            .filter { it.syncStatus in SyncOutboxStatus.BLOCKING && it.syncStatus != SyncOutboxStatus.PENDING_UPLOAD }
+            .map { Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) }
+            .toSet()
+        val candidates = allRows.filter { row ->
+            row.syncStatus == SyncOutboxStatus.PENDING_UPLOAD &&
+                Triple(row.entityType, row.recordSyncId, row.ownerFirebaseUid) !in blockedRecords
+        }
         val groups = candidates.groupBy { Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) }
 
         // A chain is compressed only when every row is definitely never sent and
@@ -297,6 +324,27 @@ class SyncPushCoordinator @Inject constructor(
         }.let { RowOperationResult(it, false, PushResult(ownerChanged = false)) }
     } catch (ex: OwnerChangedDuringPushException) {
         RowOperationResult(0, true, PushResult(ownerChanged = true, error = "Authenticated account changed during retry reset"))
+    }
+
+    private suspend fun markMappingFailuresTerminal(
+        owner: String,
+        ids: Set<String>,
+        diagnostic: String,
+    ): RowOperationResult = try {
+        transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPushException()
+            outboxDao.markTerminalBatch(
+                owner = owner,
+                mutationIds = ids,
+                status = SyncOutboxStatus.REJECTED_TERMINAL,
+                errorCode = "INVALID_LOCAL_MUTATION",
+                error = diagnostic,
+                now = System.currentTimeMillis(),
+                allowedStatuses = setOf(SyncOutboxStatus.IN_FLIGHT),
+            )
+        }.let { RowOperationResult(it, false, PushResult(ownerChanged = false)) }
+    } catch (ex: OwnerChangedDuringPushException) {
+        RowOperationResult(0, true, PushResult(ownerChanged = true, error = "Authenticated account changed during invalid mutation update"))
     }
 
     private suspend fun markFailedRows(

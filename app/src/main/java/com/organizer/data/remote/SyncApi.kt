@@ -14,6 +14,7 @@ interface SyncApi {
     suspend fun changes(
         @Query("cursor") cursor: String? = null,
         @Query("limit") limit: Int = 100,
+        @Header("Authorization") authorization: String,
     ): SyncChangesResponseDto
 
     @POST("api/sync/push")

@@ -26,8 +26,8 @@ class SyncReconciler @Inject constructor(
     private val stagedApplier: SyncStagedApplier,
     private val transactions: SyncTransactionRunner,
 ) {
-    suspend fun reconcile(): ReconciliationResult {
-        val owner = ownerProvider.currentOwner()
+    suspend fun reconcile(expectedOwner: String? = null): ReconciliationResult {
+        val owner = expectedOwner ?: ownerProvider.currentOwner()
         if (owner == OwnerProvider.GUEST) {
             return ReconciliationResult(ownerChanged = false)
         }
@@ -70,6 +70,7 @@ class SyncReconciler @Inject constructor(
                             StagedApplyResult.UNSUPPORTED_SCHEMA,
                             StagedApplyResult.WAITING_DEPENDENCY -> ReconcileOutcome.UNSUPPORTED
                             StagedApplyResult.FAILED -> ReconcileOutcome.FAILED
+                            StagedApplyResult.OWNER_CHANGED -> throw OwnerChangedDuringReconciliationException()
                         }
                     }
                 }

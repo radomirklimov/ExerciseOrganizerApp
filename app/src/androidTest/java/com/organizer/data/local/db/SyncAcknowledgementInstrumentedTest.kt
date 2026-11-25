@@ -179,7 +179,7 @@ class SyncAcknowledgementInstrumentedTest {
             assertEquals(SyncStagedStatus.LOCAL_PENDING, db.syncStagedDao.find(owner, "WORKOUT", syncId)!!.processingStatus)
 
             val applier = SyncStagedApplier(
-                db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao,
+                TestOwner(), db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao,
                 com.organizer.sync.RoomSyncTransactionRunner(db), Json { ignoreUnknownKeys = true },
             )
             val reconciler = SyncReconciler(

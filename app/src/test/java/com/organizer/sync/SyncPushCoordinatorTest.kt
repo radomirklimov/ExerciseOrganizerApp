@@ -73,7 +73,7 @@ class SyncPushCoordinatorTest {
             return pushBlock(request)
         }
 
-        override suspend fun changes(cursor: String?, limit: Int): SyncChangesResponseDto =
+        override suspend fun changes(cursor: String?, limit: Int, authorization: String): SyncChangesResponseDto =
             throw UnsupportedOperationException("not used in push tests")
     }
 
@@ -87,7 +87,7 @@ class SyncPushCoordinatorTest {
         val runner = ImmediateSyncTransactionRunner()
         val json = Json { ignoreUnknownKeys = true }
         val acknowledger = SyncOutboxAcknowledger(ownerProvider, outbox, workouts, exercises, runner)
-        val applier = SyncStagedApplier(workouts, exercises, outbox, staged, runner, json)
+        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, staged, runner, json)
         val reconciler = SyncReconciler(ownerProvider, outbox, staged, applier, runner)
         val coordinator = SyncPushCoordinator(
             ownerProvider,
@@ -98,6 +98,7 @@ class SyncPushCoordinatorTest {
             acknowledger,
             reconciler,
             runner,
+            SyncOperationLocks(),
         )
     }
 
@@ -742,5 +743,106 @@ class SyncPushCoordinatorTest {
         assertEquals(0, report.duplicate)
         assertEquals(0, report.reconciled)
         assertEquals(SyncOutboxStatus.CONFLICTED, f.outbox.findByMutationId(owner, m.mutationId)!!.syncStatus)
+    }
+
+    @Test
+    fun `later mutation is not selected while an earlier blocker is unresolved`() {
+        listOf(
+            SyncOutboxStatus.FAILED,
+            SyncOutboxStatus.CONFLICTED,
+            SyncOutboxStatus.REJECTED_TERMINAL,
+        ).forEach { blockerStatus ->
+            runTest {
+                val f = Fixture()
+                val syncId = UUID.randomUUID().toString()
+                val blocker = mutation(syncId = syncId, status = blockerStatus, createdAt = 1L, outboxId = 1L)
+                val later = mutation(syncId = syncId, createdAt = 2L, outboxId = 2L)
+                f.outbox.insert(blocker)
+                f.outbox.insert(later)
+                f.api.pushBlock = { response(emptyList()) }
+
+                val report = f.coordinator.pushOneBatch()
+
+                assertEquals(0, report.sent)
+                assertTrue(f.api.pushed.isEmpty())
+                assertEquals(
+                    SyncOutboxStatus.PENDING_UPLOAD,
+                    f.outbox.findByMutationId(owner, later.mutationId)!!.syncStatus,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `blocking mutation on another record does not prevent an unrelated push`() = runTest {
+        val f = Fixture()
+        val blocker = mutation(status = SyncOutboxStatus.CONFLICTED)
+        val unrelated = mutation()
+        f.outbox.insert(blocker)
+        f.outbox.insert(unrelated)
+        f.api.pushBlock = { call ->
+            response(call.mutations.map {
+                SyncMutationResultDto(it.mutationId, it.syncId, "APPLIED", serverVersion = 1, serverUpdatedAt = "2026-11-24T10:00:00Z")
+            })
+        }
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(1, report.sent)
+        assertEquals(listOf(unrelated.mutationId), f.api.pushed.single().mutations.map { it.mutationId })
+    }
+
+    @Test
+    fun `unmappable mutation becomes terminal and diagnosable without data loss`() = runTest {
+        val f = Fixture()
+        val broken = mutation(payload = "not-json")
+        f.outbox.insert(broken)
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(1, report.rejected)
+        assertTrue(f.api.pushed.isEmpty())
+        val stored = f.outbox.findByMutationId(owner, broken.mutationId)!!
+        assertEquals(SyncOutboxStatus.REJECTED_TERMINAL, stored.syncStatus)
+        assertEquals("INVALID_LOCAL_MUTATION", stored.terminalErrorCode)
+        assertNotNull(stored.lastError)
+        assertEquals(broken.payload, stored.payload)
+        assertEquals(broken.baseVersion, stored.baseVersion)
+
+        f.api.pushBlock = { call ->
+            response(call.mutations.map {
+                SyncMutationResultDto(it.mutationId, it.syncId, "APPLIED", serverVersion = 1, serverUpdatedAt = "2026-11-24T10:00:00Z")
+            })
+        }
+        val second = f.coordinator.pushOneBatch()
+        assertEquals(0, second.sent)
+        assertEquals(0, f.api.pushed.size)
+    }
+
+    @Test
+    fun `owner change during reconciliation is reported in push result`() = runTest {
+        // Calls: 1 capture, 2 select, 3 pre-request, 4 acknowledge,
+        // 5 unresolved check, 6 reconciliation transaction.
+        val switching = TestOwner(owner).apply { switchAtCall = 6 }
+        val f = Fixture(switching)
+        val syncId = UUID.randomUUID().toString()
+        val m = mutation(syncId = syncId)
+        f.outbox.insert(m)
+        f.staged.upsertIfNewer(
+            owner, SyncEntityTypes.WORKOUT, syncId, 1, 1_700_000_000_000L, false,
+            """{"schemaVersion":1,"name":"Remote","notes":"remote"}""", SyncStagedStatus.LOCAL_PENDING, 1L,
+        )
+        f.api.pushBlock = { response(listOf(result(m))) }
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(1, report.applied)
+        assertTrue(report.ownerChanged)
+        assertEquals(0, report.reconciled)
+        assertEquals(SyncOutboxStatus.ACKNOWLEDGED, f.outbox.findByMutationId(owner, m.mutationId)!!.syncStatus)
+        assertEquals(
+            SyncStagedStatus.LOCAL_PENDING,
+            f.staged.find(owner, SyncEntityTypes.WORKOUT, syncId)!!.processingStatus,
+        )
     }
 }

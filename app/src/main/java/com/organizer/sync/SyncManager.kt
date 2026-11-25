@@ -13,14 +13,15 @@ import javax.inject.Singleton
 @Singleton
 class SyncManager @Inject constructor(
     private val ownerProvider: OwnerProvider,
+    private val tokenProvider: SyncTokenProvider,
     private val apiClient: SyncApiClient,
     private val contractMapper: SyncContractMapper,
     private val transactions: SyncTransactionRunner,
     private val cursorDao: SyncCursorDao,
     private val stagedDao: SyncStagedDao,
     private val stagedApplier: SyncStagedApplier,
+    private val operationLocks: SyncOperationLocks,
 ) {
-    private val ownerLocks = mutableMapOf<String, Mutex>()
 
     /** Manual one-page pull. Does not loop and does not schedule itself. */
     suspend fun pullOnePage(limit: Int = DEFAULT_PAGE_SIZE): PullResult {
@@ -29,14 +30,22 @@ class SyncManager @Inject constructor(
             return PullResult(error = "Guest mode cannot pull cloud data")
         }
 
-        val lock = synchronized(ownerLocks) { ownerLocks.getOrPut(owner) { Mutex() } }
-        return lock.withLock { pullLocked(owner, limit) }
+        return operationLocks.forOwner(owner).withLock { pullLocked(owner, limit) }
     }
 
     private suspend fun pullLocked(owner: String, limit: Int): PullResult {
+        // Bind the request to the captured user exactly as push does; never
+        // let ambient Firebase state choose the credential for this page.
+        val token = tokenProvider.idTokenFor(owner)
+        if (token == null) {
+            return PullResult(
+                ownerChanged = ownerProvider.currentOwner() != owner,
+                error = "Authenticated user is no longer available for pull",
+            )
+        }
         val persistedCursor = cursorDao.get(owner)
 
-        val apiResult = apiClient.changes(persistedCursor?.cursor, limit)
+        val apiResult = apiClient.changes(persistedCursor?.cursor, limit, "Bearer $token")
         val changes = when (apiResult) {
             is SyncApiResult.Success -> contractMapper.toChanges(apiResult.data).getOrElse {
                 return PullResult(error = "Malformed pull response")
@@ -49,7 +58,7 @@ class SyncManager @Inject constructor(
         // The account may have changed while the request was in flight. Never
         // persist a response under a different owner.
         if (ownerProvider.currentOwner() != owner) {
-            return PullResult(error = "Authenticated account changed during pull")
+            return PullResult(ownerChanged = true, error = "Authenticated account changed during pull")
         }
 
         val now = System.currentTimeMillis()
@@ -83,12 +92,20 @@ class SyncManager @Inject constructor(
             )
         }
         } catch (ex: OwnerChangedDuringPullException) {
-            return PullResult(error = "Authenticated account changed during pull")
+            return PullResult(ownerChanged = true, error = "Authenticated account changed during staging")
         } catch (ex: Exception) {
             return PullResult(error = "Failed to persist pull page")
         }
 
+        // The account may have changed between the staging transaction and
+        // application. Never apply A's staged rows while B is signed in.
+        if (ownerProvider.currentOwner() != owner) {
+            return PullResult(ownerChanged = true, error = "Authenticated account changed before applying pull")
+        }
         val results = stagedDao.getByStatus(owner, SyncStagedStatus.PENDING).map { stagedApplier.process(owner, it) }
+        if (results.any { it == StagedApplyResult.OWNER_CHANGED }) {
+            return PullResult(ownerChanged = true, error = "Authenticated account changed while applying pull")
+        }
         return PullResult(
             received = changes.records.size,
             staged = changes.records.size,
@@ -100,6 +117,27 @@ class SyncManager @Inject constructor(
             failed = results.count { it == StagedApplyResult.FAILED },
             hasMore = changes.hasMore,
         )
+    }
+
+    /**
+     * Explicit recovery for staged rows whose application failed. Rows become
+     * PENDING and are applied by the next manual pull. UNSUPPORTED_SCHEMA is
+     * deliberately not requeued — it stays terminal until a compatible app
+     * version explicitly reprocesses it.
+     */
+    suspend fun retryStagedFailed(): Int {
+        val owner = ownerProvider.currentOwner()
+        if (owner == OwnerProvider.GUEST) return 0
+        return operationLocks.forOwner(owner).withLock {
+            try {
+                transactions.run {
+                    if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPullException()
+                    stagedDao.resetToPending(owner, setOf(SyncStagedStatus.FAILED))
+                }
+            } catch (ex: OwnerChangedDuringPullException) {
+                0
+            }
+        }
     }
 
     /** Kept for the existing worker placeholder; no automatic sync is performed. */

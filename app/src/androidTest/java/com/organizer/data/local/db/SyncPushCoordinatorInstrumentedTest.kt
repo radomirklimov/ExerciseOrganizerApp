@@ -18,6 +18,7 @@ import com.organizer.sync.RoomSyncTransactionRunner
 import com.organizer.sync.SyncApiClient
 import com.organizer.sync.SyncContractMapper
 import com.organizer.sync.SyncOutboxAcknowledger
+import com.organizer.sync.SyncOperationLocks
 import com.organizer.sync.SyncOutboxStatus
 import com.organizer.sync.SyncPushCoordinator
 import com.organizer.sync.SyncReconciler
@@ -76,7 +77,7 @@ class SyncPushCoordinatorInstrumentedTest {
             return pushBlock(request)
         }
 
-        override suspend fun changes(cursor: String?, limit: Int): SyncChangesResponseDto =
+        override suspend fun changes(cursor: String?, limit: Int, authorization: String): SyncChangesResponseDto =
             throw UnsupportedOperationException("not used in push tests")
     }
 
@@ -140,13 +141,13 @@ class SyncPushCoordinatorInstrumentedTest {
         val json = Json { ignoreUnknownKeys = true }
         val acknowledger = SyncOutboxAcknowledger(ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, runner)
         val applier = SyncStagedApplier(
-            db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao,
+            ownerProvider, db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao,
             RoomSyncTransactionRunner(db), json,
         )
         val reconciler = SyncReconciler(ownerProvider, db.syncOutboxDao, db.syncStagedDao, applier, RoomSyncTransactionRunner(db))
         return SyncPushCoordinator(
             ownerProvider, tokens, db.syncOutboxDao, SyncApiClient(api, json), SyncContractMapper(),
-            acknowledger, reconciler, runner,
+            acknowledger, reconciler, runner, SyncOperationLocks(),
         )
     }
 

@@ -23,8 +23,8 @@ import javax.inject.Singleton
 @Singleton
 class WorkoutReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
-    fun schedule(entry: ScheduledWorkoutEntity) {
+) : ReminderScheduler {
+    override fun schedule(entry: ScheduledWorkoutEntity) {
         if (!entry.reminderEnabled) {
             cancel(entry.scheduleId)
             return
@@ -61,11 +61,11 @@ class WorkoutReminderScheduler @Inject constructor(
         )
     }
 
-    fun rescheduleAll(entries: List<ScheduledWorkoutEntity>) {
+    override fun rescheduleAll(entries: List<ScheduledWorkoutEntity>) {
         entries.forEach(::schedule)
     }
 
-    fun cancel(scheduleId: Long) {
+    override fun cancel(scheduleId: Long) {
         cancelAlarm(scheduleId)
         // Also drop a reminder that is already showing for this entry.
         NotificationManagerCompat.from(context).cancel(scheduleId.toInt())

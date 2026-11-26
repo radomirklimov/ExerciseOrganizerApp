@@ -70,6 +70,14 @@ class SyncOutboxWriter @Inject constructor(
         enqueue(owner, SyncEntityTypes.FAVORITE_EXERCISE, syncId, OPERATION_RESTORE, baseVersion) { payload }
     }
 
+    suspend fun upsertScheduledWorkout(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.SCHEDULED_WORKOUT, syncId, OPERATION_UPSERT, baseVersion) { payload }
+    }
+
+    suspend fun deleteScheduledWorkout(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.SCHEDULED_WORKOUT, syncId, OPERATION_DELETE, baseVersion) { payload }
+    }
+
     private suspend fun enqueue(
         owner: String,
         entityType: String,

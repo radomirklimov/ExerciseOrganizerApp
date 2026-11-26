@@ -129,7 +129,7 @@ class ScheduleViewModel @Inject constructor(
     ) = viewModelScope.launch {
         entryMutex.withLock {
             if (scheduleId == null) {
-                val newId = scheduleRepo.addEntry(
+                scheduleRepo.addEntry(
                     workoutId = workoutId,
                     dayOfWeek = dayOfWeek,
                     scheduledDateKey = scheduledDateKey,
@@ -137,18 +137,6 @@ class ScheduleViewModel @Inject constructor(
                     reminderEnabled = reminderEnabled,
                     reminderMinutesBefore = reminderMinutesBefore,
                     reminderNote = reminderNote,
-                )
-                reminderScheduler.schedule(
-                    buildEntry(
-                        scheduleId = newId,
-                        workoutId = workoutId,
-                        dayOfWeek = dayOfWeek,
-                        scheduledDateKey = scheduledDateKey,
-                        startMinutes = startMinutes,
-                        reminderEnabled = reminderEnabled,
-                        reminderMinutesBefore = reminderMinutesBefore,
-                        reminderNote = reminderNote,
-                    )
                 )
             } else {
                 val updated = buildEntry(
@@ -162,7 +150,6 @@ class ScheduleViewModel @Inject constructor(
                     reminderNote = reminderNote,
                 )
                 scheduleRepo.updateEntry(updated)
-                reminderScheduler.schedule(updated)
             }
         }
     }
@@ -187,7 +174,6 @@ class ScheduleViewModel @Inject constructor(
 
     fun removeEntry(item: ScheduledWorkoutItem) = viewModelScope.launch {
         entryMutex.withLock {
-            reminderScheduler.cancel(item.entry.scheduleId)
             scheduleRepo.deleteEntry(item.entry.scheduleId)
         }
     }

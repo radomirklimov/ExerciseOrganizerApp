@@ -2,13 +2,16 @@ package com.organizer.sync
 
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.SyncOutboxDao
+import com.organizer.notification.ReminderScheduler
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
@@ -30,6 +33,8 @@ class SyncStagedApplier @Inject constructor(
     private val outboxDao: SyncOutboxDao,
     private val workoutExerciseDao: WorkoutExerciseDao,
     private val favoriteExerciseDao: FavoriteExerciseDao? = null,
+    private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
+    private val reminderScheduler: ReminderScheduler? = null,
     private val stagedDao: SyncStagedDao,
     private val transactions: SyncTransactionRunner,
     private val json: Json,
@@ -73,6 +78,7 @@ class SyncStagedApplier @Inject constructor(
                         SyncEntityTypes.CUSTOM_EXERCISE -> applyCustomExercise(owner, current, payload)
                         SyncEntityTypes.WORKOUT_EXERCISE -> applyWorkoutExercise(owner, current, payload)
                         SyncEntityTypes.FAVORITE_EXERCISE -> applyFavoriteExercise(owner, current, payload)
+                        SyncEntityTypes.SCHEDULED_WORKOUT -> applyScheduledWorkout(owner, current, payload)
                         else -> mark(current, SyncStagedStatus.UNSUPPORTED)
                     }
                 }
@@ -181,6 +187,37 @@ class SyncStagedApplier @Inject constructor(
                 }
                 mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
             }
+            SyncEntityTypes.SCHEDULED_WORKOUT -> {
+                val dao = scheduledWorkoutDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+                val bySyncId = dao.findBySyncId(owner, staged.syncId)
+                if (bySyncId != null) {
+                    if (bySyncId.serverVersion >= staged.serverVersion) {
+                        return mark(staged, SyncStagedStatus.APPLIED)
+                    }
+                    dao.applyRemoteDelete(owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt)
+                    rescheduleScheduleAlarm(owner, staged.syncId)
+                    return mark(staged, SyncStagedStatus.APPLIED)
+                }
+                val payload = staged.payload?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject
+                val workoutId = payload?.let { resolveWorkout(owner, it) }
+                    ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Schedule workout reference unavailable")
+                dao.insert(ScheduledWorkoutEntity(
+                    workoutId = workoutId,
+                    dayOfWeek = payload.jsonPrimitiveInt("dayOfWeek") ?: 1,
+                    scheduledDateKey = payload.jsonPrimitiveInt("scheduledDateKey"),
+                    startMinutes = payload.jsonPrimitiveInt("startMinutes") ?: 0,
+                    reminderEnabled = payload.get("reminderEnabled")?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true,
+                    reminderMinutesBefore = payload.jsonPrimitiveInt("reminderMinutesBefore") ?: 30,
+                    reminderNote = payload.string("reminderNote") ?: "",
+                    ownerFirebaseUid = owner,
+                    syncId = staged.syncId,
+                    updatedAt = staged.serverUpdatedAt,
+                    deletedAt = staged.serverUpdatedAt,
+                    syncStatus = "SYNCED",
+                    serverVersion = staged.serverVersion,
+                ))
+                mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
+            }
             else -> mark(staged, SyncStagedStatus.UNSUPPORTED)
         }
     }
@@ -196,6 +233,12 @@ class SyncStagedApplier @Inject constructor(
             if (local == null) return mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
             if (local.serverVersion >= staged.serverVersion) return mark(staged, SyncStagedStatus.APPLIED)
             workoutDao.applyRemoteDelete(owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt)
+            // Cancel device-local reminders for schedules whose parent is now deleted.
+            runCatching {
+                scheduledWorkoutDao?.getForWorkout(owner, local.workoutId)?.forEach { entry ->
+                    reminderScheduler?.cancel(entry.scheduleId)
+                }
+            }
             return mark(staged, SyncStagedStatus.APPLIED)
         }
 
@@ -406,6 +449,68 @@ class SyncStagedApplier @Inject constructor(
         return mark(staged, SyncStagedStatus.APPLIED)
     }
 
+    private suspend fun applyScheduledWorkout(
+        owner: String,
+        staged: SyncStagedRecordEntity,
+        payload: JsonObject,
+    ): StagedApplyResult {
+        val dao = scheduledWorkoutDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+        val workoutId = resolveWorkout(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Workout not available")
+
+        // A newer staged tombstone for this identity must win over a late UPSERT.
+        val tombstone = stagedDao.find(owner, SyncEntityTypes.SCHEDULED_WORKOUT, staged.syncId)
+        if (tombstone != null && tombstone.deleted && tombstone.serverVersion >= staged.serverVersion) {
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+
+        val dayOfWeek = payload.jsonPrimitiveInt("dayOfWeek") ?: return mark(staged, SyncStagedStatus.FAILED, "Missing dayOfWeek")
+        val startMinutes = payload.jsonPrimitiveInt("startMinutes") ?: return mark(staged, SyncStagedStatus.FAILED, "Missing startMinutes")
+        val scheduledDateKey = payload.jsonPrimitiveInt("scheduledDateKey")
+        val reminderEnabled = payload.get("reminderEnabled")?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
+        val reminderMinutesBefore = payload.jsonPrimitiveInt("reminderMinutesBefore") ?: 30
+        val reminderNote = payload.string("reminderNote") ?: ""
+
+        val local = dao.findBySyncId(owner, staged.syncId)
+        if (local != null) {
+            if (local.workoutId != workoutId) {
+                return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting schedule workout reference")
+            }
+            if (local.serverVersion >= staged.serverVersion) {
+                return mark(staged, SyncStagedStatus.APPLIED)
+            }
+            dao.applyRemoteUpsert(owner, staged.syncId, dayOfWeek, scheduledDateKey, startMinutes, reminderEnabled, reminderMinutesBefore, reminderNote, staged.serverVersion, staged.serverUpdatedAt)
+            rescheduleScheduleAlarm(owner, staged.syncId)
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+
+        dao.insert(ScheduledWorkoutEntity(
+            workoutId = workoutId,
+            dayOfWeek = dayOfWeek,
+            scheduledDateKey = scheduledDateKey,
+            startMinutes = startMinutes,
+            reminderEnabled = reminderEnabled,
+            reminderMinutesBefore = reminderMinutesBefore,
+            reminderNote = reminderNote,
+            ownerFirebaseUid = owner,
+            syncId = staged.syncId,
+            updatedAt = staged.serverUpdatedAt,
+            serverVersion = staged.serverVersion,
+            syncStatus = "SYNCED",
+        ))
+        rescheduleScheduleAlarm(owner, staged.syncId)
+        return mark(staged, SyncStagedStatus.APPLIED)
+    }
+
+    private suspend fun rescheduleScheduleAlarm(owner: String, syncId: String) {
+        runCatching {
+            val dao = scheduledWorkoutDao ?: return
+            val entry = dao.findBySyncId(owner, syncId) ?: return
+            if (entry.deletedAt != null) reminderScheduler?.cancel(entry.scheduleId)
+            else reminderScheduler?.schedule(entry)
+        }
+    }
+
     private suspend fun mark(
         staged: SyncStagedRecordEntity,
         status: String,
@@ -444,6 +549,7 @@ class SyncStagedApplier @Inject constructor(
             SyncEntityTypes.CUSTOM_EXERCISE,
             SyncEntityTypes.WORKOUT_EXERCISE,
             SyncEntityTypes.FAVORITE_EXERCISE,
+            SyncEntityTypes.SCHEDULED_WORKOUT,
         )
     }
 }

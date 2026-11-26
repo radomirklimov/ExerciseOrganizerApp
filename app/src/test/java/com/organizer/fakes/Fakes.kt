@@ -5,6 +5,7 @@ import com.organizer.data.local.dao.ExerciseCategoryDao
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.dao.SyncCursorDao
+import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
@@ -13,6 +14,7 @@ import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
@@ -449,6 +451,92 @@ class FakeFavoriteExerciseDao : FavoriteExerciseDao {
                 if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
                     changed++
                     it.copy(deletedAt = null, syncStatus = "SYNCED", serverVersion = serverVersion, updatedAt = updatedAt)
+                } else it
+            }
+        }
+        return changed
+    }
+}
+
+class FakeReminderScheduler : com.organizer.notification.ReminderScheduler {
+    val scheduled = mutableListOf<Long>()
+    val cancelled = mutableListOf<Long>()
+    var failNext = false
+    override fun schedule(entry: com.organizer.data.local.db.entities.ScheduledWorkoutEntity) {
+        if (failNext) { failNext = false; throw RuntimeException("reminder failure") }
+        scheduled += entry.scheduleId
+        if (!entry.reminderEnabled) cancelled += entry.scheduleId
+    }
+    override fun cancel(scheduleId: Long) {
+        if (failNext) { failNext = false; throw RuntimeException("reminder failure") }
+        cancelled += scheduleId
+    }
+    override fun rescheduleAll(entries: List<com.organizer.data.local.db.entities.ScheduledWorkoutEntity>) {
+        entries.forEach(::schedule)
+    }
+}
+
+class FakeScheduledWorkoutDao : ScheduledWorkoutDao {
+    val entries = MutableStateFlow<List<ScheduledWorkoutEntity>>(emptyList())
+    var nextId = 1L
+
+    override fun observeAll(owner: String): Flow<List<ScheduledWorkoutEntity>> =
+        entries.map { list -> list.filter { it.ownerFirebaseUid == owner && it.deletedAt == null } }
+
+    override suspend fun getAllOnce(owner: String): List<ScheduledWorkoutEntity> =
+        entries.value.filter { it.ownerFirebaseUid == owner && it.deletedAt == null }
+
+    override suspend fun getById(owner: String, id: Long): ScheduledWorkoutEntity? =
+        entries.value.firstOrNull { it.ownerFirebaseUid == owner && it.scheduleId == id && it.deletedAt == null }
+
+    override suspend fun getForWorkout(owner: String, workoutId: Long): List<ScheduledWorkoutEntity> =
+        entries.value.filter { it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.deletedAt == null }
+
+    override suspend fun findBySyncId(owner: String, syncId: String): ScheduledWorkoutEntity? =
+        entries.value.firstOrNull { it.ownerFirebaseUid == owner && it.syncId == syncId }
+
+    override suspend fun insert(entry: ScheduledWorkoutEntity): Long {
+        val id = if (entry.scheduleId == 0L) nextId++ else entry.scheduleId
+        entries.update { it + entry.copy(scheduleId = id) }
+        return id
+    }
+
+    override suspend fun update(entry: ScheduledWorkoutEntity) {
+        entries.update { current -> current.map { if (it.scheduleId == entry.scheduleId) entry else it } }
+    }
+
+    override suspend fun updateNote(owner: String, id: Long, note: String, updatedAt: Long) {
+        entries.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.scheduleId == id) it.copy(reminderNote = note, updatedAt = updatedAt, syncStatus = "PENDING_UPLOAD") else it } }
+    }
+
+    override suspend fun softDelete(owner: String, id: Long, deletedAt: Long) {
+        entries.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.scheduleId == id) it.copy(deletedAt = deletedAt, syncStatus = "PENDING_DELETE") else it } }
+    }
+
+    override suspend fun applyAcknowledgementMetadata(owner: String, syncId: String, serverVersion: Long, updatedAt: Long) {
+        entries.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) it.copy(serverVersion = serverVersion, updatedAt = maxOf(it.updatedAt, updatedAt), syncStatus = "SYNCED") else it } }
+    }
+
+    override suspend fun applyRemoteDelete(owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    changed++
+                    it.copy(deletedAt = deletedAt, syncStatus = "SYNCED", serverVersion = serverVersion, updatedAt = updatedAt)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun applyRemoteUpsert(owner: String, syncId: String, dayOfWeek: Int, scheduledDateKey: Int?, startMinutes: Int, reminderEnabled: Boolean, reminderMinutesBefore: Int, reminderNote: String, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    changed++
+                    it.copy(dayOfWeek = dayOfWeek, scheduledDateKey = scheduledDateKey, startMinutes = startMinutes, reminderEnabled = reminderEnabled, reminderMinutesBefore = reminderMinutesBefore, reminderNote = reminderNote, deletedAt = null, syncStatus = "SYNCED", serverVersion = serverVersion, updatedAt = updatedAt)
                 } else it
             }
         }

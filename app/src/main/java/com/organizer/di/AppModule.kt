@@ -232,6 +232,11 @@ object AppModule {
     }
 
     @Provides
+    fun provideReminderScheduler(
+        impl: com.organizer.notification.WorkoutReminderScheduler,
+    ): com.organizer.notification.ReminderScheduler = impl
+
+    @Provides
     fun provideScheduledWorkoutDao(
         database: AppDatabase
     ): ScheduledWorkoutDao {

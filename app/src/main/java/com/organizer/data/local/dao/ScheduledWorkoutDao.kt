@@ -21,6 +21,9 @@ interface ScheduledWorkoutDao {
     @Query("SELECT * FROM scheduled_workout WHERE ownerFirebaseUid = :owner AND workoutId = :workoutId AND deletedAt IS NULL")
     suspend fun getForWorkout(owner: String, workoutId: Long): List<ScheduledWorkoutEntity>
 
+    @Query("SELECT * FROM scheduled_workout WHERE ownerFirebaseUid = :owner AND syncId = :syncId")
+    suspend fun findBySyncId(owner: String, syncId: String): ScheduledWorkoutEntity?
+
     @Insert
     suspend fun insert(entry: ScheduledWorkoutEntity): Long
 
@@ -32,4 +35,13 @@ interface ScheduledWorkoutDao {
 
     @Query("UPDATE scheduled_workout SET deletedAt = :deletedAt, syncStatus = 'PENDING_DELETE' WHERE ownerFirebaseUid = :owner AND scheduleId = :id")
     suspend fun softDelete(owner: String, id: Long, deletedAt: Long)
+
+    @Query("UPDATE scheduled_workout SET syncStatus = 'SYNCED', serverVersion = :serverVersion, updatedAt = :updatedAt WHERE ownerFirebaseUid = :owner AND syncId = :syncId AND serverVersion < :serverVersion")
+    suspend fun applyAcknowledgementMetadata(owner: String, syncId: String, serverVersion: Long, updatedAt: Long)
+
+    @Query("UPDATE scheduled_workout SET deletedAt = :deletedAt, syncStatus = 'SYNCED', serverVersion = :serverVersion, updatedAt = :updatedAt WHERE ownerFirebaseUid = :owner AND syncId = :syncId AND serverVersion < :serverVersion")
+    suspend fun applyRemoteDelete(owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long): Int
+
+    @Query("UPDATE scheduled_workout SET dayOfWeek = :dayOfWeek, scheduledDateKey = :scheduledDateKey, startMinutes = :startMinutes, reminderEnabled = :reminderEnabled, reminderMinutesBefore = :reminderMinutesBefore, reminderNote = :reminderNote, syncStatus = 'SYNCED', serverVersion = :serverVersion, updatedAt = :updatedAt, deletedAt = NULL WHERE ownerFirebaseUid = :owner AND syncId = :syncId AND serverVersion < :serverVersion")
+    suspend fun applyRemoteUpsert(owner: String, syncId: String, dayOfWeek: Int, scheduledDateKey: Int?, startMinutes: Int, reminderEnabled: Boolean, reminderMinutesBefore: Int, reminderNote: String, serverVersion: Long, updatedAt: Long): Int
 }

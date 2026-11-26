@@ -1,6 +1,7 @@
 package com.organizer.sync
 
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
@@ -57,6 +58,19 @@ class SyncPayloadFactory @Inject constructor(
             put("schemaVersion", SCHEMA_VERSION)
             put("exerciseRef", exerciseRef(exercise))
             put("addedAt", SyncTimestamps.format(favorite.addedAt))
+        }
+    )
+
+    fun scheduledWorkout(schedule: ScheduledWorkoutEntity, workoutSyncId: String): String = json.encodeToString(
+        buildJsonObject {
+            put("schemaVersion", SCHEMA_VERSION)
+            put("workoutSyncId", workoutSyncId)
+            put("dayOfWeek", schedule.dayOfWeek)
+            schedule.scheduledDateKey?.let { put("scheduledDateKey", it) }
+            put("startMinutes", schedule.startMinutes)
+            put("reminderEnabled", schedule.reminderEnabled)
+            put("reminderMinutesBefore", schedule.reminderMinutesBefore)
+            put("reminderNote", schedule.reminderNote)
         }
     )
 

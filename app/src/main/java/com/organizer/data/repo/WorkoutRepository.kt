@@ -1,8 +1,10 @@
 package com.organizer.data.repo
 
 import com.organizer.auth.OwnerProvider
+import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.notification.ReminderScheduler
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.sync.OwnerChangedDuringLocalWriteException
 import com.organizer.sync.SyncOutboxWriter
@@ -15,6 +17,8 @@ class WorkoutRepository @Inject constructor(
     private val ownerProvider: OwnerProvider,
     private val transactions: SyncTransactionRunner,
     private val outboxWriter: SyncOutboxWriter,
+    private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
+    private val reminderScheduler: ReminderScheduler? = null,
 ) {
     suspend fun createWorkout(name: String, notes: String = ""): Long = createWorkoutInternal(name, notes)
 
@@ -58,6 +62,10 @@ class WorkoutRepository @Inject constructor(
             if (workout != null && workout.deletedAt == null) {
                 dao.softDelete(owner, id, now)
                 outboxWriter.deleteWorkout(owner, workout.copy(deletedAt = now))
+                // Cancel reminders for this workout's schedules; retain schedule rows/identities.
+                scheduledWorkoutDao?.getForWorkout(owner, id)?.forEach { entry ->
+                    reminderScheduler?.cancel(entry.scheduleId)
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package com.organizer.sync
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
@@ -28,6 +29,7 @@ class SyncOutboxAcknowledger @Inject constructor(
     private val exerciseDao: ExerciseDao,
     private val workoutExerciseDao: WorkoutExerciseDao,
     private val favoriteExerciseDao: FavoriteExerciseDao,
+    private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
     private val transactions: SyncTransactionRunner,
 ) {
     suspend fun acknowledge(owner: String, results: List<SyncMutationResultDto>): AcknowledgementResult {
@@ -143,6 +145,7 @@ class SyncOutboxAcknowledger @Inject constructor(
             SyncEntityTypes.CUSTOM_EXERCISE -> exerciseDao.findCustomBySyncId(owner, mutation.recordSyncId)?.syncStatus
             SyncEntityTypes.WORKOUT_EXERCISE -> workoutExerciseDao.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             SyncEntityTypes.FAVORITE_EXERCISE -> favoriteExerciseDao.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
+            SyncEntityTypes.SCHEDULED_WORKOUT -> scheduledWorkoutDao?.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             else -> null
         }
 
@@ -165,6 +168,9 @@ class SyncOutboxAcknowledger @Inject constructor(
             )
             SyncEntityTypes.FAVORITE_EXERCISE -> favoriteExerciseDao.applyAcknowledgementMetadata(
                 owner, mutation.recordSyncId, serverVersion, serverUpdatedAt, syncStatus
+            )
+            SyncEntityTypes.SCHEDULED_WORKOUT -> scheduledWorkoutDao?.applyAcknowledgementMetadata(
+                owner, mutation.recordSyncId, serverVersion, serverUpdatedAt
             )
         }
     }

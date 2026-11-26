@@ -321,6 +321,14 @@ class SyncPushCoordinator @Inject constructor(
                 }
                 if (dependencies.any { it in unresolvedParents }) return@filter false
             }
+            if (row.entityType == SyncEntityTypes.SCHEDULED_WORKOUT) {
+                val dependencies = scheduledWorkoutDependencySyncIds(row) ?: run {
+                    invalidIds += row.mutationId
+                    unresolvedParents += row.recordSyncId
+                    return@filter false
+                }
+                if (dependencies.any { it in unresolvedParents }) return@filter false
+            }
             true
         }
         val mappable = candidates.filter { row ->
@@ -463,12 +471,21 @@ class SyncPushCoordinator @Inject constructor(
         }
     }
 
+    /** Null means required dependency information is missing or malformed. */
+    private fun scheduledWorkoutDependencySyncIds(row: SyncOutboxEntity): Set<String>? {
+        val payload = row.payload ?: return null
+        val obj = runCatching { json.parseToJsonElement(payload) }.getOrNull() as? JsonObject ?: return null
+        val workout = obj["workoutSyncId"]?.runCatching { jsonPrimitive.content }?.getOrNull() ?: return null
+        return setOf(workout)
+    }
+
     private fun SyncOutboxEntity.typePriority(): Int = when (entityType) {
         SyncEntityTypes.CUSTOM_EXERCISE -> 0
         SyncEntityTypes.WORKOUT -> 1
         SyncEntityTypes.WORKOUT_EXERCISE -> 2
         SyncEntityTypes.FAVORITE_EXERCISE -> 3
-        else -> 4
+        SyncEntityTypes.SCHEDULED_WORKOUT -> 4
+        else -> 5
     }
 
     private fun SyncOutboxEntity.orderKey(): Long = outboxId

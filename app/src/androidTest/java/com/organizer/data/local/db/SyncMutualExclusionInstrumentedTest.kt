@@ -140,11 +140,11 @@ class SyncMutualExclusionInstrumentedTest {
             val ownerProvider = TestOwner()
             val runner = RoomSyncTransactionRunner(db)
             val acknowledger = SyncOutboxAcknowledger(
-                ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, runner,
+                ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, db.favoriteExerciseDao, runner,
             )
             val applier = SyncStagedApplier(
                 ownerProvider, db.workoutDao, db.exerciseDao, db.syncOutboxDao,
-                db.workoutExerciseDao, db.syncStagedDao, runner, json,
+                db.workoutExerciseDao, db.favoriteExerciseDao, db.syncStagedDao, runner, json,
             )
             val reconciler = SyncReconciler(
                 ownerProvider, db.syncOutboxDao, db.syncStagedDao, applier, runner,
@@ -194,11 +194,11 @@ class SyncMutualExclusionInstrumentedTest {
             val runner = RoomSyncTransactionRunner(db)
             val ownerProvider = TestOwner()
             val acknowledger = SyncOutboxAcknowledger(
-                ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, runner,
+                ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, db.favoriteExerciseDao, runner,
             )
             val applier = SyncStagedApplier(
                 ownerProvider, db.workoutDao, db.exerciseDao, db.syncOutboxDao,
-                db.workoutExerciseDao, db.syncStagedDao, runner, json,
+                db.workoutExerciseDao, db.favoriteExerciseDao, db.syncStagedDao, runner, json,
             )
             val coordinator = SyncPushCoordinator(
                 ownerProvider, Token(), db.syncOutboxDao, SyncApiClient(api, json),

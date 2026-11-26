@@ -185,7 +185,7 @@ class WorkoutExerciseSyncInstrumentedTest {
             val runner = RoomSyncTransactionRunner(db)
             val applier = SyncStagedApplier(
                 object : OwnerProvider() { override fun currentOwner() = owner },
-                db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao,
+                db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.favoriteExerciseDao,
                 db.syncStagedDao, runner, Json { ignoreUnknownKeys = true },
             )
             val stagedId = 1L
@@ -290,7 +290,7 @@ class WorkoutExerciseSyncInstrumentedTest {
             )
             val applier = SyncStagedApplier(
                 object : OwnerProvider() { override fun currentOwner() = owner },
-                db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao,
+                db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.favoriteExerciseDao,
                 db.syncStagedDao, RoomSyncTransactionRunner(db), Json { ignoreUnknownKeys = true },
             )
             db.syncStagedDao.upsertIfNewer(

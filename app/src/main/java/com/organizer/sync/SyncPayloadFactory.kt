@@ -1,6 +1,7 @@
 package com.organizer.sync
 
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import kotlinx.serialization.encodeToString
@@ -48,6 +49,14 @@ class SyncPayloadFactory @Inject constructor(
             put("orderIndex", link.orderIndex)
             put("updatedAt", SyncTimestamps.format(link.updatedAt))
             link.deletedAt?.let { put("deletedAt", SyncTimestamps.format(it)) }
+        }
+    )
+
+    fun favoriteExercise(favorite: FavoriteExerciseEntity, exercise: ExerciseEntity): String = json.encodeToString(
+        buildJsonObject {
+            put("schemaVersion", SCHEMA_VERSION)
+            put("exerciseRef", exerciseRef(exercise))
+            put("addedAt", SyncTimestamps.format(favorite.addedAt))
         }
     )
 

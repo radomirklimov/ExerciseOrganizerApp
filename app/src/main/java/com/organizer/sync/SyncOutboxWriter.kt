@@ -58,6 +58,18 @@ class SyncOutboxWriter @Inject constructor(
         enqueue(owner, SyncEntityTypes.WORKOUT_EXERCISE, syncId, OPERATION_RESTORE, baseVersion) { payload }
     }
 
+    suspend fun upsertFavoriteExercise(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.FAVORITE_EXERCISE, syncId, OPERATION_UPSERT, baseVersion) { payload }
+    }
+
+    suspend fun deleteFavoriteExercise(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.FAVORITE_EXERCISE, syncId, OPERATION_DELETE, baseVersion) { payload }
+    }
+
+    suspend fun restoreFavoriteExercise(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.FAVORITE_EXERCISE, syncId, OPERATION_RESTORE, baseVersion) { payload }
+    }
+
     private suspend fun enqueue(
         owner: String,
         entityType: String,

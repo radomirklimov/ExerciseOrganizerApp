@@ -374,20 +374,85 @@ class FakeFavoriteExerciseDao : FavoriteExerciseDao {
     override suspend fun isFavorite(owner: String, exerciseId: Long): Boolean =
         favorites.value.any { it.ownerFirebaseUid == owner && it.exerciseId == exerciseId && it.deletedAt == null }
 
+    override suspend fun findByOwnerAndExercise(owner: String, exerciseId: Long): FavoriteExerciseEntity? =
+        favorites.value.firstOrNull { it.ownerFirebaseUid == owner && it.exerciseId == exerciseId }
+
+    override suspend fun findBySyncId(owner: String, syncId: String): FavoriteExerciseEntity? =
+        favorites.value.firstOrNull { it.ownerFirebaseUid == owner && it.syncId == syncId }
+
+    override suspend fun updateSyncId(owner: String, exerciseId: Long, oldSyncId: String, newSyncId: String, updatedAt: Long): Int {
+        var changed = 0
+        favorites.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.exerciseId == exerciseId && it.syncId == oldSyncId) {
+                    changed++
+                    it.copy(syncId = newSyncId, updatedAt = updatedAt)
+                } else it
+            }
+        }
+        return changed
+    }
+
     override suspend fun insert(favorite: FavoriteExerciseEntity) {
         favorites.update { current ->
             current.filterNot { it.exerciseId == favorite.exerciseId && it.ownerFirebaseUid == favorite.ownerFirebaseUid } + favorite
         }
     }
 
-    override suspend fun softDelete(owner: String, exerciseId: Long, deletedAt: Long) {
+    override suspend fun softDelete(owner: String, exerciseId: Long, deletedAt: Long, updatedAt: Long) {
         favorites.update { current ->
             current.map {
-                if (it.ownerFirebaseUid == owner && it.exerciseId == exerciseId) {
-                    it.copy(deletedAt = deletedAt, syncStatus = "PENDING_DELETE")
+                if (it.ownerFirebaseUid == owner && it.exerciseId == exerciseId && it.deletedAt == null) {
+                    it.copy(deletedAt = deletedAt, syncStatus = "PENDING_DELETE", updatedAt = updatedAt)
                 } else it
             }
         }
+    }
+
+    override suspend fun restoreLocal(owner: String, exerciseId: Long, updatedAt: Long) {
+        favorites.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.exerciseId == exerciseId && it.deletedAt != null) {
+                    it.copy(deletedAt = null, syncStatus = "PENDING_UPLOAD", updatedAt = updatedAt)
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyAcknowledgementMetadata(owner: String, syncId: String, serverVersion: Long, updatedAt: Long, syncStatus: String) {
+        favorites.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    it.copy(serverVersion = serverVersion, updatedAt = maxOf(it.updatedAt, updatedAt), syncStatus = syncStatus)
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyRemoteDelete(owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        favorites.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    changed++
+                    it.copy(deletedAt = deletedAt, syncStatus = "SYNCED", serverVersion = serverVersion, updatedAt = updatedAt)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun applyRemoteUpsert(owner: String, syncId: String, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        favorites.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    changed++
+                    it.copy(deletedAt = null, syncStatus = "SYNCED", serverVersion = serverVersion, updatedAt = updatedAt)
+                } else it
+            }
+        }
+        return changed
     }
 }
 

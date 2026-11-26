@@ -313,6 +313,14 @@ class SyncPushCoordinator @Inject constructor(
                 }
                 if (dependencies.any { it in unresolvedParents }) return@filter false
             }
+            if (row.entityType == SyncEntityTypes.FAVORITE_EXERCISE) {
+                val dependencies = favoriteDependencySyncIds(row) ?: run {
+                    invalidIds += row.mutationId
+                    unresolvedParents += row.recordSyncId
+                    return@filter false
+                }
+                if (dependencies.any { it in unresolvedParents }) return@filter false
+            }
             true
         }
         val mappable = candidates.filter { row ->
@@ -439,11 +447,28 @@ class SyncPushCoordinator @Inject constructor(
         return setOfNotNull(workout, custom)
     }
 
+    /** Null means required dependency information is missing or malformed. */
+    private fun favoriteDependencySyncIds(row: SyncOutboxEntity): Set<String>? {
+        val payload = row.payload ?: return emptySet() // public favorite has no dependency
+        val obj = runCatching { json.parseToJsonElement(payload) }.getOrNull() as? JsonObject ?: return null
+        val ref = obj["exerciseRef"] as? JsonObject ?: return null
+        val kind = ref["kind"]?.runCatching { jsonPrimitive.content }?.getOrNull() ?: return null
+        return when (kind) {
+            "PUBLIC" -> emptySet()
+            "CUSTOM" -> {
+                val syncId = ref["syncId"]?.runCatching { jsonPrimitive.content }?.getOrNull() ?: return null
+                setOf(syncId)
+            }
+            else -> return null
+        }
+    }
+
     private fun SyncOutboxEntity.typePriority(): Int = when (entityType) {
         SyncEntityTypes.CUSTOM_EXERCISE -> 0
         SyncEntityTypes.WORKOUT -> 1
         SyncEntityTypes.WORKOUT_EXERCISE -> 2
-        else -> 3
+        SyncEntityTypes.FAVORITE_EXERCISE -> 3
+        else -> 4
     }
 
     private fun SyncOutboxEntity.orderKey(): Long = outboxId

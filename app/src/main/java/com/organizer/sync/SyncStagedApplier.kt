@@ -1,12 +1,14 @@
 package com.organizer.sync
 
 import com.organizer.data.local.dao.ExerciseDao
+import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
+import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
@@ -27,6 +29,7 @@ class SyncStagedApplier @Inject constructor(
     private val exerciseDao: ExerciseDao,
     private val outboxDao: SyncOutboxDao,
     private val workoutExerciseDao: WorkoutExerciseDao,
+    private val favoriteExerciseDao: FavoriteExerciseDao? = null,
     private val stagedDao: SyncStagedDao,
     private val transactions: SyncTransactionRunner,
     private val json: Json,
@@ -69,6 +72,7 @@ class SyncStagedApplier @Inject constructor(
                         SyncEntityTypes.WORKOUT -> applyWorkout(owner, current, payload)
                         SyncEntityTypes.CUSTOM_EXERCISE -> applyCustomExercise(owner, current, payload)
                         SyncEntityTypes.WORKOUT_EXERCISE -> applyWorkoutExercise(owner, current, payload)
+                        SyncEntityTypes.FAVORITE_EXERCISE -> applyFavoriteExercise(owner, current, payload)
                         else -> mark(current, SyncStagedStatus.UNSUPPORTED)
                     }
                 }
@@ -142,6 +146,39 @@ class SyncStagedApplier @Inject constructor(
                         syncStatus = "SYNCED",
                     )
                 )
+                mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
+            }
+            SyncEntityTypes.FAVORITE_EXERCISE -> {
+                val dao = favoriteExerciseDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+                val bySyncId = dao.findBySyncId(owner, staged.syncId)
+                if (bySyncId != null) {
+                    if (bySyncId.serverVersion >= staged.serverVersion) {
+                        return mark(staged, SyncStagedStatus.APPLIED)
+                    }
+                    dao.applyRemoteDelete(owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt)
+                    return mark(staged, SyncStagedStatus.APPLIED)
+                }
+                val payload = staged.payload?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject
+                val exerciseId = payload?.let { resolveFavoriteExercise(owner, it) }
+                    ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Favorite exercise reference unavailable")
+                val byExercise = dao.findByOwnerAndExercise(owner, exerciseId)
+                if (byExercise != null && byExercise.syncId != staged.syncId) {
+                    return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting favorite identity")
+                }
+                if (byExercise == null) {
+                    dao.insert(FavoriteExerciseEntity(
+                        exerciseId = exerciseId,
+                        ownerFirebaseUid = owner,
+                        syncId = staged.syncId,
+                        addedAt = staged.serverUpdatedAt,
+                        updatedAt = staged.serverUpdatedAt,
+                        deletedAt = staged.serverUpdatedAt,
+                        syncStatus = "SYNCED",
+                        serverVersion = staged.serverVersion,
+                    ))
+                } else {
+                    dao.applyRemoteDelete(owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt)
+                }
                 mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
             }
             else -> mark(staged, SyncStagedStatus.UNSUPPORTED)
@@ -261,6 +298,21 @@ class SyncStagedApplier @Inject constructor(
         }
     }
 
+    private suspend fun resolveFavoriteExercise(owner: String, payload: JsonObject): Long? {
+        val ref = payload["exerciseRef"] as? JsonObject ?: return null
+        return when (ref.string("kind")) {
+            "PUBLIC" -> {
+                val catalogId = ref.jsonPrimitiveLong("exerciseId") ?: return null
+                exerciseDao.findPublicByCatalogId(catalogId)?.exerciseId
+            }
+            "CUSTOM" -> {
+                val syncId = ref.string("syncId") ?: return null
+                exerciseDao.findCustomBySyncId(owner, syncId)?.exerciseId
+            }
+            else -> null
+        }
+    }
+
     private suspend fun applyWorkoutExercise(
         owner: String,
         staged: SyncStagedRecordEntity,
@@ -315,6 +367,45 @@ class SyncStagedApplier @Inject constructor(
         return mark(staged, SyncStagedStatus.APPLIED)
     }
 
+    private suspend fun applyFavoriteExercise(
+        owner: String,
+        staged: SyncStagedRecordEntity,
+        payload: JsonObject,
+    ): StagedApplyResult {
+        val dao = favoriteExerciseDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+        val exerciseId = resolveFavoriteExercise(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Exercise not available")
+
+        // A newer staged tombstone for this identity must win over a late UPSERT.
+        val tombstone = stagedDao.find(owner, SyncEntityTypes.FAVORITE_EXERCISE, staged.syncId)
+        if (tombstone != null && tombstone.deleted && tombstone.serverVersion >= staged.serverVersion) {
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+
+        val local = dao.findByOwnerAndExercise(owner, exerciseId)
+        if (local != null) {
+            if (local.syncId != staged.syncId) {
+                return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting favorite identity")
+            }
+            if (local.serverVersion >= staged.serverVersion) {
+                return mark(staged, SyncStagedStatus.APPLIED)
+            }
+            dao.applyRemoteUpsert(owner, staged.syncId, staged.serverVersion, staged.serverUpdatedAt)
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+
+        dao.insert(FavoriteExerciseEntity(
+            exerciseId = exerciseId,
+            ownerFirebaseUid = owner,
+            syncId = staged.syncId,
+            addedAt = staged.serverUpdatedAt,
+            updatedAt = staged.serverUpdatedAt,
+            serverVersion = staged.serverVersion,
+            syncStatus = "SYNCED",
+        ))
+        return mark(staged, SyncStagedStatus.APPLIED)
+    }
+
     private suspend fun mark(
         staged: SyncStagedRecordEntity,
         status: String,
@@ -352,6 +443,7 @@ class SyncStagedApplier @Inject constructor(
             SyncEntityTypes.WORKOUT,
             SyncEntityTypes.CUSTOM_EXERCISE,
             SyncEntityTypes.WORKOUT_EXERCISE,
+            SyncEntityTypes.FAVORITE_EXERCISE,
         )
     }
 }

@@ -37,7 +37,7 @@ class AssociationTombstoneSyncTest {
         val json = Json { ignoreUnknownKeys = true }
         val applier = SyncStagedApplier(
             object : OwnerProvider() { override fun currentOwner() = "user-a" },
-            workouts, exercises, outbox, links, staged, ImmediateSyncTransactionRunner(), json,
+            workouts, exercises, outbox, links, com.organizer.fakes.FakeFavoriteExerciseDao(), staged, ImmediateSyncTransactionRunner(), json,
         )
         val repository = WorkoutExerciseRepository(
             links, workouts, exercises, outbox, staged,

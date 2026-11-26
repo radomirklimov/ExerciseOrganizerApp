@@ -137,19 +137,38 @@ class SyncManager @Inject constructor(
         if (ownerProvider.currentOwner() != owner) {
             return PullResult(ownerChanged = true, error = "Authenticated account changed before applying pull")
         }
-        val results = stagedDao.getByStatus(owner, SyncStagedStatus.PENDING).map { stagedApplier.process(owner, it) }
-        if (results.any { it == StagedApplyResult.OWNER_CHANGED }) {
+        val results = linkedMapOf<Long, StagedApplyResult>()
+        stagedDao.getByStatus(owner, SyncStagedStatus.PENDING).forEach { staged ->
+            results[staged.stagedId] = stagedApplier.process(owner, staged)
+        }
+        if (results.values.any { it == StagedApplyResult.OWNER_CHANGED }) {
             return PullResult(ownerChanged = true, error = "Authenticated account changed while applying pull")
         }
+        // A parent applied later in this same page may unblock a child that was
+        // staged first. Retry waiting rows once within this pull.
+        if (ownerProvider.currentOwner() != owner) {
+            return PullResult(ownerChanged = true, error = "Authenticated account changed before dependency retry")
+        }
+        if (results.values.any { it == StagedApplyResult.WAITING_DEPENDENCY }) {
+            stagedDao.resetToPending(owner, setOf(SyncStagedStatus.WAITING_DEPENDENCY))
+            stagedDao.getByStatus(owner, SyncStagedStatus.PENDING).forEach { staged ->
+                results[staged.stagedId] = stagedApplier.process(owner, staged)
+            }
+            if (results.values.any { it == StagedApplyResult.OWNER_CHANGED }) {
+                return PullResult(ownerChanged = true, error = "Authenticated account changed during dependency retry")
+            }
+        }
+        val outcomes = results.values
         return PullResult(
             received = changes.records.size,
             staged = changes.records.size,
-            applied = results.count { it == StagedApplyResult.APPLIED },
-            waitingForDependency = results.count { it == StagedApplyResult.WAITING_DEPENDENCY },
-            unsupported = results.count { it == StagedApplyResult.UNSUPPORTED },
-            unsupportedSchema = results.count { it == StagedApplyResult.UNSUPPORTED_SCHEMA },
-            localPending = results.count { it == StagedApplyResult.LOCAL_PENDING },
-            failed = results.count { it == StagedApplyResult.FAILED },
+            applied = outcomes.count { it == StagedApplyResult.APPLIED },
+            waitingForDependency = outcomes.count { it == StagedApplyResult.WAITING_DEPENDENCY },
+            conflictBlocked = outcomes.count { it == StagedApplyResult.CONFLICT_BLOCKED },
+            unsupported = outcomes.count { it == StagedApplyResult.UNSUPPORTED },
+            unsupportedSchema = outcomes.count { it == StagedApplyResult.UNSUPPORTED_SCHEMA },
+            localPending = outcomes.count { it == StagedApplyResult.LOCAL_PENDING },
+            failed = outcomes.count { it == StagedApplyResult.FAILED },
             hasMore = changes.hasMore,
         )
     }
@@ -167,7 +186,10 @@ class SyncManager @Inject constructor(
             try {
                 transactions.run {
                     if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPullException()
-                    stagedDao.resetToPending(owner, setOf(SyncStagedStatus.FAILED))
+                    stagedDao.resetToPending(
+                        owner,
+                        setOf(SyncStagedStatus.FAILED, SyncStagedStatus.WAITING_DEPENDENCY),
+                    )
                 }
             } catch (ex: OwnerChangedDuringPullException) {
                 0

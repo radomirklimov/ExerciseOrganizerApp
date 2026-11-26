@@ -59,6 +59,7 @@ interface ExerciseDao {
     @Query("""SELECT e.* FROM exercise e
         JOIN workout_exercise we ON e.exerciseId = we.exerciseId
         WHERE we.workoutId = :workoutId AND we.ownerFirebaseUid = :owner
+        AND we.deletedAt IS NULL
         AND (e.ownerFirebaseUid = 'public' OR e.ownerFirebaseUid = :owner)
         ORDER BY we.orderIndex ASC""")
     fun observeExercisesByWorkout(workoutId: Long, owner: String): Flow<List<ExerciseEntity>>

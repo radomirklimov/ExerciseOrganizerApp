@@ -142,7 +142,7 @@ class SyncAcknowledgementInstrumentedTest {
             )
 
             val acknowledger = SyncOutboxAcknowledger(
-                TestOwner(), db.syncOutboxDao, db.workoutDao, db.exerciseDao,
+                TestOwner(), db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao,
                 com.organizer.sync.RoomSyncTransactionRunner(db),
             )
             acknowledger.acknowledge(owner, listOf(result(m.mutationId, syncId, "APPLIED", 4)))
@@ -153,7 +153,7 @@ class SyncAcknowledgementInstrumentedTest {
             assertEquals("SYNCED", workout.syncStatus)
 
             val failing = SyncOutboxAcknowledger(
-                TestOwner(), db.syncOutboxDao, db.workoutDao, db.exerciseDao, FailingRunner(db),
+                TestOwner(), db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, FailingRunner(db),
             )
             val m2 = mutation(UUID.randomUUID().toString())
             db.syncOutboxDao.insert(m2)
@@ -179,7 +179,7 @@ class SyncAcknowledgementInstrumentedTest {
             assertEquals(SyncStagedStatus.LOCAL_PENDING, db.syncStagedDao.find(owner, "WORKOUT", syncId)!!.processingStatus)
 
             val applier = SyncStagedApplier(
-                TestOwner(), db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.syncStagedDao,
+                TestOwner(), db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.syncStagedDao,
                 com.organizer.sync.RoomSyncTransactionRunner(db), Json { ignoreUnknownKeys = true },
             )
             val reconciler = SyncReconciler(

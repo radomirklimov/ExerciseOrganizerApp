@@ -2,6 +2,7 @@ package com.organizer.sync
 
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -34,6 +35,33 @@ class SyncPayloadFactory @Inject constructor(
             put("notes", workout.notes)
         }
     )
+
+    fun workoutExercise(
+        link: WorkoutExerciseEntity,
+        workoutSyncId: String,
+        exercise: ExerciseEntity,
+    ): String = json.encodeToString(
+        buildJsonObject {
+            put("schemaVersion", SCHEMA_VERSION)
+            put("workoutSyncId", workoutSyncId)
+            put("exerciseRef", exerciseRef(exercise))
+            put("orderIndex", link.orderIndex)
+            put("updatedAt", SyncTimestamps.format(link.updatedAt))
+            link.deletedAt?.let { put("deletedAt", SyncTimestamps.format(it)) }
+        }
+    )
+
+    private fun exerciseRef(exercise: ExerciseEntity) = buildJsonObject {
+        if (exercise.isCustom) {
+            val syncId = requireNotNull(exercise.syncId) { "Custom exercise must have a syncId" }
+            put("kind", "CUSTOM")
+            put("syncId", syncId)
+        } else {
+            val catalogId = requireNotNull(exercise.publicExerciseId) { "Public exercise must have a catalog ID" }
+            put("kind", "PUBLIC")
+            put("exerciseId", catalogId)
+        }
+    }
 
     companion object {
         const val SCHEMA_VERSION = 1

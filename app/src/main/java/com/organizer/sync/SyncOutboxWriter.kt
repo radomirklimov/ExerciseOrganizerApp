@@ -46,6 +46,18 @@ class SyncOutboxWriter @Inject constructor(
         }
     }
 
+    suspend fun upsertWorkoutExercise(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.WORKOUT_EXERCISE, syncId, OPERATION_UPSERT, baseVersion) { payload }
+    }
+
+    suspend fun deleteWorkoutExercise(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.WORKOUT_EXERCISE, syncId, OPERATION_DELETE, baseVersion) { payload }
+    }
+
+    suspend fun restoreWorkoutExercise(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.WORKOUT_EXERCISE, syncId, OPERATION_RESTORE, baseVersion) { payload }
+    }
+
     private suspend fun enqueue(
         owner: String,
         entityType: String,
@@ -83,5 +95,6 @@ class SyncOutboxWriter @Inject constructor(
     companion object {
         const val OPERATION_UPSERT = "UPSERT"
         const val OPERATION_DELETE = "DELETE"
+        const val OPERATION_RESTORE = "RESTORE"
     }
 }

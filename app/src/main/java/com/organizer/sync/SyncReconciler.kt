@@ -14,6 +14,8 @@ data class ReconciliationResult(
     val localPending: Int = 0,
     val tombstoneOnly: Int = 0,
     val unsupported: Int = 0,
+    val waitingForDependency: Int = 0,
+    val conflictBlocked: Int = 0,
     val failed: Int = 0,
     val ownerChanged: Boolean = false,
 )
@@ -32,13 +34,16 @@ class SyncReconciler @Inject constructor(
             return ReconciliationResult(ownerChanged = false)
         }
 
-        val pending = stagedDao.getByStatus(owner, SyncStagedStatus.LOCAL_PENDING)
+        val pending = stagedDao.getByStatus(owner, SyncStagedStatus.LOCAL_PENDING) +
+            stagedDao.getByStatus(owner, SyncStagedStatus.WAITING_DEPENDENCY)
         var reconsidered = 0
         var stillBlocked = 0
         var applied = 0
         var localPending = 0
         var tombstoneOnly = 0
         var unsupported = 0
+        var waitingForDependency = 0
+        var conflictBlocked = 0
         var failed = 0
 
         for (staged in pending) {
@@ -67,9 +72,10 @@ class SyncReconciler @Inject constructor(
                             StagedApplyResult.TOMBSTONE_ONLY -> ReconcileOutcome.TOMBSTONE_ONLY
                             StagedApplyResult.LOCAL_PENDING -> ReconcileOutcome.LOCAL_PENDING
                             StagedApplyResult.UNSUPPORTED,
-                            StagedApplyResult.UNSUPPORTED_SCHEMA,
-                            StagedApplyResult.WAITING_DEPENDENCY -> ReconcileOutcome.UNSUPPORTED
+                            StagedApplyResult.UNSUPPORTED_SCHEMA -> ReconcileOutcome.UNSUPPORTED
+                            StagedApplyResult.WAITING_DEPENDENCY -> ReconcileOutcome.WAITING_DEPENDENCY
                             StagedApplyResult.FAILED -> ReconcileOutcome.FAILED
+                            StagedApplyResult.CONFLICT_BLOCKED -> ReconcileOutcome.CONFLICT_BLOCKED
                             StagedApplyResult.OWNER_CHANGED -> throw OwnerChangedDuringReconciliationException()
                         }
                     }
@@ -82,6 +88,8 @@ class SyncReconciler @Inject constructor(
                     localPending = localPending,
                     tombstoneOnly = tombstoneOnly,
                     unsupported = unsupported,
+                    waitingForDependency = waitingForDependency,
+                    conflictBlocked = conflictBlocked,
                     failed = failed,
                     ownerChanged = true,
                 )
@@ -93,6 +101,8 @@ class SyncReconciler @Inject constructor(
                 ReconcileOutcome.TOMBSTONE_ONLY -> { reconsidered++; tombstoneOnly++ }
                 ReconcileOutcome.LOCAL_PENDING -> { reconsidered++; localPending++ }
                 ReconcileOutcome.UNSUPPORTED -> { reconsidered++; unsupported++ }
+                ReconcileOutcome.WAITING_DEPENDENCY -> { reconsidered++; waitingForDependency++ }
+                ReconcileOutcome.CONFLICT_BLOCKED -> { reconsidered++; conflictBlocked++ }
                 ReconcileOutcome.FAILED -> { reconsidered++; failed++ }
             }
         }
@@ -104,6 +114,7 @@ class SyncReconciler @Inject constructor(
             localPending = localPending,
             tombstoneOnly = tombstoneOnly,
             unsupported = unsupported,
+            waitingForDependency = waitingForDependency,
             failed = failed,
         )
     }
@@ -114,6 +125,8 @@ class SyncReconciler @Inject constructor(
         TOMBSTONE_ONLY,
         LOCAL_PENDING,
         UNSUPPORTED,
+        WAITING_DEPENDENCY,
+        CONFLICT_BLOCKED,
         FAILED,
     }
 }

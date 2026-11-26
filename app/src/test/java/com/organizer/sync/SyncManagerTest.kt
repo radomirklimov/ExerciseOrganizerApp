@@ -83,7 +83,7 @@ class SyncManagerTest {
         val api = FakeSyncApi()
         val json = Json { ignoreUnknownKeys = true }
         val applier = SyncStagedApplier(
-            owner, workouts, exercises, outbox, staged, ImmediateSyncTransactionRunner(), json,
+            owner, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), staged, ImmediateSyncTransactionRunner(), json,
         )
         val manager = SyncManager(
             owner, TestTokenProvider(), SyncApiClient(api, json), SyncContractMapper(),
@@ -136,7 +136,7 @@ class SyncManagerTest {
             }
         }
         val applier = SyncStagedApplier(
-            owner, workouts, FakeExerciseDao(), outbox, staged, switchingRunner, json,
+            owner, workouts, FakeExerciseDao(), outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), staged, switchingRunner, json,
         )
         val manager = SyncManager(
             owner, TestTokenProvider(), SyncApiClient(api, json), SyncContractMapper(),

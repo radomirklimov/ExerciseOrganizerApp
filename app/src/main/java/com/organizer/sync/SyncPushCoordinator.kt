@@ -5,6 +5,9 @@ import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.db.entities.SyncOutboxEntity
 import com.organizer.data.remote.model.SyncPushRequestDto
 import com.organizer.data.remote.model.SyncMutationRequestDto
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -22,6 +25,7 @@ class SyncPushCoordinator @Inject constructor(
     private val transactions: SyncTransactionRunner,
     private val operationLocks: SyncOperationLocks,
 ) {
+    private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun pushOneBatch(limit: Int = MAX_BATCH_SIZE): PushResult {
         val owner = ownerProvider.currentOwner()
@@ -39,8 +43,20 @@ class SyncPushCoordinator @Inject constructor(
             return PushResult(ownerChanged = true, error = "Authenticated account changed during selection")
         }
 
+        var preInvalidRejected = 0
+        if (selection.invalid.isNotEmpty()) {
+            val terminal = markMappingFailuresTerminal(owner, selection.invalid, "Invalid local mutation")
+            if (terminal.ownerChanged) return terminal.result
+            preInvalidRejected = terminal.count
+        }
         val selected = selection.mutations
-        if (selected.isEmpty()) return PushResult(skipped = selection.superseded)
+        if (selected.isEmpty()) {
+            return PushResult(
+                skipped = selection.superseded,
+                rejected = preInvalidRejected,
+                error = if (preInvalidRejected > 0) "Invalid local mutation" else null,
+            )
+        }
 
         if (ownerProvider.currentOwner() != owner) {
             return PushResult(
@@ -62,8 +78,8 @@ class SyncPushCoordinator @Inject constructor(
             }
         }
         fun withMapping(result: PushResult): PushResult =
-            if (mappingFailures.isEmpty()) result
-            else result.copy(rejected = result.rejected + mappingFailures.size)
+            if (mappingFailures.isEmpty() && preInvalidRejected == 0) result
+            else result.copy(rejected = result.rejected + mappingFailures.size + preInvalidRejected)
 
         // Mapping failures are deterministic (bad UUID, type, payload JSON or
         // owner). Retrying them unchanged can never succeed, so park them
@@ -95,6 +111,15 @@ class SyncPushCoordinator @Inject constructor(
                     error = "Authenticated user is no longer available for push",
                 )
             )
+        }
+        val mutationIds = requests.map { it.mutationId }.toSet()
+        try {
+            transactions.run {
+                if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPushException()
+                outboxDao.markTransmitted(owner, mutationIds)
+            }
+        } catch (ex: OwnerChangedDuringPushException) {
+            return PushResult(ownerChanged = true, error = "Authenticated account changed before transmission")
         }
         val apiResult = apiClient.push(SyncPushRequestDto(requests), "Bearer $token")
         return withMapping(when (apiResult) {
@@ -256,6 +281,15 @@ class SyncPushCoordinator @Inject constructor(
 
     private suspend fun selectBatch(owner: String, limit: Int): BatchSelection {
         if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringPushException()
+        val allRowsBeforeRecovery = outboxDao.getPending(owner)
+        // Capture IN_FLIGHT parents before recovery normalises them to PENDING.
+        val unresolvedParents = allRowsBeforeRecovery
+            .filter {
+                it.entityType in setOf(SyncEntityTypes.WORKOUT, SyncEntityTypes.CUSTOM_EXERCISE) &&
+                    it.syncStatus in SyncOutboxStatus.BLOCKING
+            }
+            .map { it.recordSyncId }
+            .toMutableSet()
         outboxDao.recoverInFlight(owner)
 
         // A later edit must never bypass an unresolved mutation for the same
@@ -266,11 +300,32 @@ class SyncPushCoordinator @Inject constructor(
             .filter { it.syncStatus in SyncOutboxStatus.BLOCKING && it.syncStatus != SyncOutboxStatus.PENDING_UPLOAD }
             .map { Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) }
             .toSet()
+        val invalidIds = mutableSetOf<String>()
+        // parent-first rule is applied before the batch is finalised below.
         val candidates = allRows.filter { row ->
-            row.syncStatus == SyncOutboxStatus.PENDING_UPLOAD &&
-                Triple(row.entityType, row.recordSyncId, row.ownerFirebaseUid) !in blockedRecords
+            if (row.syncStatus != SyncOutboxStatus.PENDING_UPLOAD) return@filter false
+            if (Triple(row.entityType, row.recordSyncId, row.ownerFirebaseUid) in blockedRecords) return@filter false
+            if (row.entityType == SyncEntityTypes.WORKOUT_EXERCISE) {
+                val dependencies = dependencySyncIds(row) ?: run {
+                    invalidIds += row.mutationId
+                    unresolvedParents += row.recordSyncId
+                    return@filter false
+                }
+                if (dependencies.any { it in unresolvedParents }) return@filter false
+            }
+            true
         }
-        val groups = candidates.groupBy { Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) }
+        val mappable = candidates.filter { row ->
+            when (val mapped = contractMapper.toMutation(row, owner)) {
+                is OutboxMappingResult.Success -> true
+                is OutboxMappingResult.Failure -> {
+                    invalidIds += row.mutationId
+                    unresolvedParents += row.recordSyncId
+                    false
+                }
+            }
+        }
+        val groups = mappable.groupBy { Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) }
 
         // A chain is compressed only when every row is definitely never sent and
         // the final mutation can stand alone under backend semantics. UPSERT and
@@ -293,7 +348,11 @@ class SyncPushCoordinator @Inject constructor(
         }
 
         val batch = representatives
-            .sortedWith(compareBy<RecordBatch> { it.representative.createdAt }.thenBy { it.representative.orderKey() })
+            .sortedWith(
+                compareBy<RecordBatch> { it.representative.typePriority() }
+                    .thenBy { it.representative.createdAt }
+                    .thenBy { it.representative.orderKey() }
+            )
             .take(limit)
         val batchIds = batch.map { it.representative.mutationId }.toSet()
         val supersededIds = batch.flatMap { it.supersedeIds }.toSet()
@@ -301,7 +360,7 @@ class SyncPushCoordinator @Inject constructor(
         if (supersededIds.isNotEmpty()) outboxDao.markSuperseded(owner, supersededIds)
         if (batchIds.isNotEmpty()) outboxDao.markInFlight(owner, batchIds)
 
-        return BatchSelection(batch.map { it.representative }, supersededIds.size)
+        return BatchSelection(batch.map { it.representative }, supersededIds.size, invalidIds)
     }
 
     private suspend fun resetRows(
@@ -340,7 +399,7 @@ class SyncPushCoordinator @Inject constructor(
                 errorCode = "INVALID_LOCAL_MUTATION",
                 error = diagnostic,
                 now = System.currentTimeMillis(),
-                allowedStatuses = setOf(SyncOutboxStatus.IN_FLIGHT),
+                allowedStatuses = setOf(SyncOutboxStatus.PENDING_UPLOAD),
             )
         }.let { RowOperationResult(it, false, PushResult(ownerChanged = false)) }
     } catch (ex: OwnerChangedDuringPushException) {
@@ -365,6 +424,28 @@ class SyncPushCoordinator @Inject constructor(
         RowOperationResult(0, true, PushResult(ownerChanged = true, error = "Authenticated account changed during failure update"))
     }
 
+    /** Null means required dependency information is missing or malformed. */
+    private fun dependencySyncIds(row: SyncOutboxEntity): Set<String>? {
+        val payload = row.payload ?: return null
+        val obj = runCatching { json.parseToJsonElement(payload) }.getOrNull() as? JsonObject ?: return null
+        val workout = obj["workoutSyncId"]?.runCatching { jsonPrimitive.content }?.getOrNull() ?: return null
+        val ref = obj["exerciseRef"] as? JsonObject ?: return null
+        val kind = ref["kind"]?.runCatching { jsonPrimitive.content }?.getOrNull() ?: return null
+        val custom = when (kind) {
+            "PUBLIC" -> null
+            "CUSTOM" -> ref["syncId"]?.runCatching { jsonPrimitive.content }?.getOrNull() ?: return null
+            else -> return null
+        }
+        return setOfNotNull(workout, custom)
+    }
+
+    private fun SyncOutboxEntity.typePriority(): Int = when (entityType) {
+        SyncEntityTypes.CUSTOM_EXERCISE -> 0
+        SyncEntityTypes.WORKOUT -> 1
+        SyncEntityTypes.WORKOUT_EXERCISE -> 2
+        else -> 3
+    }
+
     private fun SyncOutboxEntity.orderKey(): Long = outboxId
 
     private data class RecordBatch(
@@ -375,6 +456,7 @@ class SyncPushCoordinator @Inject constructor(
     private data class BatchSelection(
         val mutations: List<SyncOutboxEntity>,
         val superseded: Int,
+        val invalid: Set<String> = emptySet(),
     )
 
     private data class RowOperationResult(

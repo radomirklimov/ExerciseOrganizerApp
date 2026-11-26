@@ -4,9 +4,11 @@ import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
+import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
+import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.repo.WorkoutNameNormalizer
@@ -24,12 +26,14 @@ class SyncStagedApplier @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val exerciseDao: ExerciseDao,
     private val outboxDao: SyncOutboxDao,
+    private val workoutExerciseDao: WorkoutExerciseDao,
     private val stagedDao: SyncStagedDao,
     private val transactions: SyncTransactionRunner,
     private val json: Json,
 ) {
     suspend fun process(owner: String, staged: SyncStagedRecordEntity): StagedApplyResult {
         if (staged.ownerFirebaseUid != owner) return StagedApplyResult.FAILED
+        var currentRow: SyncStagedRecordEntity? = null
         return try {
             transactions.run {
                 if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringStagedApplyException()
@@ -38,6 +42,7 @@ class SyncStagedApplier @Inject constructor(
                 // captured by the caller.
                 val current = stagedDao.findByStagedId(owner, staged.stagedId)
                     ?: return@run StagedApplyResult.FAILED
+                currentRow = current
                 if (current.ownerFirebaseUid != owner) return@run StagedApplyResult.FAILED
                 if (current.entityType !in APPLICABLE_TYPES) {
                     // Retain the staged payload. A future app version that adds
@@ -63,6 +68,7 @@ class SyncStagedApplier @Inject constructor(
                     when (current.entityType) {
                         SyncEntityTypes.WORKOUT -> applyWorkout(owner, current, payload)
                         SyncEntityTypes.CUSTOM_EXERCISE -> applyCustomExercise(owner, current, payload)
+                        SyncEntityTypes.WORKOUT_EXERCISE -> applyWorkoutExercise(owner, current, payload)
                         else -> mark(current, SyncStagedStatus.UNSUPPORTED)
                     }
                 }
@@ -70,7 +76,7 @@ class SyncStagedApplier @Inject constructor(
         } catch (ex: OwnerChangedDuringStagedApplyException) {
             StagedApplyResult.OWNER_CHANGED
         } catch (ex: Exception) {
-            mark(staged, SyncStagedStatus.FAILED, ex.javaClass.simpleName)
+            mark(currentRow ?: staged, SyncStagedStatus.FAILED, ex.javaClass.simpleName)
         }
     }
 
@@ -95,6 +101,48 @@ class SyncStagedApplier @Inject constructor(
                     exerciseDao.applyRemoteDelete(owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt)
                     mark(staged, SyncStagedStatus.APPLIED)
                 }
+            }
+            SyncEntityTypes.WORKOUT_EXERCISE -> {
+                // A stable syncId is enough to locate an existing row; parent
+                // IDs are only needed when a tombstone row must be created.
+                val bySyncId = workoutExerciseDao.findBySyncId(owner, staged.syncId)
+                if (bySyncId != null) {
+                    if (bySyncId.serverVersion >= staged.serverVersion) {
+                        return mark(staged, SyncStagedStatus.APPLIED)
+                    }
+                    workoutExerciseDao.applyRemoteDeleteBySyncId(
+                        owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt,
+                    )
+                    return mark(staged, SyncStagedStatus.APPLIED)
+                }
+
+                val payload = staged.payload?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject
+                val workoutId = payload?.let { resolveWorkout(owner, it) }
+                    ?: return mark(
+                        staged, SyncStagedStatus.WAITING_DEPENDENCY, "Tombstone workout reference unavailable"
+                    )
+                val exerciseId = payload.let { resolveExercise(owner, it) }
+                    ?: return mark(
+                        staged, SyncStagedStatus.WAITING_DEPENDENCY, "Tombstone exercise reference unavailable"
+                    )
+                val byPair = workoutExerciseDao.findByPair(owner, workoutId, exerciseId)
+                if (byPair != null) {
+                    return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting local association identity")
+                }
+                workoutExerciseDao.insertRemote(
+                    WorkoutExerciseEntity(
+                        workoutId = workoutId,
+                        exerciseId = exerciseId,
+                        orderIndex = payload.jsonPrimitiveInt("orderIndex") ?: 0,
+                        ownerFirebaseUid = owner,
+                        syncId = staged.syncId,
+                        updatedAt = staged.serverUpdatedAt,
+                        deletedAt = staged.serverUpdatedAt,
+                        serverVersion = staged.serverVersion,
+                        syncStatus = "SYNCED",
+                    )
+                )
+                mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
             }
             else -> mark(staged, SyncStagedStatus.UNSUPPORTED)
         }
@@ -193,6 +241,80 @@ class SyncStagedApplier @Inject constructor(
         return mark(staged, SyncStagedStatus.APPLIED)
     }
 
+    private suspend fun resolveWorkout(owner: String, payload: JsonObject): Long? {
+        val syncId = payload.string("workoutSyncId") ?: return null
+        return workoutDao.findBySyncId(owner, syncId)?.workoutId
+    }
+
+    private suspend fun resolveExercise(owner: String, payload: JsonObject): Long? {
+        val ref = payload["exerciseRef"] as? JsonObject ?: return null
+        return when (ref.string("kind")) {
+            "PUBLIC" -> {
+                val catalogId = ref.jsonPrimitiveLong("exerciseId") ?: return null
+                exerciseDao.findPublicByCatalogId(catalogId)?.exerciseId
+            }
+            "CUSTOM" -> {
+                val syncId = ref.string("syncId") ?: return null
+                exerciseDao.findCustomBySyncId(owner, syncId)?.exerciseId
+            }
+            else -> null
+        }
+    }
+
+    private suspend fun applyWorkoutExercise(
+        owner: String,
+        staged: SyncStagedRecordEntity,
+        payload: JsonObject,
+    ): StagedApplyResult {
+        val workoutId = resolveWorkout(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Workout not available")
+        val exerciseId = resolveExercise(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Exercise not available")
+        val orderIndex = payload.jsonPrimitiveInt("orderIndex")
+            ?: return mark(staged, SyncStagedStatus.FAILED, "Missing orderIndex")
+
+        // A newer staged tombstone for this identity must win over a late UPSERT.
+        val tombstone = stagedDao.find(owner, SyncEntityTypes.WORKOUT_EXERCISE, staged.syncId)
+        if (tombstone != null && tombstone.deleted && tombstone.serverVersion >= staged.serverVersion) {
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+
+        val local = workoutExerciseDao.findByPair(owner, workoutId, exerciseId)
+        if (local != null) {
+            if (local.syncId != staged.syncId) {
+                return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting local association identity")
+            }
+            if (outboxDao.findByRecordSyncId(owner, local.syncId).any {
+                    it.entityType == SyncEntityTypes.WORKOUT_EXERCISE &&
+                        it.syncStatus in SyncOutboxStatus.BLOCKING
+                }
+            ) {
+                return mark(staged, SyncStagedStatus.LOCAL_PENDING, "Local mutation pending")
+            }
+            if (local.serverVersion >= staged.serverVersion) {
+                return mark(staged, SyncStagedStatus.APPLIED)
+            }
+            workoutExerciseDao.applyRemoteUpsert(
+                owner, workoutId, exerciseId, orderIndex, staged.serverVersion, staged.serverUpdatedAt,
+            )
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+
+        workoutExerciseDao.insertRemote(
+            WorkoutExerciseEntity(
+                workoutId = workoutId,
+                exerciseId = exerciseId,
+                orderIndex = orderIndex,
+                ownerFirebaseUid = owner,
+                syncId = staged.syncId,
+                updatedAt = staged.serverUpdatedAt,
+                serverVersion = staged.serverVersion,
+                syncStatus = "SYNCED",
+            )
+        )
+        return mark(staged, SyncStagedStatus.APPLIED)
+    }
+
     private suspend fun mark(
         staged: SyncStagedRecordEntity,
         status: String,
@@ -207,6 +329,7 @@ class SyncStagedApplier @Inject constructor(
             SyncStagedStatus.UNSUPPORTED_SCHEMA -> StagedApplyResult.UNSUPPORTED_SCHEMA
             SyncStagedStatus.LOCAL_PENDING -> StagedApplyResult.LOCAL_PENDING
             SyncStagedStatus.FAILED -> StagedApplyResult.FAILED
+            SyncStagedStatus.CONFLICT_BLOCKED -> StagedApplyResult.CONFLICT_BLOCKED
             else -> StagedApplyResult.FAILED
         }
     }
@@ -214,12 +337,22 @@ class SyncStagedApplier @Inject constructor(
     private fun JsonObject.string(key: String): String? =
         this[key]?.jsonPrimitive?.content?.takeIf { it.isNotEmpty() }
 
+    private fun JsonObject.jsonPrimitiveLong(key: String): Long? =
+        runCatching { this[key]?.jsonPrimitive?.content?.toLongOrNull() }.getOrNull()
+
+    private fun JsonObject.jsonPrimitiveInt(key: String): Int? =
+        runCatching { this[key]?.jsonPrimitive?.content?.toIntOrNull() }.getOrNull()
+
     private fun JsonObject.stringList(key: String): List<String>? =
         this[key]?.jsonArray?.mapNotNull { runCatching { it.jsonPrimitive.content }.getOrNull() }
 
     companion object {
         const val SUPPORTED_SCHEMA_VERSION = 1
-        private val APPLICABLE_TYPES = setOf(SyncEntityTypes.WORKOUT, SyncEntityTypes.CUSTOM_EXERCISE)
+        private val APPLICABLE_TYPES = setOf(
+            SyncEntityTypes.WORKOUT,
+            SyncEntityTypes.CUSTOM_EXERCISE,
+            SyncEntityTypes.WORKOUT_EXERCISE,
+        )
     }
 }
 
@@ -231,6 +364,7 @@ enum class StagedApplyResult {
     UNSUPPORTED_SCHEMA,
     LOCAL_PENDING,
     FAILED,
+    CONFLICT_BLOCKED,
     OWNER_CHANGED,
 }
 

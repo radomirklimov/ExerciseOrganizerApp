@@ -86,8 +86,8 @@ class SyncPushCoordinatorTest {
         val tokens = TestTokenProvider()
         val runner = ImmediateSyncTransactionRunner()
         val json = Json { ignoreUnknownKeys = true }
-        val acknowledger = SyncOutboxAcknowledger(ownerProvider, outbox, workouts, exercises, runner)
-        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, staged, runner, json)
+        val acknowledger = SyncOutboxAcknowledger(ownerProvider, outbox, workouts, exercises, com.organizer.fakes.FakeWorkoutExerciseDao(), runner)
+        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), staged, runner, json)
         val reconciler = SyncReconciler(ownerProvider, outbox, staged, applier, runner)
         val coordinator = SyncPushCoordinator(
             ownerProvider,
@@ -632,6 +632,7 @@ class SyncPushCoordinatorTest {
 
         // The server may have applied it before the app died.
         f.outbox.markInFlight(owner, setOf(original.mutationId))
+        f.outbox.markTransmitted(owner, setOf(original.mutationId))
         f.outbox.recoverInFlight(owner)
         val recovered = f.outbox.findByMutationId(owner, original.mutationId)!!
         assertTrue(recovered.everTransmitted)
@@ -706,11 +707,10 @@ class SyncPushCoordinatorTest {
         val report = f.coordinator.pushOneBatch()
 
         assertEquals(listOf(owner), f.tokens.requestedFor)
-        assertEquals("Bearer user-a-token", f.api.authorizations.single())
-        // The ambient account is B at transmission time, but the request still
-        // carries A's token, so the backend derives A as the owner.
+        assertTrue(f.api.authorizations.isEmpty())
+        // The account switched before transmission: nothing is marked sent and
+        // no request is made.
         assertEquals("user-b", f.ownerProvider.uid)
-        // Persistence remains protected: no ack is written under B.
         assertTrue(report.ownerChanged)
         assertEquals(0, report.applied)
         assertEquals(SyncOutboxStatus.IN_FLIGHT, f.outbox.findByMutationId(owner, m.mutationId)!!.syncStatus)
@@ -823,7 +823,7 @@ class SyncPushCoordinatorTest {
     fun `owner change during reconciliation is reported in push result`() = runTest {
         // Calls: 1 capture, 2 select, 3 pre-request, 4 acknowledge,
         // 5 unresolved check, 6 reconciliation transaction.
-        val switching = TestOwner(owner).apply { switchAtCall = 6 }
+        val switching = TestOwner(owner).apply { switchAtCall = 7 }
         val f = Fixture(switching)
         val syncId = UUID.randomUUID().toString()
         val m = mutation(syncId = syncId)
@@ -844,5 +844,58 @@ class SyncPushCoordinatorTest {
             SyncStagedStatus.LOCAL_PENDING,
             f.staged.find(owner, SyncEntityTypes.WORKOUT, syncId)!!.processingStatus,
         )
+    }
+
+    @Test
+    fun `association is not pushed while its parent has an unresolved mutation`() = runTest {
+        val f = Fixture()
+        val workoutSyncId = UUID.randomUUID().toString()
+        f.outbox.insert(
+            mutation(syncId = workoutSyncId, status = SyncOutboxStatus.CONFLICTED, outboxId = 1L)
+        )
+        f.outbox.insert(
+            mutation(
+                syncId = UUID.randomUUID().toString(),
+                entityType = SyncEntityTypes.WORKOUT_EXERCISE,
+                outboxId = 2L,
+                payload = """{"schemaVersion":1,"workoutSyncId":"$workoutSyncId","exerciseRef":{"kind":"PUBLIC","exerciseId":42},"orderIndex":0}""",
+            )
+        )
+        f.api.pushBlock = { response(emptyList()) }
+
+        val report = f.coordinator.pushOneBatch()
+
+        assertEquals(0, report.sent)
+        assertTrue(f.api.pushed.isEmpty())
+    }
+
+    @Test
+    fun `parent records are ordered before associations in one batch`() = runTest {
+        val f = Fixture()
+        val workoutSyncId = UUID.randomUUID().toString()
+        f.outbox.insert(mutation(syncId = workoutSyncId, outboxId = 1L, createdAt = 5L))
+        f.outbox.insert(
+            mutation(
+                syncId = UUID.randomUUID().toString(),
+                entityType = SyncEntityTypes.WORKOUT_EXERCISE,
+                outboxId = 2L,
+                createdAt = 1L,
+                payload = """{"schemaVersion":1,"workoutSyncId":"$workoutSyncId","exerciseRef":{"kind":"PUBLIC","exerciseId":42},"orderIndex":0}""",
+            )
+        )
+        f.api.pushBlock = { call ->
+            response(call.mutations.map {
+                SyncMutationResultDto(it.mutationId, it.syncId, "APPLIED", serverVersion = 1, serverUpdatedAt = "2026-11-24T10:00:00Z")
+            })
+        }
+
+        val first = f.coordinator.pushOneBatch()
+
+        // The parent is sent first; the association waits until the parent is
+        // no longer an unresolved mutation.
+        assertEquals(listOf(SyncEntityTypes.WORKOUT), first.sent.let { f.api.pushed.first().mutations.map { m -> m.entityType } })
+
+        f.coordinator.pushOneBatch()
+        assertEquals(SyncEntityTypes.WORKOUT_EXERCISE, f.api.pushed.last().mutations.single().entityType)
     }
 }

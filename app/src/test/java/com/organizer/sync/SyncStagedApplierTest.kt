@@ -7,6 +7,7 @@ import com.organizer.data.local.db.entities.SyncStagedStatus
 import com.organizer.fakes.FakeExerciseDao
 import com.organizer.fakes.FakeSyncOutboxDao
 import com.organizer.fakes.FakeSyncStagedDao
+import com.organizer.fakes.FakeWorkoutExerciseDao
 import com.organizer.fakes.FakeWorkoutDao
 import com.organizer.fakes.ImmediateSyncTransactionRunner
 import kotlinx.coroutines.test.runTest
@@ -32,8 +33,9 @@ class SyncStagedApplierTest {
         val exercises = FakeExerciseDao()
         val outbox = FakeSyncOutboxDao()
         val staged = FakeSyncStagedDao()
+        val workoutExercises = FakeWorkoutExerciseDao()
         val applier = SyncStagedApplier(
-            ownerProvider, workouts, exercises, outbox, staged,
+            ownerProvider, workouts, exercises, outbox, workoutExercises, staged,
             ImmediateSyncTransactionRunner(), Json { ignoreUnknownKeys = true },
         )
 
@@ -248,7 +250,7 @@ class SyncStagedApplierTest {
     }
 
     @Test
-    fun `cross owner and unsupported entity are rejected`() = runTest {
+    fun `cross owner is rejected and unknown entity is unsupported`() = runTest {
         val f = Fixture()
         val syncId = UUID.randomUUID().toString()
 
@@ -257,9 +259,17 @@ class SyncStagedApplierTest {
         assertEquals(StagedApplyResult.FAILED, f.applier.process(owner, foreign))
         assertEquals(SyncStagedStatus.PENDING, f.staged.records.value.single().processingStatus)
 
-        val unsupported = staged("WORKOUT_EXERCISE", syncId)
+        val unsupported = staged("UNKNOWN_ENTITY", syncId)
         assertEquals(StagedApplyResult.UNSUPPORTED, f.process(unsupported))
-        assertEquals(SyncStagedStatus.UNSUPPORTED, f.staged.records.value.first { it.entityType == "WORKOUT_EXERCISE" }.processingStatus)
+        assertEquals(SyncStagedStatus.UNSUPPORTED, f.staged.records.value.first { it.entityType == "UNKNOWN_ENTITY" }.processingStatus)
+
+        // WORKOUT_EXERCISE is now applicable; unresolved references are staged.
+        val link = staged(
+            SyncEntityTypes.WORKOUT_EXERCISE,
+            UUID.randomUUID().toString(),
+            payload = """{"schemaVersion":1,"workoutSyncId":"missing","exerciseRef":{"kind":"PUBLIC","exerciseId":1},"orderIndex":0}""",
+        )
+        assertEquals(StagedApplyResult.WAITING_DEPENDENCY, f.process(link))
     }
 
     @Test
@@ -288,7 +298,7 @@ class SyncStagedApplierTest {
             }
         }
         val applier = SyncStagedApplier(
-            f.ownerProvider, f.workouts, f.exercises, f.outbox, f.staged,
+            f.ownerProvider, f.workouts, f.exercises, f.outbox, FakeWorkoutExerciseDao(), f.staged,
             injectingRunner, Json { ignoreUnknownKeys = true },
         )
 
@@ -314,5 +324,80 @@ class SyncStagedApplierTest {
             SyncStagedStatus.PENDING,
             f.staged.find(owner, SyncEntityTypes.WORKOUT, syncId)!!.processingStatus,
         )
+    }
+
+    private suspend fun fixtureWithParents(): Fixture {
+        val f = Fixture()
+        f.workouts.insert(
+            com.organizer.data.local.db.entities.WorkoutEntity(
+                workoutId = 5L, name = "Remote", ownerFirebaseUid = owner,
+                syncId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            )
+        )
+        f.exercises.seed(
+            com.organizer.data.local.db.entities.ExerciseEntity(
+                exerciseId = 10L, name = "Catalog", instructions = emptyList(), imageUrls = emptyList(),
+                isCustom = false, ownerFirebaseUid = "public", publicExerciseId = 42,
+            ),
+            com.organizer.data.local.db.entities.ExerciseEntity(
+                exerciseId = 20L, name = "Mine", instructions = emptyList(), imageUrls = emptyList(),
+                isCustom = true, ownerFirebaseUid = owner, syncId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            ),
+        )
+        return f
+    }
+
+    @Test
+    fun `association with public exercise ref is applied without an outbox mutation`() = runTest {
+        val f = fixtureWithParents()
+        val linkSyncId = UUID.randomUUID().toString()
+        val record = staged(
+            SyncEntityTypes.WORKOUT_EXERCISE,
+            linkSyncId,
+            version = 2,
+            payload = """{"schemaVersion":1,"workoutSyncId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","exerciseRef":{"kind":"PUBLIC","exerciseId":42},"orderIndex":1,"updatedAt":"2026-11-25T10:00:00.000Z","deletedAt":null}""",
+        )
+
+        assertEquals(StagedApplyResult.APPLIED, f.process(record))
+
+        val link = f.workoutExercises.findBySyncId(owner, linkSyncId)!!
+        assertEquals(5L, link.workoutId)
+        assertEquals(10L, link.exerciseId)
+        assertEquals(1, link.orderIndex)
+        assertEquals(2L, link.serverVersion)
+        assertEquals("SYNCED", link.syncStatus)
+        assertTrue(f.outbox.entries.value.isEmpty())
+    }
+
+    @Test
+    fun `association with custom exercise ref resolves by syncId`() = runTest {
+        val f = fixtureWithParents()
+        val linkSyncId = UUID.randomUUID().toString()
+        val record = staged(
+            SyncEntityTypes.WORKOUT_EXERCISE,
+            linkSyncId,
+            payload = """{"schemaVersion":1,"workoutSyncId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","exerciseRef":{"kind":"CUSTOM","syncId":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"},"orderIndex":0,"updatedAt":"2026-11-25T10:00:00.000Z"}""",
+        )
+
+        assertEquals(StagedApplyResult.APPLIED, f.process(record))
+        assertEquals(20L, f.workoutExercises.findBySyncId(owner, linkSyncId)!!.exerciseId)
+    }
+
+    @Test
+    fun `association with missing dependency stays waiting`() = runTest {
+        val f = fixtureWithParents()
+        val linkSyncId = UUID.randomUUID().toString()
+        val record = staged(
+            SyncEntityTypes.WORKOUT_EXERCISE,
+            linkSyncId,
+            payload = """{"schemaVersion":1,"workoutSyncId":"missing-workout","exerciseRef":{"kind":"PUBLIC","exerciseId":42},"orderIndex":0}""",
+        )
+
+        assertEquals(StagedApplyResult.WAITING_DEPENDENCY, f.process(record))
+        assertEquals(
+            SyncStagedStatus.WAITING_DEPENDENCY,
+            f.staged.find(owner, SyncEntityTypes.WORKOUT_EXERCISE, linkSyncId)!!.processingStatus,
+        )
+        assertNull(f.workoutExercises.findBySyncId(owner, linkSyncId))
     }
 }

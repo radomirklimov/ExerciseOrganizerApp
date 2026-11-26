@@ -79,6 +79,7 @@ data class PullResult(
     val staged: Int = 0,
     val applied: Int = 0,
     val waitingForDependency: Int = 0,
+    val conflictBlocked: Int = 0,
     val unsupported: Int = 0,
     val unsupportedSchema: Int = 0,
     val localPending: Int = 0,

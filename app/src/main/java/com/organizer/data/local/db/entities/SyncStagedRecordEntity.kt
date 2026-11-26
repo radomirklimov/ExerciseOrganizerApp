@@ -38,4 +38,6 @@ object SyncStagedStatus {
     const val UNSUPPORTED_SCHEMA = "UNSUPPORTED_SCHEMA"
     const val LOCAL_PENDING = "LOCAL_PENDING"
     const val FAILED = "FAILED"
+    /** Durable identity conflict requiring manual resolution; never auto-retried. */
+    const val CONFLICT_BLOCKED = "CONFLICT_BLOCKED"
 }

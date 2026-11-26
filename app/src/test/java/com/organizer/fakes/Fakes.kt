@@ -8,6 +8,7 @@ import com.organizer.data.local.dao.SyncCursorDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.SyncStagedDao
 import com.organizer.data.local.dao.WorkoutDao
+import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
@@ -16,6 +17,8 @@ import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
+import com.organizer.data.local.db.entities.SuggestedExerciseRow
+import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutWithExerciseCount
 import com.organizer.data.local.storage.FileStore
@@ -229,7 +232,9 @@ class FakeExerciseDao : ExerciseDao {
         data.map { it.find { e -> e.exerciseId == id } }
 
     override suspend fun getByIdOnce(owner: String, id: Long): ExerciseEntity? =
-        data.value.find { it.exerciseId == id }
+        data.value.find {
+            it.exerciseId == id && (it.ownerFirebaseUid == "public" || it.ownerFirebaseUid == owner)
+        }
 
     override suspend fun findCustomBySyncId(owner: String, syncId: String): ExerciseEntity? =
         data.value.firstOrNull { it.syncId == syncId && it.ownerFirebaseUid == owner && it.isCustom }
@@ -421,7 +426,22 @@ class FakeSyncOutboxDao : SyncOutboxDao {
                     it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD
                 ) {
                     changed++
-                    it.copy(syncStatus = SyncOutboxStatus.IN_FLIGHT, lastError = null, everTransmitted = true)
+                    it.copy(syncStatus = SyncOutboxStatus.IN_FLIGHT, lastError = null)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun markTransmitted(owner: String, mutationIds: Set<String>): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds &&
+                    it.syncStatus == SyncOutboxStatus.IN_FLIGHT && !it.everTransmitted
+                ) {
+                    changed++
+                    it.copy(everTransmitted = true)
                 } else it
             }
         }
@@ -433,7 +453,7 @@ class FakeSyncOutboxDao : SyncOutboxDao {
         entries.update { current ->
             current.map {
                 if (it.ownerFirebaseUid == owner && it.mutationId in mutationIds &&
-                    it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD
+                    it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD && !it.everTransmitted
                 ) {
                     changed++
                     it.copy(syncStatus = SyncOutboxStatus.SUPERSEDED, lastError = null)
@@ -510,6 +530,9 @@ class FakeSyncOutboxDao : SyncOutboxDao {
 
     override suspend fun findByMutationId(owner: String, mutationId: String): SyncOutboxEntity? =
         entries.value.firstOrNull { it.ownerFirebaseUid == owner && it.mutationId == mutationId }
+
+    override suspend fun findByRecordSyncId(owner: String, recordSyncId: String): List<SyncOutboxEntity> =
+        entries.value.filter { it.ownerFirebaseUid == owner && it.recordSyncId == recordSyncId }
 
     override suspend fun findOpenMutation(
         owner: String,
@@ -819,4 +842,176 @@ class FakeSyncCursorDao : SyncCursorDao {
 
     override fun observe(owner: String): Flow<SyncCursorEntity?> =
         cursors.map { list -> list.firstOrNull { it.ownerFirebaseUid == owner } }
+}
+
+class FakeWorkoutExerciseDao : WorkoutExerciseDao {
+    val data = MutableStateFlow<List<WorkoutExerciseEntity>>(emptyList())
+
+    /** Null disables FK checks; tests set these to model real parent rows. */
+    var validWorkoutIds: Set<Long>? = null
+    var validExerciseIds: Set<Long>? = null
+
+    private fun enforceConstraints(current: List<WorkoutExerciseEntity>, incoming: List<WorkoutExerciseEntity>) {
+        incoming.forEach { item ->
+            require(current.none { it.workoutId == item.workoutId && it.exerciseId == item.exerciseId }) {
+                "UNIQUE constraint failed: workout_exercise.workoutId, workout_exercise.exerciseId"
+            }
+            require(current.none { it.syncId == item.syncId }) {
+                "UNIQUE constraint failed: workout_exercise.syncId"
+            }
+            validWorkoutIds?.let { require(item.workoutId in it) { "FOREIGN KEY constraint failed: workout" } }
+            validExerciseIds?.let { require(item.exerciseId in it) { "FOREIGN KEY constraint failed: exercise" } }
+        }
+    }
+
+    override suspend fun insert(workoutExerciseEntity: WorkoutExerciseEntity) {
+        enforceConstraints(data.value, listOf(workoutExerciseEntity))
+        data.update { it + workoutExerciseEntity }
+    }
+
+    override suspend fun insertAll(workoutExercises: List<WorkoutExerciseEntity>) {
+        enforceConstraints(data.value, workoutExercises)
+        data.update { it + workoutExercises }
+    }
+
+    override suspend fun findBySyncId(owner: String, syncId: String): WorkoutExerciseEntity? =
+        data.value.firstOrNull { it.ownerFirebaseUid == owner && it.syncId == syncId }
+
+    override suspend fun findByPair(owner: String, workoutId: Long, exerciseId: Long): WorkoutExerciseEntity? =
+        data.value.firstOrNull {
+            it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId
+        }
+
+    override suspend fun getTombstones(owner: String): List<WorkoutExerciseEntity> =
+        data.value.filter { it.ownerFirebaseUid == owner && it.deletedAt != null }
+
+    override suspend fun softDelete(owner: String, workoutId: Long, exerciseId: Long, deletedAt: Long, updatedAt: Long): Int {
+        var changed = 0
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId && it.deletedAt == null) {
+                    changed++
+                    it.copy(deletedAt = deletedAt, updatedAt = updatedAt, syncStatus = "PENDING_DELETE")
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun restoreLocal(owner: String, workoutId: Long, exerciseId: Long, updatedAt: Long): Int {
+        var changed = 0
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId && it.deletedAt != null) {
+                    changed++
+                    it.copy(deletedAt = null, updatedAt = updatedAt, syncStatus = "PENDING_UPLOAD")
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun updateOrderIndex(owner: String, workoutId: Long, exerciseId: Long, orderIndex: Int, updatedAt: Long) {
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId && it.deletedAt == null) {
+                    it.copy(orderIndex = orderIndex, updatedAt = updatedAt, syncStatus = "PENDING_UPLOAD")
+                } else it
+            }
+        }
+    }
+
+    override suspend fun updateExerciseOrder(owner: String, workoutId: Long, exercises: List<ExerciseEntity>, updatedAt: Long) {
+        exercises.forEachIndexed { index, exercise -> updateOrderIndex(owner, workoutId, exercise.exerciseId, index, updatedAt) }
+    }
+
+    override fun getExerciseIdsByWorkout(owner: String, workoutId: Long): Flow<List<Long>> =
+        data.map { list ->
+            list.filter { it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.deletedAt == null }
+                .sortedBy { it.orderIndex }.map { it.exerciseId }
+        }
+
+    override fun getAll(owner: String): Flow<List<WorkoutExerciseEntity>> =
+        data.map { list -> list.filter { it.ownerFirebaseUid == owner && it.deletedAt == null } }
+
+    override suspend fun getMaxOrderIndex(owner: String, workoutId: Long): Int? =
+        data.value.filter { it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.deletedAt == null }
+            .maxOfOrNull { it.orderIndex }
+
+    override fun getWorkoutExercise(owner: String, workoutId: Long, exerciseId: Long): Flow<WorkoutExerciseEntity?> =
+        data.map { list ->
+            list.firstOrNull {
+                it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId && it.deletedAt == null
+            }
+        }
+
+    override fun observeSuggestedExerciseRows(owner: String): Flow<List<SuggestedExerciseRow>> =
+        throw UnsupportedOperationException("not used in unit tests")
+
+    override suspend fun insertRemote(link: WorkoutExerciseEntity) {
+        require(data.value.none { it.workoutId == link.workoutId && it.exerciseId == link.exerciseId }) {
+            "workout_exercise pair already exists"
+        }
+        require(data.value.none { it.syncId == link.syncId }) { "syncId already exists" }
+        data.update { it + link }
+    }
+
+    override suspend fun applyRemoteUpsert(
+        owner: String, workoutId: Long, exerciseId: Long, orderIndex: Int,
+        serverVersion: Long, updatedAt: Long,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId &&
+                    it.serverVersion < serverVersion
+                ) {
+                    it.copy(
+                        orderIndex = orderIndex, serverVersion = serverVersion,
+                        updatedAt = updatedAt, deletedAt = null, syncStatus = "SYNCED",
+                    )
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyRemoteDelete(
+        owner: String, workoutId: Long, exerciseId: Long, deletedAt: Long, serverVersion: Long, updatedAt: Long,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId &&
+                    it.serverVersion < serverVersion
+                ) {
+                    it.copy(deletedAt = deletedAt, serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = "SYNCED")
+                } else it
+            }
+        }
+    }
+
+    override suspend fun applyRemoteDeleteBySyncId(
+        owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long,
+    ): Int {
+        var changed = 0
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    changed++
+                    it.copy(deletedAt = deletedAt, serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = "SYNCED")
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun applyAcknowledgementMetadata(
+        owner: String, syncId: String, serverVersion: Long, serverUpdatedAt: Long, syncStatus: String,
+    ) {
+        data.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) {
+                    it.copy(serverVersion = serverVersion, updatedAt = maxOf(it.updatedAt, serverUpdatedAt), syncStatus = syncStatus)
+                } else it
+            }
+        }
+    }
 }

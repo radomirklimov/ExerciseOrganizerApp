@@ -25,7 +25,7 @@ interface WorkoutDao {
                w.name AS name,
                COUNT(we.exerciseId) AS exerciseCount
         FROM workout w
-        LEFT JOIN workout_exercise we ON we.workoutId = w.workoutId
+        LEFT JOIN workout_exercise we ON we.workoutId = w.workoutId AND we.deletedAt IS NULL
         WHERE w.ownerFirebaseUid = :owner AND w.deletedAt IS NULL
         GROUP BY w.workoutId, w.name
         ORDER BY w.workoutId DESC"""

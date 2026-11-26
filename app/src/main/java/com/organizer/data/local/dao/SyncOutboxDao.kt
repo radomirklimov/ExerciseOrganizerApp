@@ -24,6 +24,9 @@ interface SyncOutboxDao {
     @Query("SELECT * FROM sync_outbox WHERE ownerFirebaseUid = :owner AND mutationId = :mutationId")
     suspend fun findByMutationId(owner: String, mutationId: String): SyncOutboxEntity?
 
+    @Query("SELECT * FROM sync_outbox WHERE ownerFirebaseUid = :owner AND recordSyncId = :recordSyncId")
+    suspend fun findByRecordSyncId(owner: String, recordSyncId: String): List<SyncOutboxEntity>
+
     /**
      * A pending, never-retried entry is the only mutation state that is safe to
      * coalesce. Any other status may already have reached the backend.
@@ -103,18 +106,27 @@ interface SyncOutboxDao {
     suspend fun recoverInFlight(owner: String): Int
 
     @Query(
-        """UPDATE sync_outbox SET syncStatus = 'IN_FLIGHT', lastError = NULL, everTransmitted = 1
+        """UPDATE sync_outbox SET syncStatus = 'IN_FLIGHT', lastError = NULL
            WHERE ownerFirebaseUid = :owner
            AND mutationId IN (:mutationIds)
            AND syncStatus = 'PENDING_UPLOAD'"""
     )
     suspend fun markInFlight(owner: String, mutationIds: Set<String>): Int
 
+    /** Marks actual transmission, immediately before the network request. */
+    @Query(
+        """UPDATE sync_outbox SET everTransmitted = 1
+           WHERE ownerFirebaseUid = :owner AND mutationId IN (:mutationIds)
+           AND syncStatus = 'IN_FLIGHT' AND everTransmitted = 0"""
+    )
+    suspend fun markTransmitted(owner: String, mutationIds: Set<String>): Int
+
     @Query(
         """UPDATE sync_outbox SET syncStatus = 'SUPERSEDED', lastError = NULL
            WHERE ownerFirebaseUid = :owner
            AND mutationId IN (:mutationIds)
-           AND syncStatus = 'PENDING_UPLOAD'"""
+           AND syncStatus = 'PENDING_UPLOAD'
+           AND everTransmitted = 0"""
     )
     suspend fun markSuperseded(owner: String, mutationIds: Set<String>): Int
 

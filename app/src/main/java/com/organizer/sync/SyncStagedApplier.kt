@@ -3,6 +3,7 @@ package com.organizer.sync
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.dao.ScheduledWorkoutDao
+import com.organizer.data.local.dao.WorkoutCompletionDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.notification.ReminderScheduler
 import com.organizer.data.local.dao.SyncStagedDao
@@ -12,6 +13,7 @@ import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
+import com.organizer.data.local.db.entities.WorkoutCompletionEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.data.local.db.entities.SyncStagedStatus
@@ -35,6 +37,7 @@ class SyncStagedApplier @Inject constructor(
     private val favoriteExerciseDao: FavoriteExerciseDao? = null,
     private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
     private val reminderScheduler: ReminderScheduler? = null,
+    private val workoutCompletionDao: WorkoutCompletionDao? = null,
     private val stagedDao: SyncStagedDao,
     private val transactions: SyncTransactionRunner,
     private val json: Json,
@@ -79,6 +82,7 @@ class SyncStagedApplier @Inject constructor(
                         SyncEntityTypes.WORKOUT_EXERCISE -> applyWorkoutExercise(owner, current, payload)
                         SyncEntityTypes.FAVORITE_EXERCISE -> applyFavoriteExercise(owner, current, payload)
                         SyncEntityTypes.SCHEDULED_WORKOUT -> applyScheduledWorkout(owner, current, payload)
+                        SyncEntityTypes.WORKOUT_COMPLETION -> applyWorkoutCompletion(owner, current, payload)
                         else -> mark(current, SyncStagedStatus.UNSUPPORTED)
                     }
                 }
@@ -502,6 +506,47 @@ class SyncStagedApplier @Inject constructor(
         return mark(staged, SyncStagedStatus.APPLIED)
     }
 
+    private suspend fun applyWorkoutCompletion(
+        owner: String,
+        staged: SyncStagedRecordEntity,
+        payload: JsonObject,
+    ): StagedApplyResult {
+        val dao = workoutCompletionDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+        val workoutId = resolveWorkout(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Workout not available")
+        val dateKey = payload.jsonPrimitiveInt("dateKey") ?: return mark(staged, SyncStagedStatus.FAILED, "Missing dateKey")
+        val completed = payload.jsonPrimitiveInt("completedExercises") ?: return mark(staged, SyncStagedStatus.FAILED, "Missing completedExercises")
+        val total = payload.jsonPrimitiveInt("totalExercises") ?: return mark(staged, SyncStagedStatus.FAILED, "Missing totalExercises")
+        val completedAt = payload["completedAt"]?.jsonPrimitive?.content?.let { SyncTimestamps.parse(it) }
+            ?: return mark(staged, SyncStagedStatus.FAILED, "Missing completedAt")
+        if (total <= 0 || completed !in 0..total) return mark(staged, SyncStagedStatus.FAILED, "Invalid completion counts")
+
+        val local = dao.findBySyncId(owner, staged.syncId)
+        if (local != null) {
+            if (local.workoutId != workoutId) {
+                return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting completion workout")
+            }
+            if (local.serverVersion >= staged.serverVersion) {
+                return mark(staged, SyncStagedStatus.APPLIED)
+            }
+            dao.applyRemoteUpsert(owner, staged.syncId, completed, total, completedAt, staged.serverVersion, staged.serverUpdatedAt)
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+        dao.upsert(WorkoutCompletionEntity(
+            dateKey = dateKey,
+            workoutId = workoutId,
+            completedExercises = completed,
+            totalExercises = total,
+            completedAt = completedAt,
+            ownerFirebaseUid = owner,
+            syncId = staged.syncId,
+            updatedAt = staged.serverUpdatedAt,
+            serverVersion = staged.serverVersion,
+            syncStatus = "SYNCED",
+        ))
+        return mark(staged, SyncStagedStatus.APPLIED)
+    }
+
     private suspend fun rescheduleScheduleAlarm(owner: String, syncId: String) {
         runCatching {
             val dao = scheduledWorkoutDao ?: return
@@ -550,6 +595,7 @@ class SyncStagedApplier @Inject constructor(
             SyncEntityTypes.WORKOUT_EXERCISE,
             SyncEntityTypes.FAVORITE_EXERCISE,
             SyncEntityTypes.SCHEDULED_WORKOUT,
+            SyncEntityTypes.WORKOUT_COMPLETION,
         )
     }
 }

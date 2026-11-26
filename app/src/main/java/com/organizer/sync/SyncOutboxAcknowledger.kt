@@ -5,6 +5,13 @@ import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
 import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.SyncOutboxDao
+import com.organizer.data.local.dao.WorkoutCompletionDao
+import com.organizer.data.local.db.entities.SyncOutboxEntity
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import java.util.UUID
 import com.organizer.data.local.dao.WorkoutDao
 import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.data.remote.model.SyncMutationResultDto
@@ -30,8 +37,10 @@ class SyncOutboxAcknowledger @Inject constructor(
     private val workoutExerciseDao: WorkoutExerciseDao,
     private val favoriteExerciseDao: FavoriteExerciseDao,
     private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
+    private val workoutCompletionDao: WorkoutCompletionDao? = null,
     private val transactions: SyncTransactionRunner,
 ) {
+    private val json = Json { ignoreUnknownKeys = true }
     suspend fun acknowledge(owner: String, results: List<SyncMutationResultDto>): AcknowledgementResult {
         var acknowledged = 0
         var conflicted = 0
@@ -117,6 +126,12 @@ class SyncOutboxAcknowledger @Inject constructor(
         )
         if (updated == 0) return AckOutcome.SKIPPED_TERMINAL
 
+        if (status == SyncOutboxStatus.CONFLICTED &&
+            mutation.entityType == SyncEntityTypes.WORKOUT_COMPLETION
+        ) {
+            resolveWorkoutCompletionConflict(owner, mutation, result, serverVersion)
+        }
+
         if (status == SyncOutboxStatus.ACKNOWLEDGED) {
             val stillBlocked = outboxDao.hasBlockingMutationForRecord(
                 owner, mutation.entityType, mutation.recordSyncId, SyncOutboxStatus.BLOCKING
@@ -146,6 +161,7 @@ class SyncOutboxAcknowledger @Inject constructor(
             SyncEntityTypes.WORKOUT_EXERCISE -> workoutExerciseDao.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             SyncEntityTypes.FAVORITE_EXERCISE -> favoriteExerciseDao.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             SyncEntityTypes.SCHEDULED_WORKOUT -> scheduledWorkoutDao?.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
+            SyncEntityTypes.WORKOUT_COMPLETION -> workoutCompletionDao?.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             else -> null
         }
 
@@ -172,7 +188,65 @@ class SyncOutboxAcknowledger @Inject constructor(
             SyncEntityTypes.SCHEDULED_WORKOUT -> scheduledWorkoutDao?.applyAcknowledgementMetadata(
                 owner, mutation.recordSyncId, serverVersion, serverUpdatedAt
             )
+            SyncEntityTypes.WORKOUT_COMPLETION -> workoutCompletionDao?.applyAcknowledgementMetadata(
+                owner, mutation.recordSyncId, serverVersion, serverUpdatedAt
+            )
         }
+    }
+
+    /**
+     * WorkoutCompletion-only conflict resolution. The original mutation stays
+     * CONFLICTED; a new mutationId carries the selected snapshot against the
+     * acknowledged server version, so a transmitted mutation is never rewritten.
+     */
+    private suspend fun resolveWorkoutCompletionConflict(
+        owner: String,
+        mutation: com.organizer.data.local.db.entities.SyncOutboxEntity,
+        result: com.organizer.data.remote.model.SyncMutationResultDto,
+        serverVersion: Long,
+    ) {
+        val dao = workoutCompletionDao ?: return
+        val serverSnapshot = WorkoutCompletionIdentity.snapshotFromPayload(result.serverPayload) ?: return
+        val local = dao.findBySyncId(owner, mutation.recordSyncId) ?: return
+        val workoutSyncId = workoutDao.getByIdOnce(owner, local.workoutId)?.syncId ?: return
+        val serverWorkoutRef = result.serverPayload?.get("workoutSyncId")?.jsonPrimitive?.content?.takeIf { it.isNotEmpty() }
+            ?: return
+        if (serverWorkoutRef != workoutSyncId) return
+        val serverDateKey = result.serverPayload?.get("dateKey")?.jsonPrimitive?.content?.toIntOrNull() ?: return
+        if (serverDateKey != local.dateKey) return
+        val localSnapshot = WorkoutCompletionIdentity.Snapshot(
+            local.completedExercises, local.totalExercises, local.completedAt
+        )
+        val winner = WorkoutCompletionIdentity.selectWinner(localSnapshot, serverSnapshot)
+        val payload = json.encodeToString(buildJsonObject {
+            put("schemaVersion", SyncStagedApplier.SUPPORTED_SCHEMA_VERSION)
+            put("workoutSyncId", workoutSyncId)
+            put("dateKey", local.dateKey)
+            put("completedExercises", winner.completedExercises)
+            put("totalExercises", winner.totalExercises)
+            put("completedAt", SyncTimestamps.format(winner.completedAtMillis))
+        })
+        // The resolved mutation uses a fresh id; the original remains terminal.
+        outboxDao.insert(
+            SyncOutboxEntity(
+                mutationId = UUID.randomUUID().toString(),
+                ownerFirebaseUid = owner,
+                entityType = SyncEntityTypes.WORKOUT_COMPLETION,
+                recordSyncId = mutation.recordSyncId,
+                operation = "UPSERT",
+                payload = payload,
+                baseVersion = serverVersion,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+        // Retire the conflicted row (non-blocking terminal state) without
+        // rewriting its payload or everTransmitted flag.
+        outboxDao.markResolvedConflict(owner, mutation.mutationId)
+        // Persist the selected snapshot locally as the durable resolution.
+        dao.applyRemoteUpsert(
+            owner, mutation.recordSyncId, winner.completedExercises, winner.totalExercises,
+            winner.completedAtMillis, serverVersion, System.currentTimeMillis()
+        )
     }
 
     private enum class AckOutcome {

@@ -38,7 +38,7 @@ class SyncOutboxAcknowledgerTest {
         val outbox = FakeSyncOutboxDao()
         val workouts = FakeWorkoutDao()
         val exercises = FakeExerciseDao()
-        val acknowledger = SyncOutboxAcknowledger(owner, outbox, workouts, exercises, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, ImmediateSyncTransactionRunner())
+        val acknowledger = SyncOutboxAcknowledger(owner, outbox, workouts, exercises, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, ImmediateSyncTransactionRunner())
     }
 
     private fun mutation(

@@ -130,6 +130,13 @@ interface SyncOutboxDao {
     )
     suspend fun markSuperseded(owner: String, mutationIds: Set<String>): Int
 
+    /** Retires a resolved CONFLICTED mutation without rewriting its payload. */
+    @Query(
+        """UPDATE sync_outbox SET syncStatus = 'SUPERSEDED', lastError = NULL
+           WHERE ownerFirebaseUid = :owner AND mutationId = :mutationId AND syncStatus = 'CONFLICTED'"""
+    )
+    suspend fun markResolvedConflict(owner: String, mutationId: String): Int
+
     @Query(
         """UPDATE sync_outbox SET syncStatus = 'PENDING_UPLOAD', lastError = :error
            WHERE ownerFirebaseUid = :owner

@@ -86,8 +86,8 @@ class SyncPushCoordinatorTest {
         val tokens = TestTokenProvider()
         val runner = ImmediateSyncTransactionRunner()
         val json = Json { ignoreUnknownKeys = true }
-        val acknowledger = SyncOutboxAcknowledger(ownerProvider, outbox, workouts, exercises, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, runner)
-        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, staged, runner, json)
+        val acknowledger = SyncOutboxAcknowledger(ownerProvider, outbox, workouts, exercises, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, runner)
+        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, staged, runner, json)
         val reconciler = SyncReconciler(ownerProvider, outbox, staged, applier, runner)
         val coordinator = SyncPushCoordinator(
             ownerProvider,

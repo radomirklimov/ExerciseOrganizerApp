@@ -476,6 +476,30 @@ class FakeReminderScheduler : com.organizer.notification.ReminderScheduler {
     }
 }
 
+class FakeWorkoutCompletionDao : com.organizer.data.local.dao.WorkoutCompletionDao {
+    val rows = MutableStateFlow<List<com.organizer.data.local.db.entities.WorkoutCompletionEntity>>(emptyList())
+    override fun observeAll(owner: String): Flow<List<com.organizer.data.local.db.entities.WorkoutCompletionEntity>> =
+        rows.map { it.filter { r -> r.ownerFirebaseUid == owner && r.deletedAt == null } }
+    override suspend fun findBySyncId(owner: String, syncId: String): com.organizer.data.local.db.entities.WorkoutCompletionEntity? =
+        rows.value.firstOrNull { it.ownerFirebaseUid == owner && it.syncId == syncId }
+    override suspend fun updateSyncId(owner: String, dateKey: Int, workoutId: Long, oldSyncId: String, newSyncId: String, updatedAt: Long): Int {
+        var changed = 0
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.dateKey == dateKey && it.workoutId == workoutId && it.syncId == oldSyncId) { changed++; it.copy(syncId = newSyncId, updatedAt = updatedAt) } else it } }
+        return changed
+    }
+    override suspend fun upsert(completion: com.organizer.data.local.db.entities.WorkoutCompletionEntity) {
+        rows.update { current -> current.filterNot { it.dateKey == completion.dateKey && it.workoutId == completion.workoutId && it.ownerFirebaseUid == completion.ownerFirebaseUid } + completion }
+    }
+    override suspend fun applyAcknowledgementMetadata(owner: String, syncId: String, serverVersion: Long, updatedAt: Long) {
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) it.copy(serverVersion = serverVersion, updatedAt = maxOf(it.updatedAt, updatedAt), syncStatus = "SYNCED") else it } }
+    }
+    override suspend fun applyRemoteUpsert(owner: String, syncId: String, completedExercises: Int, totalExercises: Int, completedAt: Long, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) { changed++; it.copy(completedExercises = completedExercises, totalExercises = totalExercises, completedAt = completedAt, serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = "SYNCED") } else it } }
+        return changed
+    }
+}
+
 class FakeScheduledWorkoutDao : ScheduledWorkoutDao {
     val entries = MutableStateFlow<List<ScheduledWorkoutEntity>>(emptyList())
     var nextId = 1L
@@ -595,6 +619,19 @@ class FakeSyncOutboxDao : SyncOutboxDao {
                 ) {
                     changed++
                     it.copy(everTransmitted = true)
+                } else it
+            }
+        }
+        return changed
+    }
+
+    override suspend fun markResolvedConflict(owner: String, mutationId: String): Int {
+        var changed = 0
+        entries.update { current ->
+            current.map {
+                if (it.ownerFirebaseUid == owner && it.mutationId == mutationId && it.syncStatus == SyncOutboxStatus.CONFLICTED) {
+                    changed++
+                    it.copy(syncStatus = SyncOutboxStatus.SUPERSEDED, lastError = null)
                 } else it
             }
         }

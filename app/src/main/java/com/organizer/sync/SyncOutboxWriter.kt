@@ -78,6 +78,10 @@ class SyncOutboxWriter @Inject constructor(
         enqueue(owner, SyncEntityTypes.SCHEDULED_WORKOUT, syncId, OPERATION_DELETE, baseVersion) { payload }
     }
 
+    suspend fun upsertWorkoutCompletion(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.WORKOUT_COMPLETION, syncId, OPERATION_UPSERT, baseVersion) { payload }
+    }
+
     private suspend fun enqueue(
         owner: String,
         entityType: String,

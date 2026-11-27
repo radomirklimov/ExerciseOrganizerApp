@@ -2,6 +2,7 @@ package com.organizer.sync
 
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.PlannedSetDao
 import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.WorkoutCompletionDao
 import com.organizer.data.local.dao.SyncOutboxDao
@@ -12,6 +13,7 @@ import com.organizer.data.local.dao.WorkoutExerciseDao
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutCompletionEntity
 import com.organizer.data.local.db.entities.SyncStagedRecordEntity
@@ -38,6 +40,7 @@ class SyncStagedApplier @Inject constructor(
     private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
     private val reminderScheduler: ReminderScheduler? = null,
     private val workoutCompletionDao: WorkoutCompletionDao? = null,
+    private val plannedSetDao: PlannedSetDao? = null,
     private val stagedDao: SyncStagedDao,
     private val transactions: SyncTransactionRunner,
     private val json: Json,
@@ -83,6 +86,7 @@ class SyncStagedApplier @Inject constructor(
                         SyncEntityTypes.FAVORITE_EXERCISE -> applyFavoriteExercise(owner, current, payload)
                         SyncEntityTypes.SCHEDULED_WORKOUT -> applyScheduledWorkout(owner, current, payload)
                         SyncEntityTypes.WORKOUT_COMPLETION -> applyWorkoutCompletion(owner, current, payload)
+                        SyncEntityTypes.PLANNED_SET -> applyPlannedSet(owner, current, payload)
                         else -> mark(current, SyncStagedStatus.UNSUPPORTED)
                     }
                 }
@@ -220,6 +224,16 @@ class SyncStagedApplier @Inject constructor(
                     syncStatus = "SYNCED",
                     serverVersion = staged.serverVersion,
                 ))
+                mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
+            }
+            SyncEntityTypes.PLANNED_SET -> {
+                val dao = plannedSetDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+                val bySyncId = dao.findBySyncId(owner, staged.syncId)
+                if (bySyncId != null) {
+                    if (bySyncId.serverVersion >= staged.serverVersion) return mark(staged, SyncStagedStatus.APPLIED)
+                    dao.applyRemoteDelete(owner, staged.syncId, staged.serverUpdatedAt, staged.serverVersion, staged.serverUpdatedAt)
+                    return mark(staged, SyncStagedStatus.APPLIED)
+                }
                 mark(staged, SyncStagedStatus.TOMBSTONE_ONLY)
             }
             else -> mark(staged, SyncStagedStatus.UNSUPPORTED)
@@ -556,6 +570,46 @@ class SyncStagedApplier @Inject constructor(
         }
     }
 
+    private suspend fun applyPlannedSet(
+        owner: String,
+        staged: SyncStagedRecordEntity,
+        payload: JsonObject,
+    ): StagedApplyResult {
+        val dao = plannedSetDao ?: return mark(staged, SyncStagedStatus.UNSUPPORTED)
+        val workoutId = resolveWorkout(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Workout not available")
+        val exerciseId = resolveExercise(owner, payload)
+            ?: return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Exercise not available")
+        if (workoutExerciseDao.findByPair(owner, workoutId, exerciseId) == null) {
+            return mark(staged, SyncStagedStatus.WAITING_DEPENDENCY, "Workout exercise association not available")
+        }
+        val setNumber = payload.jsonPrimitiveInt("setNumber") ?: return mark(staged, SyncStagedStatus.FAILED, "Missing setNumber")
+        val reps = payload.jsonPrimitiveInt("reps")
+        val weight = payload["weight"]?.jsonPrimitive?.content?.toDoubleOrNull()
+        val duration = payload.jsonPrimitiveInt("durationSeconds")
+
+        val tombstone = stagedDao.find(owner, SyncEntityTypes.PLANNED_SET, staged.syncId)
+        if (tombstone != null && tombstone.deleted && tombstone.serverVersion >= staged.serverVersion) {
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+        val local = dao.findBySyncId(owner, staged.syncId)
+        if (local != null) {
+            if (local.workoutId != workoutId || local.exerciseId != exerciseId) {
+                return mark(staged, SyncStagedStatus.CONFLICT_BLOCKED, "Conflicting planned set identity")
+            }
+            if (local.serverVersion >= staged.serverVersion) return mark(staged, SyncStagedStatus.APPLIED)
+            dao.applyRemoteUpsert(owner, staged.syncId, reps, weight, duration, staged.serverVersion, staged.serverUpdatedAt)
+            return mark(staged, SyncStagedStatus.APPLIED)
+        }
+        dao.upsert(PlannedSetEntity(
+            workoutId = workoutId, exerciseId = exerciseId, setNumber = setNumber,
+            reps = reps, weight = weight, durationSeconds = duration,
+            ownerFirebaseUid = owner, syncId = staged.syncId,
+            updatedAt = staged.serverUpdatedAt, serverVersion = staged.serverVersion, syncStatus = "SYNCED",
+        ))
+        return mark(staged, SyncStagedStatus.APPLIED)
+    }
+
     private suspend fun mark(
         staged: SyncStagedRecordEntity,
         status: String,
@@ -596,6 +650,7 @@ class SyncStagedApplier @Inject constructor(
             SyncEntityTypes.FAVORITE_EXERCISE,
             SyncEntityTypes.SCHEDULED_WORKOUT,
             SyncEntityTypes.WORKOUT_COMPLETION,
+            SyncEntityTypes.PLANNED_SET,
         )
     }
 }

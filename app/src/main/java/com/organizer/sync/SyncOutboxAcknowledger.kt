@@ -3,6 +3,7 @@ package com.organizer.sync
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.ExerciseDao
 import com.organizer.data.local.dao.FavoriteExerciseDao
+import com.organizer.data.local.dao.PlannedSetDao
 import com.organizer.data.local.dao.ScheduledWorkoutDao
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.dao.WorkoutCompletionDao
@@ -38,6 +39,7 @@ class SyncOutboxAcknowledger @Inject constructor(
     private val favoriteExerciseDao: FavoriteExerciseDao,
     private val scheduledWorkoutDao: ScheduledWorkoutDao? = null,
     private val workoutCompletionDao: WorkoutCompletionDao? = null,
+    private val plannedSetDao: PlannedSetDao? = null,
     private val transactions: SyncTransactionRunner,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -162,6 +164,7 @@ class SyncOutboxAcknowledger @Inject constructor(
             SyncEntityTypes.FAVORITE_EXERCISE -> favoriteExerciseDao.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             SyncEntityTypes.SCHEDULED_WORKOUT -> scheduledWorkoutDao?.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             SyncEntityTypes.WORKOUT_COMPLETION -> workoutCompletionDao?.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
+            SyncEntityTypes.PLANNED_SET -> plannedSetDao?.findBySyncId(owner, mutation.recordSyncId)?.syncStatus
             else -> null
         }
 
@@ -190,6 +193,9 @@ class SyncOutboxAcknowledger @Inject constructor(
             )
             SyncEntityTypes.WORKOUT_COMPLETION -> workoutCompletionDao?.applyAcknowledgementMetadata(
                 owner, mutation.recordSyncId, serverVersion, serverUpdatedAt
+            )
+            SyncEntityTypes.PLANNED_SET -> plannedSetDao?.applyAcknowledgementMetadata(
+                owner, mutation.recordSyncId, serverVersion, serverUpdatedAt, syncStatus
             )
         }
     }

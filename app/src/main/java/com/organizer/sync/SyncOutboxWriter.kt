@@ -82,6 +82,18 @@ class SyncOutboxWriter @Inject constructor(
         enqueue(owner, SyncEntityTypes.WORKOUT_COMPLETION, syncId, OPERATION_UPSERT, baseVersion) { payload }
     }
 
+    suspend fun upsertPlannedSet(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.PLANNED_SET, syncId, OPERATION_UPSERT, baseVersion) { payload }
+    }
+
+    suspend fun deletePlannedSet(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.PLANNED_SET, syncId, OPERATION_DELETE, baseVersion) { payload }
+    }
+
+    suspend fun restorePlannedSet(owner: String, syncId: String, baseVersion: Long, payload: String) {
+        enqueue(owner, SyncEntityTypes.PLANNED_SET, syncId, OPERATION_RESTORE, baseVersion) { payload }
+    }
+
     private suspend fun enqueue(
         owner: String,
         entityType: String,

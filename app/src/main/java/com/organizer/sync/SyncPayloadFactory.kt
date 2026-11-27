@@ -3,6 +3,7 @@ package com.organizer.sync
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutCompletionEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
 import com.organizer.data.local.db.entities.WorkoutEntity
 import com.organizer.data.local.db.entities.WorkoutExerciseEntity
@@ -83,6 +84,18 @@ class SyncPayloadFactory @Inject constructor(
             put("completedExercises", completion.completedExercises)
             put("totalExercises", completion.totalExercises)
             put("completedAt", SyncTimestamps.format(completion.completedAt))
+        }
+    )
+
+    fun plannedSet(set: PlannedSetEntity, workoutSyncId: String, exercise: ExerciseEntity): String = json.encodeToString(
+        buildJsonObject {
+            put("schemaVersion", SCHEMA_VERSION)
+            put("workoutSyncId", workoutSyncId)
+            put("exerciseRef", exerciseRef(exercise))
+            put("setNumber", set.setNumber)
+            set.reps?.let { put("reps", it) }
+            set.weight?.let { put("weight", it) }
+            set.durationSeconds?.let { put("durationSeconds", it) }
         }
     )
 

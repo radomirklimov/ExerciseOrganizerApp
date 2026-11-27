@@ -14,6 +14,7 @@ import com.organizer.data.local.db.entities.CategoryEntity
 import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.FavoriteExerciseEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.ScheduledWorkoutEntity
 import com.organizer.data.local.db.entities.SyncCursorEntity
 import com.organizer.data.local.db.entities.SyncOutboxEntity
@@ -473,6 +474,39 @@ class FakeReminderScheduler : com.organizer.notification.ReminderScheduler {
     }
     override fun rescheduleAll(entries: List<com.organizer.data.local.db.entities.ScheduledWorkoutEntity>) {
         entries.forEach(::schedule)
+    }
+}
+
+class FakePlannedSetDao : com.organizer.data.local.dao.PlannedSetDao {
+    val rows = MutableStateFlow<List<PlannedSetEntity>>(emptyList())
+    override fun observePlannedSets(owner: String, workoutId: Long, exerciseId: Long): Flow<List<PlannedSetEntity>> =
+        rows.map { it.filter { r -> r.ownerFirebaseUid == owner && r.workoutId == workoutId && r.exerciseId == exerciseId && r.deletedAt == null }.sortedBy { it.setNumber } }
+    override suspend fun findBySyncId(owner: String, syncId: String): PlannedSetEntity? =
+        rows.value.firstOrNull { it.ownerFirebaseUid == owner && it.syncId == syncId }
+    override suspend fun updateSetNumber(owner: String, syncId: String, setNumber: Int, updatedAt: Long) {
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId) it.copy(setNumber = setNumber, updatedAt = updatedAt, syncStatus = "PENDING_UPLOAD") else it } }
+    }
+    override suspend fun upsert(entry: PlannedSetEntity) {
+        rows.update { current -> current.filterNot { it.workoutId == entry.workoutId && it.exerciseId == entry.exerciseId && it.setNumber == entry.setNumber && it.ownerFirebaseUid == entry.ownerFirebaseUid } + entry }
+    }
+    override suspend fun softDelete(owner: String, workoutId: Long, exerciseId: Long, setNumber: Int, deletedAt: Long, updatedAt: Long) {
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId && it.setNumber == setNumber) it.copy(deletedAt = deletedAt, updatedAt = updatedAt, syncStatus = "PENDING_DELETE") else it } }
+    }
+    override suspend fun restoreLocal(owner: String, workoutId: Long, exerciseId: Long, setNumber: Int, updatedAt: Long) {
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.workoutId == workoutId && it.exerciseId == exerciseId && it.setNumber == setNumber) it.copy(deletedAt = null, updatedAt = updatedAt, syncStatus = "PENDING_UPLOAD") else it } }
+    }
+    override suspend fun applyAcknowledgementMetadata(owner: String, syncId: String, serverVersion: Long, updatedAt: Long, syncStatus: String) {
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) it.copy(serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = syncStatus) else it } }
+    }
+    override suspend fun applyRemoteUpsert(owner: String, syncId: String, reps: Int?, weight: Double?, durationSeconds: Int?, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) { changed++; it.copy(reps = reps, weight = weight, durationSeconds = durationSeconds, deletedAt = null, serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = "SYNCED") } else it } }
+        return changed
+    }
+    override suspend fun applyRemoteDelete(owner: String, syncId: String, deletedAt: Long, serverVersion: Long, updatedAt: Long): Int {
+        var changed = 0
+        rows.update { current -> current.map { if (it.ownerFirebaseUid == owner && it.syncId == syncId && it.serverVersion < serverVersion) { changed++; it.copy(deletedAt = deletedAt, serverVersion = serverVersion, updatedAt = updatedAt, syncStatus = "SYNCED") } else it } }
+        return changed
     }
 }
 

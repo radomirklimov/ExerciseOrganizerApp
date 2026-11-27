@@ -265,6 +265,10 @@ fun WorkoutContentScreen(
                     // numbers do not repeat after older sessions.
                     val latestSessionId = allSets.maxOfOrNull { it.sessionId } ?: 0L
                     val sets = allSets.filter { it.sessionId == latestSessionId }
+                    val plannedFlow = remember(workoutId, exercise.exerciseId) {
+                        viewModel.observePlannedSets(workoutId, exercise.exerciseId)
+                    }
+                    val planned by plannedFlow.collectAsState(initial = emptyList())
 
                     Column {
                         val dragHandle: (@Composable () -> Unit)? = if (isTemplate) {
@@ -302,6 +306,22 @@ fun WorkoutContentScreen(
                                         }
                                     }
                                 }
+                                PlannedSetEditor(
+                                    sets = planned,
+                                    onAdd = { reps, weight, duration ->
+                                        viewModel.addPlannedSet(workoutId, exercise.exerciseId, planned.size + 1, reps, weight, duration)
+                                    },
+                                    onUpdate = { setNumber, reps, weight, duration ->
+                                        viewModel.updatePlannedSet(workoutId, exercise.exerciseId, setNumber, reps, weight, duration)
+                                    },
+                                    onDelete = { setNumber ->
+                                        viewModel.deletePlannedSet(workoutId, exercise.exerciseId, setNumber)
+                                    },
+                                    onMove = { from, to ->
+                                        val reordered = planned.toMutableList().apply { add(to, removeAt(from)) }
+                                        viewModel.reorderPlannedSets(workoutId, exercise.exerciseId, reordered)
+                                    },
+                                )
                             }
                         }
 

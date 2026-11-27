@@ -139,9 +139,9 @@ class SyncPushCoordinatorInstrumentedTest {
         tokens: TestTokenProvider = TestTokenProvider(),
     ): SyncPushCoordinator {
         val json = Json { ignoreUnknownKeys = true }
-        val acknowledger = SyncOutboxAcknowledger(ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, db.favoriteExerciseDao, null, null, runner)
+        val acknowledger = SyncOutboxAcknowledger(ownerProvider, db.syncOutboxDao, db.workoutDao, db.exerciseDao, db.workoutExerciseDao, db.favoriteExerciseDao, null, null, null, runner)
         val applier = SyncStagedApplier(
-            ownerProvider, db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.favoriteExerciseDao, null, null, null, db.syncStagedDao,
+            ownerProvider, db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.favoriteExerciseDao, null, null, null, null, db.syncStagedDao,
             RoomSyncTransactionRunner(db), json,
         )
         val reconciler = SyncReconciler(ownerProvider, db.syncOutboxDao, db.syncStagedDao, applier, RoomSyncTransactionRunner(db))

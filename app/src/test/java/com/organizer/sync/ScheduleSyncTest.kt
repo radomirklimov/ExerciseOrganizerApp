@@ -34,7 +34,7 @@ class ScheduleSyncTest {
         val reminders = FakeReminderScheduler()
         val applier = SyncStagedApplier(
             object : OwnerProvider() { override fun currentOwner() = "user-a" },
-            workouts, exercises, outbox, FakeWorkoutExerciseDao(), null, schedules, reminders, null,
+            workouts, exercises, outbox, FakeWorkoutExerciseDao(), null, schedules, reminders, null, null,
             staged, ImmediateSyncTransactionRunner(), Json { ignoreUnknownKeys = true },
         )
 

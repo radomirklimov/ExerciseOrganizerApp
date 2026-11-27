@@ -35,7 +35,7 @@ class SyncStagedApplierTest {
         val staged = FakeSyncStagedDao()
         val workoutExercises = FakeWorkoutExerciseDao()
         val applier = SyncStagedApplier(
-            ownerProvider, workouts, exercises, outbox, workoutExercises, com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, staged,
+            ownerProvider, workouts, exercises, outbox, workoutExercises, com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, null, staged,
             ImmediateSyncTransactionRunner(), Json { ignoreUnknownKeys = true },
         )
 
@@ -298,7 +298,7 @@ class SyncStagedApplierTest {
             }
         }
         val applier = SyncStagedApplier(
-            f.ownerProvider, f.workouts, f.exercises, f.outbox, FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, f.staged,
+            f.ownerProvider, f.workouts, f.exercises, f.outbox, FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, null, f.staged,
             injectingRunner, Json { ignoreUnknownKeys = true },
         )
 

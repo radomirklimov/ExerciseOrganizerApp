@@ -111,7 +111,7 @@ class SyncPullPipelineInstrumentedTest {
         runner,
         db.syncCursorDao,
         db.syncStagedDao,
-        SyncStagedApplier(owner, db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.favoriteExerciseDao, null, null, null, db.syncStagedDao, runner, json),
+        SyncStagedApplier(owner, db.workoutDao, db.exerciseDao, db.syncOutboxDao, db.workoutExerciseDao, db.favoriteExerciseDao, null, null, null, null, db.syncStagedDao, runner, json),
         SyncOperationLocks(),
     )
 

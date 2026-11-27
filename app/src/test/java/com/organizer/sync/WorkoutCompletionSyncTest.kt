@@ -81,7 +81,7 @@ class WorkoutCompletionSyncTest {
         val acker = SyncOutboxAcknowledger(
             object : OwnerProvider() { override fun currentOwner() = "user-a" },
             outbox, workouts, FakeExerciseDao(), com.organizer.fakes.FakeWorkoutExerciseDao(),
-            com.organizer.fakes.FakeFavoriteExerciseDao(), null, dao, ImmediateSyncTransactionRunner(),
+            com.organizer.fakes.FakeFavoriteExerciseDao(), null, dao, null, ImmediateSyncTransactionRunner(),
         )
         return Triple(dao, outbox, acker)
     }

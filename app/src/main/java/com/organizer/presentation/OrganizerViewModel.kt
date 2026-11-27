@@ -232,6 +232,26 @@ class OrganizerViewModel @Inject constructor(
     ): Flow<List<PlannedSetEntity>> =
         plannedSetRepo.observePlannedSets(workoutId, exerciseId)
 
+    fun addPlannedSet(workoutId: Long, exerciseId: Long, setNumber: Int, reps: Int?, weight: Double?, durationSeconds: Int?) =
+        viewModelScope.launch {
+            runCatching { plannedSetRepo.addSet(workoutId, exerciseId, setNumber, reps, weight, durationSeconds) }
+        }
+
+    fun updatePlannedSet(workoutId: Long, exerciseId: Long, setNumber: Int, reps: Int?, weight: Double?, durationSeconds: Int?) =
+        viewModelScope.launch {
+            runCatching { plannedSetRepo.updateSet(workoutId, exerciseId, setNumber, reps, weight, durationSeconds) }
+        }
+
+    fun deletePlannedSet(workoutId: Long, exerciseId: Long, setNumber: Int) =
+        viewModelScope.launch {
+            runCatching { plannedSetRepo.deleteSet(workoutId, exerciseId, setNumber) }
+        }
+
+    fun reorderPlannedSets(workoutId: Long, exerciseId: Long, ordered: List<PlannedSetEntity>) =
+        viewModelScope.launch {
+            runCatching { plannedSetRepo.reorderSets(workoutId, exerciseId, ordered) }
+        }
+
     /**
      * Records how many exercises of a workout were performed. The schedule
      * calendar shows the resulting percentage on today's date; no individual

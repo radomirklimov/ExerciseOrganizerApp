@@ -39,7 +39,7 @@ class SyncReconcilerTest {
         val workouts = FakeWorkoutDao()
         val exercises = FakeExerciseDao()
         val runner = ImmediateSyncTransactionRunner()
-        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, staged, runner, Json { ignoreUnknownKeys = true })
+        val applier = SyncStagedApplier(ownerProvider, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, null, staged, runner, Json { ignoreUnknownKeys = true })
         val reconciler = SyncReconciler(ownerProvider, outbox, staged, applier, runner)
     }
 

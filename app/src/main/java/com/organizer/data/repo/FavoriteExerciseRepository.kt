@@ -14,6 +14,7 @@ import com.organizer.sync.SyncOutboxWriter
 import com.organizer.sync.SyncPayloadFactory
 import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import java.util.UUID
@@ -29,13 +30,13 @@ class FavoriteExerciseRepository @Inject constructor(
     private val operationLocks: SyncOperationLocks,
 ) {
     fun observeFavoriteExerciseIds(): Flow<List<Long>> =
-        favoriteExerciseDao.observeFavoriteIds(ownerProvider.currentOwner())
+        ownerProvider.observeOwner().flatMapLatest { favoriteExerciseDao.observeFavoriteIds(it) }
 
     fun observeFavoriteExercises(): Flow<List<ExerciseEntity>> =
-        favoriteExerciseDao.observeFavoriteExercises(ownerProvider.currentOwner())
+        ownerProvider.observeOwner().flatMapLatest { favoriteExerciseDao.observeFavoriteExercises(it) }
 
     fun observeIsFavorite(exerciseId: Long): Flow<Boolean> =
-        favoriteExerciseDao.observeIsFavorite(ownerProvider.currentOwner(), exerciseId)
+        ownerProvider.observeOwner().flatMapLatest { favoriteExerciseDao.observeIsFavorite(it, exerciseId) }
 
     /**
      * Deterministic cloud identity for a favorite: derived from the account

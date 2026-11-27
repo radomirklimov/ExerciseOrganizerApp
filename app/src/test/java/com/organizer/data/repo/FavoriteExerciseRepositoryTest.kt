@@ -21,7 +21,13 @@ import org.junit.Test
 
 class FavoriteExerciseRepositoryTest {
 
-    private val owner = OwnerProvider()
+    private class TestOwner : OwnerProvider() {
+        val ownerFlow = kotlinx.coroutines.flow.MutableStateFlow(OwnerProvider.GUEST)
+        override fun currentOwner(): String = ownerFlow.value
+        override fun observeOwner(): kotlinx.coroutines.flow.Flow<String> = ownerFlow
+    }
+
+    private val owner = TestOwner()
     private val dao = FakeFavoriteExerciseDao()
     private val exercises = FakeExerciseDao()
     private val outbox = FakeSyncOutboxDao()
@@ -49,6 +55,19 @@ class FavoriteExerciseRepositoryTest {
         repo.toggleFavorite(7)
         assertFalse(dao.isFavorite(OwnerProvider.GUEST, 7))
         assertTrue(dao.favorites.value.all { it.deletedAt != null })
+    }
+
+    @Test
+    fun `favorite observation follows account owner changes`() = runTest {
+        seedExercise(7)
+        owner.ownerFlow.value = "user-a"
+        repo.toggleFavorite(7)
+        assertEquals(true, repo.observeIsFavorite(7).first())
+        assertEquals(listOf(7L), repo.observeFavoriteExerciseIds().first())
+
+        owner.ownerFlow.value = "user-b"
+        assertEquals(false, repo.observeIsFavorite(7).first())
+        assertEquals(emptyList<Long>(), repo.observeFavoriteExerciseIds().first())
     }
 
     @Test

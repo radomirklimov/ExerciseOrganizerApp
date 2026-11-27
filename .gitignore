@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+/test-results/**/logcat-*.txt
+/test-results/**/db-snapshot/
+/test-results/**/installed-apk/
+/test-results/**/.current-stamp
+.idea/inspectionProfiles/Project_Default.xml

@@ -1,5 +1,6 @@
 package com.organizer.sync
 
+import android.util.Log
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.SyncCursorDao
 import com.organizer.data.local.dao.SyncStagedDao
@@ -21,6 +22,7 @@ class SyncManager @Inject constructor(
     private val stagedDao: SyncStagedDao,
     private val stagedApplier: SyncStagedApplier,
     private val operationLocks: SyncOperationLocks,
+    private val pushCoordinator: SyncPushCoordinator,
 ) {
 
     /** Manual one-page pull. Does not loop and does not schedule itself. */
@@ -76,6 +78,12 @@ class SyncManager @Inject constructor(
         allowCursorReset: Boolean,
     ): PullResult {
         val apiResult = apiClient.changes(cursor, limit, "Bearer $token")
+        val status = when (apiResult) {
+            is SyncApiResult.Success -> 200
+            is SyncApiResult.HttpError -> apiResult.code
+            is SyncApiResult.TransportError, is SyncApiResult.MalformedResponse -> -1
+        }
+        Log.d(TAG, "pull:http method=GET path=api/sync/changes status=$status pageLimit=$limit")
         val changes = when (apiResult) {
             is SyncApiResult.Success -> contractMapper.toChanges(apiResult.data).getOrElse {
                 return PullResult(error = "Malformed pull response")
@@ -160,6 +168,7 @@ class SyncManager @Inject constructor(
         }
         val outcomes = results.values
         return PullResult(
+            nextCursorPreview = changes.nextCursor.take(8),
             received = changes.records.size,
             staged = changes.records.size,
             applied = outcomes.count { it == StagedApplyResult.APPLIED },
@@ -197,11 +206,72 @@ class SyncManager @Inject constructor(
         }
     }
 
-    /** Kept for the existing worker placeholder; no automatic sync is performed. */
-    suspend fun syncNow() = Unit
+    /**
+     * One bounded automatic sync cycle: pull all available pages, then push
+     * eligible outbox batches. Owner is captured once and rechecked around
+     * every network operation. Never runs for guest/public.
+     */
+    suspend fun syncNow(limit: Int = DEFAULT_PAGE_SIZE): SyncRunResult {
+        val owner = ownerProvider.currentOwner()
+        if (owner == OwnerProvider.GUEST || owner == OwnerProvider.PUBLIC) {
+            Log.d(TAG, "syncNow:skipped guestOrPublic")
+            return SyncRunResult(skipped = true)
+        }
+        Log.d(TAG, "syncNow:start authenticated=true pull=api/sync/changes push=api/sync/push")
+        var pulled = 0
+        var pushed = 0
+        var moreWork = false
+
+        var pages = 0
+        while (pages < MAX_PAGES_PER_RUN) {
+            if (ownerProvider.currentOwner() != owner) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, ownerChanged = true)
+            }
+            val result = pullOnePage(limit)
+            if (result.ownerChanged) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, ownerChanged = true)
+            }
+            if (result.error != null) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, retryable = true, error = result.error)
+            }
+            pulled += result.received
+            pages++
+            Log.d(TAG, "syncNow:pull page=$pages received=${result.received} hasMore=${result.hasMore} cursor=${result.nextCursorPreview} applied=${result.applied} waiting=${result.waitingForDependency} conflict=${result.conflictBlocked}")
+            if (!result.hasMore) break
+            if (pages == MAX_PAGES_PER_RUN) moreWork = true
+        }
+
+        var batches = 0
+        while (batches < MAX_BATCHES_PER_RUN) {
+            if (ownerProvider.currentOwner() != owner) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, ownerChanged = true)
+            }
+            val result = pushCoordinator.pushOneBatch()
+            if (result.ownerChanged) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, ownerChanged = true)
+            }
+            pushed += result.sent
+            batches++
+            Log.d(TAG, "syncNow:push batch=$batches selected=${result.selected} sent=${result.sent} applied=${result.applied} duplicate=${result.duplicate} conflict=${result.conflicted} rejected=${result.rejected} retryable=${result.retryable}")
+            if (result.retryable > 0) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, retryable = true, error = result.error ?: "Push retryable failure")
+            }
+            if (result.error != null) {
+                return SyncRunResult(pulled = pulled, pushed = pushed, retryable = true, error = result.error)
+            }
+            if (result.selected == 0) break
+            if (batches == MAX_BATCHES_PER_RUN && pushCoordinator.hasEligibleWork(owner)) moreWork = true
+        }
+
+        Log.d(TAG, "syncNow:end pulled=$pulled pushed=$pushed pages=$pages batches=$batches moreWork=$moreWork")
+        return SyncRunResult(pulled = pulled, pushed = pushed, moreWork = moreWork)
+    }
 
     companion object {
+        private const val TAG = "SYNC"
         const val DEFAULT_PAGE_SIZE = 100
+        const val MAX_PAGES_PER_RUN = 10
+        const val MAX_BATCHES_PER_RUN = 10
     }
 }
 

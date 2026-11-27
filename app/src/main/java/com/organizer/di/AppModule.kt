@@ -51,6 +51,8 @@ import com.organizer.data.media.MediaDownloadQueue
 import com.organizer.data.remote.repo.FileRemoteDataSource
 import dagger.Module
 import dagger.Provides
+import dagger.multibindings.IntoMap
+import dagger.multibindings.StringKey
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
@@ -230,6 +232,24 @@ object AppModule {
     ): PlannedSetDao {
         return database.plannedSetDao
     }
+
+    /**
+     * Registers SyncWorker with HiltWorkerFactory. The androidx.hilt worker KSP
+     * processor is not part of this build, so the generated worker map is empty;
+     * bind the Dagger-generated assisted factory explicitly instead.
+     */
+    @Provides
+    @IntoMap
+    @StringKey("com.organizer.sync.SyncWorker")
+    fun provideSyncWorkerAssistedFactory(
+        syncManager: com.organizer.sync.SyncManager,
+    ): androidx.hilt.work.WorkerAssistedFactory<out androidx.work.ListenableWorker> =
+        androidx.hilt.work.WorkerAssistedFactory { context, parameters ->
+            com.organizer.sync.SyncWorker_Factory.newInstance(context, parameters, syncManager)
+        }
+
+    @Provides
+    fun provideSyncTrigger(impl: com.organizer.sync.SyncScheduler): com.organizer.sync.SyncTrigger = impl
 
     @Provides
     fun provideReminderScheduler(

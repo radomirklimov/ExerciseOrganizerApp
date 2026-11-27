@@ -1,5 +1,6 @@
 package com.organizer.sync
 
+import android.util.Log
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.local.dao.SyncOutboxDao
 import com.organizer.data.local.db.entities.SyncOutboxEntity
@@ -50,6 +51,7 @@ class SyncPushCoordinator @Inject constructor(
             preInvalidRejected = terminal.count
         }
         val selected = selection.mutations
+        Log.d(TAG, "push:selected eligible=${selected.size} superseded=${selection.superseded} rejected=${preInvalidRejected}")
         if (selected.isEmpty()) {
             return PushResult(
                 skipped = selection.superseded,
@@ -122,6 +124,12 @@ class SyncPushCoordinator @Inject constructor(
             return PushResult(ownerChanged = true, error = "Authenticated account changed before transmission")
         }
         val apiResult = apiClient.push(SyncPushRequestDto(requests), "Bearer $token")
+        val status = when (apiResult) {
+            is SyncApiResult.Success -> 200
+            is SyncApiResult.HttpError -> apiResult.code
+            is SyncApiResult.TransportError, is SyncApiResult.MalformedResponse -> -1
+        }
+        Log.d(TAG, "push:http method=POST path=api/sync/push status=$status mutations=${requests.size}")
         return withMapping(when (apiResult) {
             is SyncApiResult.Success -> handleSuccess(owner, selection, requests, apiResult.data.results)
             is SyncApiResult.HttpError -> handleHttpError(owner, selection, apiResult)
@@ -277,6 +285,20 @@ class SyncPushCoordinator @Inject constructor(
             reconciled = reconciled,
             ownerChanged = reconciliation.ownerChanged,
         )
+    }
+
+    /** Eligible (non-blocked, pending) mutations for the given owner. */
+    suspend fun hasEligibleWork(owner: String): Boolean {
+        if (ownerProvider.currentOwner() != owner) return false
+        val rows = outboxDao.getPending(owner)
+        val blocked = rows
+            .filter { it.syncStatus in SyncOutboxStatus.BLOCKING && it.syncStatus != SyncOutboxStatus.PENDING_UPLOAD }
+            .map { Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) }
+            .toSet()
+        return rows.any {
+            it.syncStatus == SyncOutboxStatus.PENDING_UPLOAD &&
+                Triple(it.entityType, it.recordSyncId, it.ownerFirebaseUid) !in blocked
+        }
     }
 
     private suspend fun selectBatch(owner: String, limit: Int): BatchSelection {
@@ -526,6 +548,7 @@ class SyncPushCoordinator @Inject constructor(
     )
 
     companion object {
+        private const val TAG = "SYNC"
         const val MAX_BATCH_SIZE = 100
     }
 }

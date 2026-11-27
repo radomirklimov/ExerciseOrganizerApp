@@ -74,7 +74,21 @@ data class PushResult(
     val error: String? = null,
 )
 
+/** Outcome of one automatic sync cycle (bounded pull + bounded push). */
+data class SyncRunResult(
+    val pulled: Int = 0,
+    val pushed: Int = 0,
+    val skipped: Boolean = false,
+    val retryable: Boolean = false,
+    val ownerChanged: Boolean = false,
+    /** A per-run page/batch limit was reached while eligible work remains. */
+    val moreWork: Boolean = false,
+    val error: String? = null,
+)
+
 data class PullResult(
+    /** Opaque, truncated cursor preview for diagnostics; never a credential. */
+    val nextCursorPreview: String = "",
     val received: Int = 0,
     val staged: Int = 0,
     val applied: Int = 0,

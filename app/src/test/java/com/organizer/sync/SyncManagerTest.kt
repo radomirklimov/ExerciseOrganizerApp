@@ -68,10 +68,12 @@ class SyncManagerTest {
             return changesBlock(cursor, limit)
         }
 
+        var pushBlock: suspend (SyncPushRequestDto) -> SyncPushResponseDto = { error("not used") }
+
         override suspend fun push(
             request: SyncPushRequestDto,
             authorization: String,
-        ): SyncPushResponseDto = error("not used")
+        ): SyncPushResponseDto = pushBlock(request)
     }
 
     private class Fixture(val owner: OwnerProvider = MutableOwner()) {
@@ -85,10 +87,82 @@ class SyncManagerTest {
         val applier = SyncStagedApplier(
             owner, workouts, exercises, outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, null, staged, ImmediateSyncTransactionRunner(), json,
         )
+        val pushCoordinator = SyncPushCoordinator(
+            owner, TestTokenProvider(), outbox, SyncApiClient(api, json), SyncContractMapper(),
+            SyncOutboxAcknowledger(owner, outbox, workouts, exercises, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, ImmediateSyncTransactionRunner()),
+            SyncReconciler(owner, outbox, staged, applier, ImmediateSyncTransactionRunner()),
+            ImmediateSyncTransactionRunner(), SyncOperationLocks(),
+        )
         val manager = SyncManager(
             owner, TestTokenProvider(), SyncApiClient(api, json), SyncContractMapper(),
-            ImmediateSyncTransactionRunner(), cursors, staged, applier, SyncOperationLocks(),
+            ImmediateSyncTransactionRunner(), cursors, staged, applier, SyncOperationLocks(), pushCoordinator,
         )
+    }
+
+    @Test
+    fun `syncNow pulls multiple pages for authenticated owner`() = runTest {
+        val f = Fixture()
+        var calls = 0
+        f.api.changesBlock = { cursor, _ ->
+            calls++
+            if (cursor == null) page("remote-1").copy(nextCursor = "cursor-2", hasMore = true)
+            else page("remote-2").copy(nextCursor = "cursor-3", hasMore = false)
+        }
+        val result = f.manager.syncNow()
+        assertEquals(2, calls)
+        assertEquals(2, result.pulled)
+        assertFalse(result.retryable)
+        assertFalse(result.ownerChanged)
+    }
+
+    @Test
+    fun `syncNow reports more work when pull page limit is reached`() = runTest {
+        val f = Fixture()
+        f.api.changesBlock = { cursor, _ -> page("remote-$cursor").copy(nextCursor = "next-$cursor", hasMore = true) }
+        val result = f.manager.syncNow()
+        assertEquals(SyncManager.MAX_PAGES_PER_RUN, f.api.cursors.size)
+        assertTrue(result.moreWork)
+        assertFalse(result.retryable)
+    }
+
+    @Test
+    fun `syncNow reports no more work when pull is complete`() = runTest {
+        val f = Fixture()
+        f.api.changesBlock = { _, _ -> page("remote-1").copy(hasMore = false) }
+        val result = f.manager.syncNow()
+        assertEquals(1, f.api.cursors.size)
+        assertFalse(result.moreWork)
+    }
+
+    @Test
+    fun `syncNow skips guest`() = runTest {
+        val f = Fixture(MutableOwner().apply { uid = OwnerProvider.GUEST })
+        val result = f.manager.syncNow()
+        assertTrue(result.skipped)
+        assertEquals(0, f.api.cursors.size)
+    }
+
+    @Test
+    fun `syncNow reports retryable when push transport fails`() = runTest {
+        val f = Fixture()
+        f.outbox.insert(com.organizer.data.local.db.entities.SyncOutboxEntity(
+            mutationId = "m1", ownerFirebaseUid = "user-a", entityType = SyncEntityTypes.WORKOUT,
+            recordSyncId = "workout-sync-1", operation = "UPSERT", baseVersion = 0,
+            payload = """{"schemaVersion":1,"name":"W"}""",
+        ))
+        f.api.pushBlock = { throw java.io.IOException("network") }
+        val result = f.manager.syncNow()
+        assertTrue(result.retryable)
+        assertNotNull(result.error)
+        assertEquals(0, result.pushed)
+    }
+
+    @Test
+    fun `syncNow stops safely when owner changes`() = runTest {
+        val owner = SwitchOwner(switchAtCall = 1)
+        val f = Fixture(owner)
+        val result = f.manager.syncNow()
+        assertTrue(result.ownerChanged)
     }
 
     private fun page(syncId: String) = SyncChangesResponseDto(
@@ -138,9 +212,15 @@ class SyncManagerTest {
         val applier = SyncStagedApplier(
             owner, workouts, FakeExerciseDao(), outbox, com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, null, staged, switchingRunner, json,
         )
+        val pushCoordinator = SyncPushCoordinator(
+            owner, TestTokenProvider(), outbox, SyncApiClient(api, json), SyncContractMapper(),
+            SyncOutboxAcknowledger(owner, outbox, workouts, FakeExerciseDao(), com.organizer.fakes.FakeWorkoutExerciseDao(), com.organizer.fakes.FakeFavoriteExerciseDao(), null, null, null, switchingRunner),
+            SyncReconciler(owner, outbox, staged, applier, switchingRunner),
+            switchingRunner, SyncOperationLocks(),
+        )
         val manager = SyncManager(
             owner, TestTokenProvider(), SyncApiClient(api, json), SyncContractMapper(),
-            switchingRunner, cursors, staged, applier, SyncOperationLocks(),
+            switchingRunner, cursors, staged, applier, SyncOperationLocks(), pushCoordinator,
         )
 
         val result = manager.pullOnePage()

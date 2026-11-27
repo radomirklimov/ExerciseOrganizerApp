@@ -41,6 +41,10 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // Diagnostic Log.d calls in sync classes must be no-ops in JVM unit tests.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 kotlin {

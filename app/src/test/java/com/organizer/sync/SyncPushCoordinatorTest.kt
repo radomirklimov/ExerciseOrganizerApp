@@ -898,4 +898,17 @@ class SyncPushCoordinatorTest {
         f.coordinator.pushOneBatch()
         assertEquals(SyncEntityTypes.WORKOUT_EXERCISE, f.api.pushed.last().mutations.single().entityType)
     }
+
+    @Test
+    fun `hasEligibleWork ignores blocked and terminal mutations`() = runTest {
+        val f = Fixture()
+        assertFalse(f.coordinator.hasEligibleWork("user-a"))
+        f.outbox.insert(mutation(syncId = "a", status = SyncOutboxStatus.CONFLICTED))
+        assertFalse(f.coordinator.hasEligibleWork("user-a"))
+        f.outbox.insert(mutation(syncId = "b", status = SyncOutboxStatus.PENDING_UPLOAD))
+        assertTrue(f.coordinator.hasEligibleWork("user-a"))
+        f.outbox.insert(mutation(syncId = "c", ownerUid = "user-b", status = SyncOutboxStatus.PENDING_UPLOAD))
+        assertTrue(f.coordinator.hasEligibleWork("user-a"))
+        assertFalse(f.coordinator.hasEligibleWork("user-b"))
+    }
 }

@@ -456,17 +456,4 @@
     <string name="workout_countdown_get_ready">Get ready!</string>
     <string name="workout_countdown_message">Your workout starts in %1$d...</string>
     <string name="workout_success_label">SUCCESS</string>
-
-    <!-- Planned set configuration (saved workout editor). -->
-    <string name="planned_sets_title">Planned sets</string>
-    <string name="planned_sets_empty">No planned sets yet. Add the first set below.</string>
-    <string name="planned_sets_reps">Reps</string>
-    <string name="planned_sets_weight">Weight</string>
-    <string name="planned_sets_duration">Duration s</string>
-    <string name="planned_sets_move_up">Move set up</string>
-    <string name="planned_sets_move_down">Move set down</string>
-    <string name="planned_sets_remove">Remove set</string>
-    <string name="planned_sets_add">Add planned set</string>
-    <string name="planned_sets_done">Done</string>
-    <string name="planned_sets_invalid">Use non-negative numbers</string>
 </resources>

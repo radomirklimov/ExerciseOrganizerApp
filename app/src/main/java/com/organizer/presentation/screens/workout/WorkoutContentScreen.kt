@@ -75,7 +75,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.organizer.data.local.db.entities.ExerciseEntity
-import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
@@ -140,18 +140,16 @@ fun WorkoutContentScreen(
         }
     )
 
-    val trackedSets by if (!isTemplate && trackedExerciseId != null) {
+    // The Track popup edits the routine's planned sets, which are synced.
+    // Execution progress stays local-only and is not written here.
+    val trackedPlannedSets by if (!isTemplate && trackedExerciseId != null) {
         val setsFlow = remember(workoutId, trackedExerciseId) {
-            viewModel.observeExerciseSets(workoutId, trackedExerciseId!!)
+            viewModel.observePlannedSets(workoutId, trackedExerciseId!!)
         }
         setsFlow.collectAsState(initial = emptyList())
     } else {
-        remember { mutableStateOf(emptyList<ExerciseProgressEntity>()) }
+        remember { mutableStateOf(emptyList<PlannedSetEntity>()) }
     }
-    // Tracking acts on the latest execution. Set numbers restart every session,
-    // so mixing history in the same editor would repeat "Set 1", "Set 2", ...
-    val trackedSessionId = trackedSets.maxOfOrNull { it.sessionId } ?: 0L
-    val trackedSessionSets = trackedSets.filter { it.sessionId == trackedSessionId }
 
     // Session notes: keep a local buffer so typing does not fight Room re-emissions.
     var notesText by remember { mutableStateOf("") }
@@ -270,14 +268,16 @@ fun WorkoutContentScreen(
                     state = reorderableState,
                     key = exercise.exerciseId
                 ) {
-                    val setsFlow = remember(workoutId, exercise.exerciseId) {
-                        viewModel.observeExerciseSets(workoutId, exercise.exerciseId)
+                    val plannedSetsFlow = remember(workoutId, exercise.exerciseId) {
+                        viewModel.observePlannedSets(workoutId, exercise.exerciseId)
                     }
-                    val allSets by setsFlow.collectAsState(initial = emptyList())
-                    // Expanded list shows the latest execution only, so set
-                    // numbers do not repeat after older sessions.
-                    val latestSessionId = allSets.maxOfOrNull { it.sessionId } ?: 0L
-                    val sets = allSets.filter { it.sessionId == latestSessionId }
+                    val plannedSets by plannedSetsFlow.collectAsState(initial = emptyList())
+                    val sets = remember(plannedSets, unitSystem) {
+                        plannedSets.map { it.toEditorEntry(unitSystem) }
+                    }
+                    val displayExerciseType = remember(plannedSets, exercise.exerciseType) {
+                        effectivePlannedSetType(exercise, plannedSets)
+                    }
 
                     Column {
                         val dragHandle: (@Composable () -> Unit)? = if (isTemplate) {
@@ -322,7 +322,7 @@ fun WorkoutContentScreen(
                             modifier = if (isTemplate) Modifier else Modifier.longPressDraggableHandle(),
                             dragHandle = dragHandle,
                             exercise = exercise,
-                            displayExerciseType = effectiveExerciseType(exercise, sets),
+                            displayExerciseType = displayExerciseType,
                             deletionInfo = DeletionInfo(
                                 title = stringResource(R.string.workout_remove_exercise_title),
                                 location = workoutName.ifBlank { stringResource(R.string.workout_this_workout) },
@@ -529,12 +529,11 @@ fun WorkoutContentScreen(
 
         val trackedExercise = exerciseList.find { it.exerciseId == trackedExerciseId }
         if (!isTemplate && trackedExerciseId != null && trackedExercise != null) {
-            TrackExerciseDialog(
+            PlannedSetEditorDialog(
                 workoutId = workoutId,
                 exercise = trackedExercise,
-                sets = trackedSessionSets,
+                sets = trackedPlannedSets,
                 viewModel = viewModel,
-                sessionId = trackedSessionId,
                 onDismiss = { trackedExerciseId = null },
                 unitSystem = unitSystem,
             )
@@ -764,7 +763,7 @@ private fun AddExerciseOptionCard(
 @Composable
 private fun ExerciseSetRow(
     exerciseType: String,
-    set: ExerciseProgressEntity,
+    set: SetEditorEntry,
     unitSystem: UnitSystem = UnitSystem.METRIC,
 ) {
     Surface(
@@ -833,8 +832,7 @@ private fun ExerciseSetRow(
                     // Weight is centered in the space between "Set" and reps.
                     // The unit follows the set itself, so records made before a
                     // unit switch keep the unit they were tracked in.
-                    val setUnit = UnitSystem.entries.firstOrNull { it.name == set.unitSystem }
-                        ?: UnitSystem.METRIC
+                    val setUnit = set.unitSystem
                     Box(
                         modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.Center

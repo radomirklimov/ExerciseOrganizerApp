@@ -10,6 +10,7 @@ import com.organizer.sync.OwnerChangedDuringLocalWriteException
 import com.organizer.sync.SyncOutboxWriter
 import com.organizer.sync.SyncTransactionRunner
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import javax.inject.Inject
 
 class WorkoutRepository @Inject constructor(
@@ -41,13 +42,11 @@ class WorkoutRepository @Inject constructor(
         }
     }
 
-    fun observeWorkouts(): Flow<List<WorkoutEntity>> {
-        return dao.getAll(ownerProvider.currentOwner())
-    }
+    fun observeWorkouts(): Flow<List<WorkoutEntity>> =
+        ownerProvider.observeOwner().flatMapLatest { dao.getAll(it) }
 
-    fun observeWorkoutsWithExerciseCount(): Flow<List<WorkoutWithExerciseCount>> {
-        return dao.getWorkoutsWithExerciseCount(ownerProvider.currentOwner())
-    }
+    fun observeWorkoutsWithExerciseCount(): Flow<List<WorkoutWithExerciseCount>> =
+        ownerProvider.observeOwner().flatMapLatest { dao.getWorkoutsWithExerciseCount(it) }
 
     fun observeWorkoutById(id: Long): Flow<WorkoutEntity?> {
         return dao.getById(ownerProvider.currentOwner(), id)

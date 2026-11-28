@@ -43,6 +43,9 @@ interface StarterTemplateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<StarterTemplateExerciseEntity>)
 
+    @Query("DELETE FROM starter_template_exercise WHERE templateId = :templateId")
+    suspend fun deleteExercisesForTemplate(templateId: Long)
+
     @Query("DELETE FROM starter_template_exercise")
     suspend fun deleteAllExercises()
 

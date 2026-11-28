@@ -96,7 +96,10 @@ class OrganizerViewModel @Inject constructor(
                 // Starter templates are optional content: a failure here must
                 // not mark the whole library sync as failed.
                 try {
-                    starterTemplateRepo.refreshTemplates()
+                    val unresolved = starterTemplateRepo.refreshTemplates()
+                    if (unresolved > 0) {
+                        Log.w("SYNC", "Starter template refresh had $unresolved unresolved exercise IDs")
+                    }
                 } catch (e: Exception) {
                     Log.w("SYNC", "Couldn't refresh starter templates", e)
                 }

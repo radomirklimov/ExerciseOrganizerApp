@@ -11,7 +11,6 @@ import com.organizer.data.local.db.entities.ExerciseCategoryEntity
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.StarterTemplateEntity
 import com.organizer.data.local.db.entities.StarterTemplateExerciseEntity
-import com.organizer.data.local.db.entities.WorkoutExerciseEntity
 import com.organizer.auth.OwnerProvider
 import com.organizer.data.mapper.asEntity
 import com.organizer.data.remote.model.WorkoutTemplateExercise
@@ -27,6 +26,7 @@ class StarterTemplateRepository @Inject constructor(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val workoutRepository: WorkoutRepository,
+    private val workoutExerciseRepository: WorkoutExerciseRepository,
     private val workoutExerciseDao: WorkoutExerciseDao,
     private val fileRepository: FileRepository,
     private val ownerProvider: OwnerProvider,
@@ -113,10 +113,18 @@ class StarterTemplateRepository @Inject constructor(
             }
         }
 
-        // An unresolved catalog ID means this snapshot is incomplete. Keep the
-        // existing template rows rather than replacing them with shortened ones.
-        if (unresolved == 0) {
-            templateDao.replaceAll(templateEntities, templateExercises)
+        // Persist template metadata even for a partial catalog snapshot: a
+        // fresh install with one unresolved exercise must still show the
+        // templates. Associations are merged, never wholesale-deleted on an
+        // incomplete refresh, so previously valid rows survive. A complete
+        // refresh replaces each template's association set (and its order).
+        if (templateEntities.isNotEmpty()) {
+            templateDao.insertTemplates(templateEntities)
+        }
+        val complete = unresolved == 0
+        templateExercises.groupBy { it.templateId }.forEach { (templateId, exercises) ->
+            if (complete) templateDao.deleteExercisesForTemplate(templateId)
+            templateDao.insertExercises(exercises)
         }
         return unresolved
     }
@@ -134,17 +142,11 @@ class StarterTemplateRepository @Inject constructor(
             name = uniqueWorkoutName(template.name),
             notes = template.notes,
         )
-        if (exerciseIds.isNotEmpty()) {
-            workoutExerciseDao.insertAll(
-                exerciseIds.mapIndexed { index, exerciseId ->
-                    WorkoutExerciseEntity(
-                        workoutId = workoutId,
-                        exerciseId = exerciseId,
-                        orderIndex = index,
-                        ownerFirebaseUid = owner,
-                    )
-                }
-            )
+        // Route through the sync-aware repository so every template-derived
+        // association is written atomically with its outbox UPSERT. A direct
+        // DAO insert would leave the workout with no cloud associations.
+        exerciseIds.forEach { exerciseId ->
+            workoutExerciseRepository.addExerciseToWorkout(workoutId, exerciseId)
         }
         return workoutId
     }

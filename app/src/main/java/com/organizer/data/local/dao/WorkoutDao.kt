@@ -94,4 +94,12 @@ interface WorkoutDao {
 
     @Query("UPDATE workout SET notes = :notes, updatedAt = :updatedAt, syncStatus = 'PENDING_UPLOAD' WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
     suspend fun updateNotes(owner: String, id: Long, notes: String, updatedAt: Long)
+
+    /**
+     * Autosave while the note field is still being edited. No sync status or
+     * outbox mutation changes here: the note is only made sync-eligible by the
+     * explicit commit when editing finishes.
+     */
+    @Query("UPDATE workout SET notes = :notes, updatedAt = :updatedAt WHERE workoutId = :id AND ownerFirebaseUid = :owner AND deletedAt IS NULL")
+    suspend fun updateNotesLocally(owner: String, id: Long, notes: String, updatedAt: Long)
 }

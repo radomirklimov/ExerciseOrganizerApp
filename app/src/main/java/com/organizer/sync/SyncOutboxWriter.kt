@@ -40,6 +40,29 @@ class SyncOutboxWriter @Inject constructor(
         }
     }
 
+    /**
+     * Final commit of a note-editing session. A pending mutation with the same
+     * payload already makes this note sync-eligible, so repeated focus changes
+     * do not create extra mutations. A still-open mutation with different text
+     * is coalesced by [enqueue] rather than split into a second upload.
+     */
+    suspend fun upsertWorkoutFinal(owner: String, workout: WorkoutEntity) {
+        if (owner == OwnerProvider.GUEST) return
+        val payload = payloadFactory.workout(workout)
+        val alreadySyncEligible = outboxDao.findByRecord(owner, SyncEntityTypes.WORKOUT, workout.syncId)
+            .any { row ->
+                row.operation == OPERATION_UPSERT &&
+                    row.payload == payload &&
+                    row.syncStatus in setOf(
+                        SyncOutboxStatus.PENDING_UPLOAD,
+                        SyncOutboxStatus.IN_FLIGHT,
+                        SyncOutboxStatus.ACKNOWLEDGED,
+                    )
+            }
+        if (alreadySyncEligible) return
+        enqueue(owner, SyncEntityTypes.WORKOUT, workout.syncId, OPERATION_UPSERT, workout.serverVersion) { payload }
+    }
+
     suspend fun deleteWorkout(owner: String, workout: WorkoutEntity) {
         enqueue(owner, SyncEntityTypes.WORKOUT, workout.syncId, OPERATION_DELETE, workout.serverVersion) {
             payloadFactory.workout(workout)

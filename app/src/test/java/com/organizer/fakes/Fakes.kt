@@ -969,6 +969,16 @@ class FakeWorkoutDao : WorkoutDao {
             }
         }
     }
+
+    override suspend fun updateNotesLocally(owner: String, id: Long, notes: String, updatedAt: Long) {
+        data.update { current ->
+            current.map {
+                if (it.workoutId == id && it.ownerFirebaseUid == owner && it.deletedAt == null) {
+                    it.copy(notes = notes, updatedAt = updatedAt)
+                } else it
+            }
+        }
+    }
 }
 
 class FakeSyncStagedDao : SyncStagedDao {

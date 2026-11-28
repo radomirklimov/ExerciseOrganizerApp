@@ -453,6 +453,16 @@ class OrganizerViewModel @Inject constructor(
         workoutRepo.updateWorkoutNotes(id, notes)
     }
 
+    /** Keystrokes are saved locally only; no outbox mutation, no sync trigger. */
+    fun updateWorkoutNotesWhileEditing(id: Long, notes: String) = viewModelScope.launch {
+        workoutRepo.updateWorkoutNotesWhileEditing(id, notes)
+    }
+
+    /** Editing finished: durably save the latest text and make it sync-eligible. */
+    fun commitWorkoutNotes(id: Long, notes: String) = viewModelScope.launch {
+        workoutRepo.commitWorkoutNotes(id, notes)
+    }
+
     fun addExerciseToWorkout(workoutId: Long, exerciseId: Long) = viewModelScope.launch {
         workoutExerciseRepo.addExerciseToWorkout(workoutId, exerciseId)
     }

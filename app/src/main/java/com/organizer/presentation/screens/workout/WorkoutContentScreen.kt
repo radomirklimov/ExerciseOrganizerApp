@@ -43,16 +43,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -153,12 +156,22 @@ fun WorkoutContentScreen(
     // Session notes: keep a local buffer so typing does not fight Room re-emissions.
     var notesText by remember { mutableStateOf("") }
     var notesInitialized by remember { mutableStateOf(false) }
+    var notesHadFocus by remember { mutableStateOf(false) }
+    val latestNotesText by rememberUpdatedState(notesText)
     val notesReady = if (isTemplate) template != null else workout != null
     val initialNotes = if (isTemplate) templateNotes else workout?.notes.orEmpty()
     LaunchedEffect(notesReady, initialNotes) {
         if (!notesInitialized && notesReady) {
             notesText = initialNotes
             notesInitialized = true
+        }
+    }
+    // Leaving the screen while the field is focused must still finish the edit.
+    DisposableEffect(Unit) {
+        onDispose {
+            if (notesHadFocus) {
+                viewModel.commitWorkoutNotes(workoutId, latestNotesText)
+            }
         }
     }
 
@@ -438,11 +451,19 @@ fun WorkoutContentScreen(
                                     value = notesText,
                                     onValueChange = {
                                         notesText = it
-                                        viewModel.updateWorkoutNotes(workoutId, it)
+                                        viewModel.updateWorkoutNotesWhileEditing(workoutId, it)
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(120.dp),
+                                        .height(120.dp)
+                                        .onFocusChanged { focus ->
+                                            if (focus.isFocused) {
+                                                notesHadFocus = true
+                                            } else if (notesHadFocus) {
+                                                notesHadFocus = false
+                                                viewModel.commitWorkoutNotes(workoutId, latestNotesText)
+                                            }
+                                        },
                                     placeholder = { Text(stringResource(R.string.workout_notes_placeholder)) },
                                     minLines = 3
                                 )

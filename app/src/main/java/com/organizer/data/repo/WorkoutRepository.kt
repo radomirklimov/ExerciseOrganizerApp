@@ -81,4 +81,33 @@ class WorkoutRepository @Inject constructor(
             }
         }
     }
+
+    /** Autosave during editing: durable locally, but not yet visible to sync. */
+    suspend fun updateWorkoutNotesWhileEditing(id: Long, notes: String) {
+        val owner = ownerProvider.currentOwner()
+        transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
+            val workout = dao.getByIdOnce(owner, id)
+            if (workout != null && workout.deletedAt == null && workout.notes != notes) {
+                dao.updateNotesLocally(owner, id, notes, System.currentTimeMillis())
+            }
+        }
+    }
+
+    /**
+     * Called when editing finishes. Persists the latest text and creates the
+     * single sync mutation for this editing session in one transaction; the
+     * outbox observer requests sync only after that transaction commits.
+     */
+    suspend fun commitWorkoutNotes(id: Long, notes: String) {
+        val owner = ownerProvider.currentOwner()
+        transactions.run {
+            if (ownerProvider.currentOwner() != owner) throw OwnerChangedDuringLocalWriteException()
+            val workout = dao.getByIdOnce(owner, id) ?: return@run
+            if (workout.deletedAt != null) return@run
+            val now = System.currentTimeMillis()
+            if (workout.notes != notes) dao.updateNotesLocally(owner, id, notes, now)
+            outboxWriter.upsertWorkoutFinal(owner, workout.copy(notes = notes, updatedAt = now))
+        }
+    }
 }

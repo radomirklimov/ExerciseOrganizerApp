@@ -79,6 +79,7 @@ import android.content.Context
 import com.organizer.R
 import androidx.compose.ui.res.stringResource
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.preferences.UnitSystem
 import com.organizer.presentation.OrganizerViewModel
 import com.organizer.presentation.screens.general.DeleteConfirmationDialog
@@ -104,7 +105,13 @@ internal fun exerciseTypeLabel(exerciseType: String): String = when (exerciseTyp
  * recorded so old sets keep their original presentation after the user
  * switches the tracking mode.
  */
-internal fun ExerciseProgressEntity.inferredExerciseType(): String = when {
+internal fun ExerciseProgressEntity.inferredExerciseType(): String =
+    inferSetType(durationSeconds, weight)
+
+internal fun PlannedSetEntity.inferredExerciseType(): String =
+    inferSetType(durationSeconds, weight)
+
+private fun inferSetType(durationSeconds: Int?, weight: Double?): String = when {
     durationSeconds != null -> TYPE_DURATION
     weight != null -> TYPE_REPS_WEIGHT
     else -> TYPE_REPS
@@ -118,24 +125,45 @@ internal fun ExerciseProgressEntity.inferredExerciseType(): String = when {
 internal fun effectiveExerciseType(
     exercise: ExerciseEntity,
     sets: List<ExerciseProgressEntity>,
-): String {
-    if (sets.isEmpty()) return exercise.exerciseType
+): String = effectiveSetType(
+    fallback = exercise.exerciseType,
+    entries = sets.map {
+        Triple(it.setNumber, it.progressId, it.inferredExerciseType())
+    },
+)
 
-    val counts = sets.groupingBy { it.inferredExerciseType() }.eachCount()
+/** Same rule as [effectiveExerciseType], for the workout's planned sets. */
+internal fun effectivePlannedSetType(
+    exercise: ExerciseEntity,
+    sets: List<PlannedSetEntity>,
+): String = effectiveSetType(
+    fallback = exercise.exerciseType,
+    entries = sets.map {
+        Triple(it.setNumber, it.setNumber.toLong(), it.inferredExerciseType())
+    },
+)
+
+private fun effectiveSetType(
+    fallback: String,
+    entries: List<Triple<Int, Long, String>>,
+): String {
+    if (entries.isEmpty()) return fallback
+
+    val counts = entries.groupingBy { it.third }.eachCount()
     val maxCount = counts.values.maxOrNull() ?: 0
     val mostCommonTypes = counts.filterValues { it == maxCount }.keys
 
     return if (mostCommonTypes.size == 1) {
         mostCommonTypes.first()
     } else {
-        sets.asSequence()
-            .filter { it.inferredExerciseType() in mostCommonTypes }
+        entries.asSequence()
+            .filter { it.third in mostCommonTypes }
             .minWithOrNull(
-                compareBy<ExerciseProgressEntity> { it.setNumber }
-                    .thenBy { it.progressId }
+                compareBy<Triple<Int, Long, String>> { it.first }
+                    .thenBy { it.second }
             )
-            ?.inferredExerciseType()
-            ?: exercise.exerciseType
+            ?.third
+            ?: fallback
     }
 }
 
@@ -242,17 +270,7 @@ fun TrackExerciseDialog(
         title = stringResource(R.string.track_exercise_title, exercise.name),
         exerciseName = exercise.name,
         initialType = effectiveExerciseType(exercise, sets),
-        sets = sets.map { set ->
-            SetEditorEntry(
-                id = set.progressId,
-                setNumber = set.setNumber,
-                reps = set.reps,
-                weight = set.weight,
-                durationSeconds = set.durationSeconds,
-                unitSystem = UnitSystem.entries.firstOrNull { it.name == set.unitSystem }
-                    ?: UnitSystem.METRIC,
-            )
-        },
+        sets = sets.map { it.toEditorEntry() },
         emptyText = stringResource(R.string.track_no_sets),
         startAddingSet = startAddingSet,
         initialReps = initialReps,
@@ -284,6 +302,84 @@ fun TrackExerciseDialog(
         onClose = onDismiss,
     )
 }
+
+/**
+ * The workout editor's "Track" popup. It edits the routine's planned sets,
+ * which are persisted through [com.organizer.data.repo.PlannedSetRepository]
+ * and the PLANNED_SET sync outbox, so they survive a reinstall. Logged
+ * execution progress stays local-only and is not touched here.
+ */
+@Composable
+internal fun PlannedSetEditorDialog(
+    workoutId: Long,
+    exercise: ExerciseEntity,
+    sets: List<PlannedSetEntity>,
+    viewModel: OrganizerViewModel,
+    onDismiss: () -> Unit,
+    unitSystem: UnitSystem = UnitSystem.METRIC,
+) {
+    SetEditorDialog(
+        stateKey = exercise.exerciseId,
+        title = stringResource(R.string.track_exercise_title, exercise.name),
+        exerciseName = exercise.name,
+        initialType = effectivePlannedSetType(exercise, sets),
+        sets = sets.map { it.toEditorEntry(unitSystem) },
+        emptyText = stringResource(R.string.track_no_sets),
+        unitSystem = unitSystem,
+        onAddSet = { reps, weight, duration, _ ->
+            viewModel.addPlannedSet(
+                workoutId = workoutId,
+                exerciseId = exercise.exerciseId,
+                setNumber = nextPlannedSetNumber(sets),
+                reps = reps,
+                weight = weight,
+                durationSeconds = duration,
+            )
+        },
+        onUpdateSet = { id, reps, weight, duration ->
+            viewModel.updatePlannedSet(
+                workoutId = workoutId,
+                exerciseId = exercise.exerciseId,
+                setNumber = id.toInt(),
+                reps = reps,
+                weight = weight,
+                durationSeconds = duration,
+            )
+        },
+        onDeleteSet = { entry ->
+            viewModel.deletePlannedSet(workoutId, exercise.exerciseId, entry.setNumber)
+        },
+        onSave = onDismiss,
+        onClose = onDismiss,
+        deletePermanently = false,
+    )
+}
+
+/** The repository keys planned sets by set number, so the editor row id is it. */
+internal fun PlannedSetEntity.toEditorEntry(
+    unitSystem: UnitSystem = UnitSystem.METRIC,
+): SetEditorEntry = SetEditorEntry(
+    id = setNumber.toLong(),
+    setNumber = setNumber,
+    reps = reps,
+    weight = weight,
+    durationSeconds = durationSeconds,
+    unitSystem = unitSystem,
+)
+
+/** Maps a locally recorded execution set to a shared editor row. */
+internal fun ExerciseProgressEntity.toEditorEntry(): SetEditorEntry = SetEditorEntry(
+    id = progressId,
+    setNumber = setNumber,
+    reps = reps,
+    weight = weight,
+    durationSeconds = durationSeconds,
+    unitSystem = UnitSystem.entries.firstOrNull { it.name == unitSystem }
+        ?: UnitSystem.METRIC,
+)
+
+internal fun nextPlannedSetNumber(sets: List<PlannedSetEntity>): Int =
+    (sets.maxOfOrNull { it.setNumber } ?: 0) + 1
 
 /**
  * Shared set editor: set list, inline add/edit sheet with drag steppers, type

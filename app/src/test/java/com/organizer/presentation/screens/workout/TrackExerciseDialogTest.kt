@@ -2,6 +2,7 @@ package com.organizer.presentation.screens.workout
 
 import com.organizer.data.local.db.entities.ExerciseEntity
 import com.organizer.data.local.db.entities.ExerciseProgressEntity
+import com.organizer.data.local.db.entities.PlannedSetEntity
 import com.organizer.data.preferences.UnitSystem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -100,6 +101,74 @@ class TrackExerciseDialogTest {
     @Test
     fun `workout type uses the stored type when there are no sets`() {
         assertEquals("DURATION", effectiveExerciseType(exercise(type = "DURATION"), emptyList()))
+    }
+
+    @Test
+    fun `planned set maps to an editor row keyed by set number`() {
+        val planned = PlannedSetEntity(
+            workoutId = 1,
+            exerciseId = 2,
+            setNumber = 3,
+            reps = 10,
+            weight = 20.0,
+        )
+
+        val entry = planned.toEditorEntry(UnitSystem.IMPERIAL)
+
+        assertEquals(3L, entry.id)
+        assertEquals(3, entry.setNumber)
+        assertEquals(10, entry.reps)
+        assertEquals(20.0, entry.weight)
+        assertEquals(UnitSystem.IMPERIAL, entry.unitSystem)
+        assertEquals("REPS_WEIGHT", entry.inferredExerciseType())
+    }
+
+    @Test
+    fun `next planned set number continues after the highest set`() {
+        assertEquals(1, nextPlannedSetNumber(emptyList()))
+        assertEquals(
+            4,
+            nextPlannedSetNumber(
+                listOf(
+                    PlannedSetEntity(workoutId = 1, exerciseId = 1, setNumber = 1, reps = 10),
+                    PlannedSetEntity(workoutId = 1, exerciseId = 1, setNumber = 3, reps = 12),
+                )
+            ),
+        )
+    }
+
+    @Test
+    fun `planned set type follows the most common set type`() {
+        val exercise = exercise(type = "REPS_WEIGHT")
+        val sets = listOf(
+            PlannedSetEntity(workoutId = 1, exerciseId = 1, setNumber = 1, reps = 10),
+            PlannedSetEntity(workoutId = 1, exerciseId = 1, setNumber = 2, reps = 12),
+            PlannedSetEntity(workoutId = 1, exerciseId = 1, setNumber = 3, durationSeconds = 30),
+        )
+
+        assertEquals("REPS", effectivePlannedSetType(exercise, sets))
+    }
+
+    @Test
+    fun `planned set type uses the stored type when there are no sets`() {
+        assertEquals("DURATION", effectivePlannedSetType(exercise(type = "DURATION"), emptyList()))
+    }
+
+    @Test
+    fun `progress fallback maps to an editor row`() {
+        val progress = ExerciseProgressEntity(
+            progressId = 7,
+            workoutId = 1,
+            exerciseId = 1,
+            setNumber = 2,
+            reps = 8,
+            unitSystem = "IMPERIAL",
+        )
+
+        val entry = progress.toEditorEntry()
+
+        assertEquals(7L, entry.id)
+        assertEquals(UnitSystem.IMPERIAL, entry.unitSystem)
     }
 
     @Test

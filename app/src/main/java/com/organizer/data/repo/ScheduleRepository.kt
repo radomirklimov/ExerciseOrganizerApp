@@ -107,9 +107,22 @@ class ScheduleRepository @Inject constructor(
                 val existing = scheduleDao.getById(owner, entry.scheduleId) ?: return@run
                 val workout = workoutDao.getByIdOnce(owner, entry.workoutId) ?: return@run
                 val now = System.currentTimeMillis()
-                scheduleDao.update(entry.copy(updatedAt = now, syncStatus = "PENDING_UPLOAD"))
+                // Callers may pass a freshly built entity that only carries the
+                // edited fields. Keep the identity and sync bookkeeping of the
+                // stored row instead of overwriting them with defaults.
+                val updated = existing.copy(
+                    workoutId = entry.workoutId,
+                    dayOfWeek = entry.dayOfWeek,
+                    scheduledDateKey = entry.scheduledDateKey,
+                    startMinutes = entry.startMinutes,
+                    reminderEnabled = entry.reminderEnabled,
+                    reminderMinutesBefore = entry.reminderMinutesBefore,
+                    reminderNote = entry.reminderNote,
+                    updatedAt = now,
+                    syncStatus = "PENDING_UPLOAD",
+                )
+                scheduleDao.update(updated)
                 if (owner != OwnerProvider.GUEST) {
-                    val updated = scheduleDao.getById(owner, entry.scheduleId)!!
                     val payload = payloadFactory.scheduledWorkout(updated, workout.syncId)
                     val rows = outboxDao.findByRecordSyncId(owner, existing.syncId)
                         .filter { it.entityType == SyncEntityTypes.SCHEDULED_WORKOUT }

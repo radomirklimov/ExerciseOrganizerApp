@@ -89,6 +89,37 @@ class ScheduleLifecycleTest {
     }
 
     @Test
+    fun `update preserves identity when called with a UI-built entity`() = runTest {
+        val f = Fixture()
+        f.seedWorkout()
+        val id = f.add()
+        val before = f.entry(id)!!
+        // Mimic ScheduleViewModel.buildEntry: only edited fields are populated,
+        // everything else keeps its default (guest owner, random syncId, ...).
+        val uiEntry = ScheduledWorkoutEntity(
+            scheduleId = id,
+            workoutId = 1L,
+            dayOfWeek = 2,
+            scheduledDateKey = null,
+            startMinutes = 500,
+            reminderEnabled = false,
+            reminderMinutesBefore = 15,
+            reminderNote = "edited from sheet",
+        )
+        f.repo.updateEntry(uiEntry)
+        val after = f.entry(id)!!
+        assertEquals(before.syncId, after.syncId)
+        assertEquals("user-a", after.ownerFirebaseUid)
+        assertEquals(before.serverVersion, after.serverVersion)
+        assertEquals(2, after.dayOfWeek)
+        assertEquals(500, after.startMinutes)
+        assertEquals(false, after.reminderEnabled)
+        assertEquals(15, after.reminderMinutesBefore)
+        assertEquals("edited from sheet", after.reminderNote)
+        assertTrue(f.outboxFor(after.syncId).any { it.operation == "UPSERT" })
+    }
+
+    @Test
     fun `delete soft-deletes and re-add creates new syncId`() = runTest {
         val f = Fixture()
         f.seedWorkout()
